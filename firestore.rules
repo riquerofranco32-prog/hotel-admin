@@ -1,0 +1,39 @@
+rules_version = '2';
+// Reglas de seguridad del PMS.
+//  - Sólo personal dado de alta (colección staff, ID = email en minúsculas) y activo puede leer/escribir.
+//  - Sólo administradores gestionan usuarios y configuración.
+//  - El primer usuario que inicia sesión se auto-registra como admin (una única vez, vía meta/bootstrap).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null && request.auth.token.email != null; }
+    function myEmail() { return request.auth.token.email.lower(); }
+    function staffPath() { return /databases/$(database)/documents/staff/$(myEmail()); }
+    function isStaff() { return signedIn() && exists(staffPath()) && get(staffPath()).data.active == true; }
+    function isAdmin() { return isStaff() && get(staffPath()).data.role == 'admin'; }
+    function bootstrapPath() { return /databases/$(database)/documents/meta/bootstrap; }
+
+    match /meta/bootstrap {
+      allow read: if signedIn();
+      allow create: if signedIn() && !exists(bootstrapPath());
+    }
+
+    match /staff/{id} {
+      allow read: if isStaff();
+      allow create: if isAdmin()
+        || (signedIn() && id == myEmail() && !exists(bootstrapPath()) && existsAfter(bootstrapPath())
+            && request.resource.data.role == 'admin');
+      allow update, delete: if isAdmin();
+    }
+
+    match /settings/{id} {
+      allow read: if isStaff();
+      // recepción puede avanzar el número de factura
+      allow write: if isAdmin()
+        || (isStaff() && resource != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['invoiceSeq']));
+    }
+
+    match /{col}/{id} {
+      allow read, write: if isStaff() && !(col in ['staff', 'meta', 'settings']);
+    }
+  }
+}

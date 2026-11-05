@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+html, body { height: 100%; }
+body { background: #f9fafb; color: #111827; -webkit-font-smoothing: antialiased; }
+
+/* Celdas con mantenimiento bloqueante en el calendario */
+.hatch {
+  background-image: repeating-linear-gradient(135deg, rgba(147, 51, 234, 0.16) 0 4px, transparent 4px 8px);
+}
+
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area { position: absolute; inset: 0; padding: 24px; }
+  .no-print { display: none !important; }
+}
