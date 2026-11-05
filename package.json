@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "emulators": "npx -y firebase-tools@14 emulators:start --project demo-hotel --only auth,firestore",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -7,6 +7,9 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  limit,
+  orderBy,
+  query,
   onSnapshot,
   runTransaction,
   setDoc,
@@ -41,8 +44,10 @@ function firestoreAdapter(): Adapter {
   return {
     kind: "firebase",
     subscribe(col, cb, onError) {
+      // El registro de actividad crece siempre: sólo traemos lo más reciente
+      const ref = col === "activity" ? query(collection(db, col), orderBy("at", "desc"), limit(1000)) : collection(db, col);
       return onSnapshot(
-        collection(db, col),
+        ref,
         (snap) => cb(snap.docs.map((d) => ({ ...(d.data() as object), id: d.id }) as Doc)),
         (err) => {
           console.error(`[firestore] ${col}`, err);

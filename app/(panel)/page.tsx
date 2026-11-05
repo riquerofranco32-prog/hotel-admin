@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { Bell, ChevronDown, ChevronLeft, ChevronRight, Download, Plus, Wrench } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { ReservationDrawer, ReservationForm } from "@/components/reservation";
-import { Button, Card, Input, Select } from "@/components/ui";
+import { Button, Card, Input, Select, toast } from "@/components/ui";
 import { alerts } from "@/lib/automation";
 import { addDays, daysInMonth, diffDays, fmtShort, MONTHS, parseISO, toISO, today, WEEKDAYS_SHORT } from "@/lib/dates";
 import {
@@ -24,7 +24,7 @@ import type { Reservation, RoomState, VisualStatus } from "@/lib/types";
 type StatusFilter = "todos" | VisualStatus | "mantenimiento";
 
 export default function DashboardPage() {
-  const { data, me } = useApp();
+  const { data, me, actions } = useApp();
   const t = today();
   const now = parseISO(t);
   const [year, setYear] = useState(now.getFullYear());
@@ -39,6 +39,29 @@ export default function DashboardPage() {
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
   const [bellOpen, setBellOpen] = useState(false);
   const canEdit = me?.role === "admin" || me?.role === "recepcion";
+  // Arrastrar y soltar reservas (cambiar habitación y/o fechas)
+  const [drag, setDrag] = useState<{ id: string; offset: number } | null>(null);
+  const [dropAt, setDropAt] = useState<{ roomId: string; day: string } | null>(null);
+
+  async function dropReservation(roomId: string, day: string) {
+    const cur = drag && data.reservations.find((x) => x.id === drag.id);
+    setDrag(null);
+    setDropAt(null);
+    if (!cur) return;
+    const n = diffDays(cur.checkIn, cur.checkOut);
+    const checkIn = addDays(day, -drag!.offset);
+    const moved = { ...cur, roomId, checkIn, checkOut: addDays(checkIn, n) };
+    if (moved.roomId === cur.roomId && moved.checkIn === cur.checkIn) return;
+    if (cur.status === "checkout") return toast("No se puede mover una estadía que ya terminó", "error");
+    if (cur.status === "checkin" && moved.checkIn !== cur.checkIn) return toast("El huésped ya ingresó: sólo podés cambiarlo de habitación", "error");
+    const err = actions.validateReservation(moved);
+    if (err) return toast(err, "error");
+    const newRoom = data.rooms.find((x) => x.id === roomId)?.number;
+    const oldRoom = data.rooms.find((x) => x.id === cur.roomId)?.number;
+    if (!confirm(`¿Mover a ${cur.guestName}?\n\nHab. ${oldRoom} · ${fmtShort(cur.checkIn)} → ${fmtShort(cur.checkOut)}\n→ Hab. ${newRoom} · ${fmtShort(moved.checkIn)} → ${fmtShort(moved.checkOut)}`)) return;
+    await actions.saveReservation(moved);
+    toast("Reserva movida");
+  }
 
   const days = daysInMonth(year, month);
   const monthStart = toISO(new Date(year, month, 1));
@@ -203,6 +226,7 @@ export default function DashboardPage() {
         <span className="flex items-center gap-1.5 text-gray-700">
           <span className="hatch h-3 w-3 rounded-sm border border-purple-300" /> Mantenimiento
         </span>
+        {canEdit && <span className="hidden text-xs text-gray-400 xl:inline">Arrastrá una reserva para moverla · clic en un día libre para reservar</span>}
         <span className="ml-auto text-gray-500">
           Libres hoy <b className="text-gray-800">{stats.libres}</b> · Reservadas <b className="text-gray-800">{stats.reservadas}</b> · Ocupadas{" "}
           <b className="text-gray-800">{stats.ocupadas}</b> · En mantenimiento <b className="text-gray-800">{stats.mant}</b> · Ocupación{" "}
@@ -286,12 +310,22 @@ export default function DashboardPage() {
                                 return (
                                   <div
                                     key={d}
+                                    onDragOver={(e) => {
+                                      if (!drag) return;
+                                      e.preventDefault();
+                                      if (dropAt?.roomId !== room.id || dropAt.day !== d) setDropAt({ roomId: room.id, day: d });
+                                    }}
+                                    onDrop={(e) => {
+                                      e.preventDefault();
+                                      dropReservation(room.id, d);
+                                    }}
                                     onClick={() => canEdit && setForm({ open: true, initial: { roomId: room.id, checkIn: d, checkOut: addDays(d, 2), rate: room.rate } })}
                                     className={cls(
                                       "border-l border-gray-100",
                                       canEdit && "cursor-pointer hover:bg-blue-50",
                                       d === t ? "bg-gray-100" : wd === 0 || wd === 6 ? "bg-gray-50/60" : "",
                                       i >= hatchStart && i < hatchEnd && "hatch",
+                                      dropAt?.roomId === room.id && dropAt.day === d && "!bg-amber-200",
                                     )}
                                   />
                                 );
@@ -316,12 +350,27 @@ export default function DashboardPage() {
                               return (
                                 <button
                                   key={r.id}
+                                  draggable={canEdit && r.status !== "checkout"}
+                                  onDragStart={(e) => {
+                                    const parent = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect();
+                                    const idx = Math.floor(((e.clientX - parent.left) / parent.width) * days);
+                                    setDrag({ id: r.id, offset: diffDays(r.checkIn, addDays(monthStart, idx)) });
+                                    setTip(null);
+                                    e.dataTransfer.effectAllowed = "move";
+                                  }}
+                                  onDragEnd={() => {
+                                    setDrag(null);
+                                    setDropAt(null);
+                                  }}
                                   onClick={() => setOpenRes(r.id)}
                                   onMouseMove={(e) => setTip({ x: e.clientX, y: e.clientY, text: tipText })}
                                   onMouseLeave={() => setTip(null)}
                                   className={cls(
                                     "absolute top-[3px] bottom-[3px] truncate px-2 text-left text-[13px] font-medium transition hover:brightness-110",
                                     VISUAL_CLASS[vs],
+                                    canEdit && r.status !== "checkout" && "cursor-grab active:cursor-grabbing",
+                                    drag?.id === r.id && "opacity-50",
+                                    drag && "pointer-events-none",
                                     density === "compacto" && "text-[12px]",
                                     q && r.guestName.toLowerCase().includes(q) && "ring-2 ring-amber-400",
                                   )}

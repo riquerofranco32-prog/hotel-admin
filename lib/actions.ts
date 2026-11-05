@@ -63,9 +63,24 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
     },
 
     async saveReservation(r: Reservation) {
-      const isNew = !get().reservations.some((x) => x.id === r.id);
+      const prev = get().reservations.find((x) => x.id === r.id);
+      // Si el estado se cambia a mano desde el formulario, aplicamos los mismos efectos que los botones
+      if (prev && prev.status !== r.status) {
+        if (r.status === "checkin" && !r.checkedInAt) Object.assign(r, { checkedInAt: nowISO(), checkedInBy: by() });
+        if (r.status === "checkout" && !r.checkedOutAt) Object.assign(r, { checkedOutAt: nowISO(), checkedOutBy: by() });
+      }
       await db.set("reservations", r.id, r);
-      await log(isNew ? "Creó reserva" : "Editó reserva", `reservations/${r.id}`, `${r.guestName} · Hab. ${roomNum(r.roomId)} · ${r.checkIn} → ${r.checkOut}`);
+      if (prev && prev.status !== r.status && r.status === "checkout") await generateCheckout(r);
+      // Si cambió de habitación, las tareas abiertas de la reserva (llegada / pre-salida) la siguen
+      if (prev && prev.roomId !== r.roomId) {
+        for (const t of get().tasks.filter((t) => t.reservationId === r.id && t.status !== "completada" && t.trigger !== "checkout"))
+          await db.update("tasks", t.id, { roomId: r.roomId, log: taskLog(t, `Movida a Hab. ${roomNum(r.roomId)} (cambio de habitación)`) });
+      }
+      const detail = `${r.guestName} · Hab. ${roomNum(r.roomId)} · ${r.checkIn} → ${r.checkOut}`;
+      if (!prev) await log("Creó reserva", `reservations/${r.id}`, detail);
+      else if (prev.roomId !== r.roomId || prev.checkIn !== r.checkIn || prev.checkOut !== r.checkOut)
+        await log("Movió reserva", `reservations/${r.id}`, `${detail} (antes Hab. ${roomNum(prev.roomId)} · ${prev.checkIn} → ${prev.checkOut})`);
+      else await log("Editó reserva", `reservations/${r.id}`, detail);
     },
 
     async checkIn(r: Reservation) {

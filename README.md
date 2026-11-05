@@ -8,7 +8,7 @@ Panel de gestión hotelera (tipo CRM / PMS) hecho con **Next.js 15 + React 19 + 
 
 | Sección | Qué hace |
 |---|---|
-| **Dashboard** | Calendario mensual habitación × día. Colores: 🟢 Ocupada · 🔵 Reservada · 🔴 Próxima a salir · ⚪ Otros estados · rayado = mantenimiento. Filtros por piso/estado, búsqueda, vista compacta, alertas 🔔, exportar CSV, clic en celda vacía = nueva reserva, clic en barra = ficha de la reserva. Punto de color junto a cada habitación = estado de limpieza. |
+| **Dashboard** | Calendario mensual habitación × día. Colores: 🟢 Ocupada · 🔵 Reservada · 🔴 Próxima a salir · ⚪ Otros estados · rayado = mantenimiento. Filtros por piso/estado, búsqueda, vista compacta, alertas 🔔, exportar CSV, clic en celda vacía = nueva reserva, clic en barra = ficha de la reserva, **arrastrar una barra** = moverla de habitación o de fecha (valida superposiciones). Punto de color junto a cada habitación = estado de limpieza. |
 | **Reservas** | Listado con filtros, alta/edición con control de superposición y capacidad, ficha y historial de huéspedes. |
 | **Recepción** | Llegadas, salidas y huéspedes en casa del día con check-in / check-out en un clic, walk-ins, estado de limpieza de cada habitación antes de entregarla. |
 | **Facturación** | Folio por reserva (alojamiento + consumos), pagos por medio, saldo, emisión e impresión de facturas, resumen del mes. |
@@ -43,6 +43,16 @@ npm run dev
 ```
 
 Abrí http://localhost:3000 (modo demo).
+
+### Probar con Firebase sin crear un proyecto (emulador local)
+
+Requiere Java 11+. En una terminal:
+
+```bash
+npm run emulators
+```
+
+En otra, creá `.env.local` con `NEXT_PUBLIC_FIREBASE_EMULATOR=1`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-hotel` y valores cualquiera en las demás `NEXT_PUBLIC_FIREBASE_*`, y corré `npm run dev`. Usa las mismas reglas de seguridad que producción.
 
 ## Configurar Firebase
 
