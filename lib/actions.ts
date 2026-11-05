@@ -1,8 +1,8 @@
 "use client";
 import type { Adapter } from "./db";
-import { checkoutTasks, pendingAutomations } from "./automation";
+import { autoAssign, buildTask, checkoutTasks, planAutomations } from "./automation";
 import { nowISO, overlaps, today } from "./dates";
-import { folio, isActive, nights, uid } from "./logic";
+import { automationOf, folio, isActive, nights, uid } from "./logic";
 import { buildSeed } from "./seed";
 import type {
   Charge,
@@ -38,8 +38,9 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
 
   async function generateCheckout(r: Reservation) {
     const d = get();
-    if (!d.settings[0]?.rules?.checkoutTasks && d.settings[0]) return;
-    for (const task of checkoutTasks(r, d, by())) {
+    const cfg = automationOf(d.settings[0]);
+    if (!cfg.checkoutTasks) return;
+    for (const task of checkoutTasks(r, d, by(), cfg)) {
       task.log = [{ at: nowISO(), by: by(), action: "Tarea creada automáticamente por check-out" }];
       await db.createIfMissing("tasks", task.id, task);
     }
@@ -87,7 +88,7 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
       await db.update("reservations", r.id, { status: "checkin", checkedInAt: nowISO(), checkedInBy: by() });
       // la tarea de "preparar llegada" se cierra sola si quedó abierta
       const prep = get().tasks.find((t) => t.id === `${r.id}-preparar_llegada` && t.status !== "completada");
-      if (prep)
+      if (prep && automationOf(get().settings[0]).cerrarAlCheckin)
         await db.update("tasks", prep.id, {
           status: "completada",
           completedAt: nowISO(),
@@ -102,7 +103,7 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
       await generateCheckout({ ...r, status: "checkout" });
       // pre-salida pendiente se marca como resuelta
       const pre = get().tasks.find((t) => t.id === `${r.id}-pre_salida` && t.status !== "completada");
-      if (pre)
+      if (pre && automationOf(get().settings[0]).cerrarAlCheckin)
         await db.update("tasks", pre.id, {
           status: "completada",
           completedAt: nowISO(),
@@ -195,12 +196,50 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
       await db.remove("tasks", t.id);
       await log("Eliminó tarea", `tasks/${t.id}`, t.title);
     },
-    async runAutomations() {
-      const created = pendingAutomations(get(), today());
+    /** Ejecuta el motor. `canEditReservations` evita que roles sin permiso intenten marcar no-shows. */
+    async runAutomations(canEditReservations = true) {
+      const plan = planAutomations(get(), today());
       let n = 0;
-      for (const t of created) if (await db.createIfMissing("tasks", t.id, t)) n++;
-      if (n) await db.set("activity", uid("act"), { at: nowISO(), by: "sistema", action: `Automatizaciones: ${n} tareas creadas`, entity: "tasks" });
-      return n;
+      for (const t of plan.create) if (await db.createIfMissing("tasks", t.id, t)) n++;
+      for (const t of plan.escalate)
+        await db.update("tasks", t.id, { priority: "urgente", log: [...(t.log ?? []), { at: nowISO(), by: "sistema", action: "Escalada a urgente (vencida)" }] });
+      let ns = 0;
+      if (canEditReservations)
+        for (const r of plan.noShows) {
+          await db.update("reservations", r.id, { status: "no_show" });
+          ns++;
+        }
+      const parts = [n && `${n} tareas creadas`, plan.escalate.length && `${plan.escalate.length} tareas escaladas`, ns && `${ns} no-shows`].filter(Boolean);
+      if (parts.length) await db.set("activity", uid("act"), { at: nowISO(), by: "sistema", action: `Automatizaciones: ${parts.join(", ")}`, entity: "tasks" });
+      return n + plan.escalate.length + ns;
+    },
+
+    /** Una mucama/empleado reporta un problema → se crea una reparación para mantenimiento. */
+    async reportIssue(roomId: string, description: string, opts: { urgent?: boolean; block?: boolean } = {}) {
+      const d = get();
+      const cfg = automationOf(d.settings[0]);
+      const t = buildTask({
+        id: uid("task"),
+        type: "reparacion",
+        roomId,
+        trigger: "manual",
+        dueDate: today(),
+        createdBy: by(),
+        assignedTo: autoAssign("reparacion", d.staff, d.tasks, cfg.autoAsignar),
+        title: description.length > 70 ? description.slice(0, 67) + "…" : description,
+        notes: `Reportado por ${me()?.name ?? "personal"}: ${description}`,
+        priority: opts.urgent ? "urgente" : "alta",
+        blocksRoom: opts.block ?? cfg.reporteBloquea,
+      });
+      t.log = [{ at: nowISO(), by: by(), action: "Reportó el problema" }];
+      await db.set("tasks", t.id, t);
+      await log("Reportó un problema", `tasks/${t.id}`, `Hab. ${roomNum(roomId)} · ${description}`);
+      return t;
+    },
+
+    async touchPresence() {
+      const m = me();
+      if (m) await db.update("staff", m.id, { lastSeen: nowISO() }).catch(() => {});
     },
 
     // ---------------- Facturación ----------------

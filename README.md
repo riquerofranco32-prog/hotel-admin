@@ -8,16 +8,35 @@ Panel de gestión hotelera (tipo CRM / PMS) hecho con **Next.js 15 + React 19 + 
 
 | Sección | Qué hace |
 |---|---|
-| **Dashboard** | Calendario mensual habitación × día. Colores: 🟢 Ocupada · 🔵 Reservada · 🔴 Próxima a salir · ⚪ Otros estados · rayado = mantenimiento. Filtros por piso/estado, búsqueda, vista compacta, alertas 🔔, exportar CSV, clic en celda vacía = nueva reserva, clic en barra = ficha de la reserva, **arrastrar una barra** = moverla de habitación o de fecha (valida superposiciones). Punto de color junto a cada habitación = estado de limpieza. |
-| **Reservas** | Listado con filtros, alta/edición con control de superposición y capacidad, ficha y historial de huéspedes. |
-| **Recepción** | Llegadas, salidas y huéspedes en casa del día con check-in / check-out en un clic, walk-ins, estado de limpieza de cada habitación antes de entregarla. |
-| **Facturación** | Folio por reserva (alojamiento + consumos), pagos por medio, saldo, emisión e impresión de facturas, resumen del mes. |
-| **Menús** | Carta del restaurante y pedidos de room service: cada pedido se carga solo al folio del huésped. |
-| **Mantenimiento** | Tablero de tareas (pendiente / en progreso / completada), checklist por tarea, estado de habitaciones, rendimiento del personal y registro de **quién hizo qué y cuándo**. |
-| **WhatsApp** | Plantillas con variables, envíos sugeridos del día (pre-llegada, check-out, agradecimiento), aviso de tareas al personal, historial. Abre WhatsApp con el mensaje listo (`wa.me`). |
-| **Administradores** | Usuarios y roles, permisos, habitaciones, configuración, auditoría de todas las acciones, carga de datos demo. |
+| **Dashboard** | Saludo + indicadores del día (ocupación, llegadas, salidas, housekeeping, cobrado hoy, ADR). Calendario mensual habitación × día con colores: 🟢 Ocupada · 🔵 Reservada · 🔴 Próxima a salir · ⚪ Otros · rayado = mantenimiento. Clic en día libre = reservar, clic en barra = ficha, **arrastrar** = mover de habitación/fecha. Abajo: llegadas y salidas de hoy, estado de habitaciones y **actividad en vivo** del personal. |
+| **Mi jornada** | Vista para mucamas, mantenimiento y restaurante (pensada para celular): mis tareas con checklist de un toque, botones grandes Empezar/Terminar, tareas libres para “tomar”, **reportar problema** (crea la reparación para mantenimiento) y estado de todas las habitaciones. |
+| **Recepción** | Llegadas, salidas y huéspedes en casa con check-in / check-out en un clic, walk-ins, estado de limpieza de la habitación antes de entregarla. |
+| **Reservas** | Listado con filtros rápidos por estado, fechas y canal; alta/edición con control de superposición y capacidad. |
+| **Huéspedes (CRM)** | Segmentos (en casa, próximas llegadas, VIP, frecuentes, empresas, cumpleaños del mes, bloqueados), valor de cada cliente, etiquetas, preferencias (aparecen al preparar la habitación), historial y acceso directo a WhatsApp. |
+| **Mantenimiento** | Tablero de tareas, estado de habitaciones, rendimiento del personal y registro de **quién hizo qué y cuándo**. |
+| **Menús** | Carta y pedidos de room service: cada pedido se carga solo al folio. |
+| **WhatsApp** | Plantillas, envíos sugeridos del día, avisos de tareas al personal, historial. |
+| **Facturación** | Folio por reserva, pagos, saldo, facturas imprimibles, resumen del mes. |
+| **Finanzas** | Producción, cobranzas, ocupación diaria, ADR, RevPAR, canales, medios de pago, cuentas por cobrar y mejores clientes. Exportable. |
+| **Automatizaciones** | Centro de reglas por panel: cada una se activa/desactiva y se ajusta (anticipación, tareas de check-out, auto-asignación, escalamiento, no-show, avisos en vivo). Historial de ejecuciones. |
+| **Administradores** | Personal y cargos (con quién está en línea), **matriz de permisos editable**, habitaciones, configuración, auditoría y base de datos. |
 
-## Cómo se conecta reservas ↔ mantenimiento
+Búsqueda global con **Ctrl + K** (huéspedes, reservas, habitaciones) y alertas 🔔 en la barra superior.
+
+## Cargos y permisos
+
+| Cargo | Ve por defecto |
+|---|---|
+| **Administrador general** | Todo, incluidas finanzas, automatizaciones y administración. |
+| **Gerencia** | Todo lo operativo + facturación y finanzas (no usuarios ni automatizaciones). |
+| **Recepción** | Dashboard, recepción, reservas, huéspedes, mantenimiento, menús, WhatsApp y facturación. Sin reportes financieros. |
+| **Mucama / Housekeeping** | Mi jornada y Mantenimiento. **Nunca ve montos, pagos ni facturas.** |
+| **Mantenimiento técnico** | Mi jornada y Mantenimiento. |
+| **Restaurante** | Menús / room service y Mi jornada. |
+
+El administrador ajusta todo desde *Administradores → Permisos por cargo*. La seguridad también está aplicada en la base de datos (`firestore.rules`): aunque alguien intente leer pagos o facturas por fuera de la app sin tener el cargo, Firestore lo rechaza.
+
+## Automatización y tiempo real
 
 | Cuando… | Entonces se crea automáticamente |
 |---|---|
@@ -27,13 +46,15 @@ Panel de gestión hotelera (tipo CRM / PMS) hecho con **Next.js 15 + React 19 + 
 | 🟢 Huésped en casa (opcional) | *Repaso diario*. |
 | Reparación marcada “bloquea habitación” | La habitación queda **En mantenimiento** (rayada en el calendario) hasta completarla. |
 
-Las tareas se asignan solas a la persona del rol correspondiente con menos carga, tienen IDs determinísticos (no se duplican aunque haya varias PCs abiertas) y cada acción queda registrada con usuario y hora. Las reglas se activan/desactivan en *Mantenimiento → Reglas automáticas*.
+Las tareas se asignan solas a la persona del rol correspondiente con menos carga, tienen IDs determinísticos (no se duplican aunque haya varias PCs abiertas) y cada acción queda registrada con usuario y hora. Además: tareas vencidas se escalan a urgente, no-shows automáticos (opcional), cierre automático de tareas al hacer check-in/out, y avisos en vivo a todos los conectados (por ejemplo, cuando una mucama termina una habitación, recepción y el admin lo ven al instante en el dashboard). Todo se configura en **Automatizaciones**.
 
-## Roles
+### Performance
 
-- **Administrador**: todo.
-- **Recepción**: todo menos Administradores.
-- **Limpieza / Mantenimiento técnico**: Dashboard y Mantenimiento (ven sus tareas asignadas).
+- Índices en memoria (habitación, huésped, reserva, folio) para que cada pantalla calcule al instante.
+- Calendario con filas memorizadas, tooltip y eventos fuera del render principal.
+- Firestore con caché persistente (IndexedDB): recargas instantáneas y funciona sin conexión.
+- Cada cargo sólo descarga las colecciones que puede ver, y sólo la historia reciente (reservas/pagos del último año, tareas de 90 días, auditoría: últimos 1000 eventos).
+
 
 ## Correr localmente
 
@@ -79,9 +100,9 @@ En https://vercel.com/new importá el repo (detecta Next.js solo). En *Settings 
 ```
 app/(panel)/…        páginas de cada sección
 app/login            inicio de sesión
-components/          Shell (menú), AppProvider (datos + auth), reservas, tareas, UI
+components/          Shell (menú, búsqueda, avisos en vivo), AppProvider (datos, índices, permisos), reservas, tareas, UI
 lib/types.ts         modelo de datos
-lib/logic.ts         colores, estados, folio, permisos, plantillas de tareas
+lib/logic.ts         colores, estados, folio, cargos y permisos, configuración de automatizaciones
 lib/automation.ts    motor reservas → mantenimiento
 lib/actions.ts       todas las operaciones (check-in, check-out, pagos, tareas…)
 lib/db.ts            adaptador Firestore / localStorage

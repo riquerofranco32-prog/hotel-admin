@@ -1,6 +1,13 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { connectAuthEmulator, getAuth, type Auth } from "firebase/auth";
-import { connectFirestoreEmulator, getFirestore, type Firestore } from "firebase/firestore";
+import {
+  connectFirestoreEmulator,
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  type Firestore,
+} from "firebase/firestore";
 
 const config = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -23,7 +30,12 @@ export function fb() {
   if (!app) {
     app = getApps()[0] ?? initializeApp(config);
     auth = getAuth(app);
-    db = getFirestore(app);
+    // Caché persistente en IndexedDB: recargas instantáneas, menos lecturas y funciona sin conexión
+    try {
+      db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+    } catch {
+      db = getFirestore(app);
+    }
     // Desarrollo local con `npm run emulators` (NEXT_PUBLIC_FIREBASE_EMULATOR=1)
     if (process.env.NEXT_PUBLIC_FIREBASE_EMULATOR === "1") {
       connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });

@@ -1,9 +1,9 @@
-// Motor de automatizaciones: conecta el estado de las reservas con el área de mantenimiento.
+// Motor de automatizaciones: conecta el estado de las reservas con mantenimiento, recepción y alertas.
 // Es idempotente: cada tarea automática tiene un ID determinístico (reserva + tipo),
 // así que correrlo muchas veces (o desde varias PCs a la vez) no duplica tareas.
 import { addDays, nowISO, today } from "./dates";
-import { CHECKOUT_SEQUENCE, TASK_DEFAULT_ROLE, TASK_TEMPLATES } from "./logic";
-import type { DataState, Reservation, Staff, Task, TaskTrigger, TaskType } from "./types";
+import { automationOf, CHECKOUT_SEQUENCE, normalizeRole, TASK_DEFAULT_ROLE, TASK_TEMPLATES } from "./logic";
+import type { AutomationConfig, DataState, Reservation, Staff, Task, TaskTrigger, TaskType } from "./types";
 
 export function buildTask(params: {
   id: string;
@@ -41,17 +41,25 @@ export function buildTask(params: {
 }
 
 /** Asignación automática: el miembro activo del rol con menos tareas abiertas. */
-export function autoAssign(type: TaskType, staff: Staff[], tasks: Task[]): string | undefined {
+export function autoAssign(type: TaskType, staff: Staff[], tasks: Task[], enabled = true): string | undefined {
+  if (!enabled) return undefined;
   const role = TASK_DEFAULT_ROLE[type];
-  const candidates = staff.filter((s) => s.active && s.role === role);
+  const candidates = staff.filter((s) => s.active && normalizeRole(s.role) === role);
   if (!candidates.length) return undefined;
-  const load = (id: string) => tasks.filter((t) => t.assignedTo === id && t.status !== "completada").length;
-  return candidates.sort((a, b) => load(a.id) - load(b.id))[0].id;
+  const load = new Map<string, number>();
+  for (const t of tasks) if (t.assignedTo && t.status !== "completada") load.set(t.assignedTo, (load.get(t.assignedTo) ?? 0) + 1);
+  return candidates.sort((a, b) => (load.get(a.id) ?? 0) - (load.get(b.id) ?? 0) || a.name.localeCompare(b.name))[0].id;
 }
 
-export function checkoutTasks(r: Reservation, data: Pick<DataState, "staff" | "tasks">, by = "sistema"): Task[] {
+export function checkoutTasks(
+  r: Reservation,
+  data: Pick<DataState, "staff" | "tasks">,
+  by = "sistema",
+  cfg?: Pick<AutomationConfig, "checkoutTipos" | "autoAsignar">,
+): Task[] {
+  const tipos = cfg?.checkoutTipos ?? CHECKOUT_SEQUENCE;
   const created: Task[] = [];
-  for (const type of CHECKOUT_SEQUENCE) {
+  for (const type of CHECKOUT_SEQUENCE.filter((x) => tipos.includes(x))) {
     created.push(
       buildTask({
         id: `${r.id}-${type}`,
@@ -61,7 +69,7 @@ export function checkoutTasks(r: Reservation, data: Pick<DataState, "staff" | "t
         trigger: "checkout",
         dueDate: r.checkOut,
         createdBy: by,
-        assignedTo: autoAssign(type, data.staff, [...data.tasks, ...created]),
+        assignedTo: autoAssign(type, data.staff, [...data.tasks, ...created], cfg?.autoAsignar ?? true),
         notes: `Salida de ${r.guestName}`,
       }),
     );
@@ -69,10 +77,15 @@ export function checkoutTasks(r: Reservation, data: Pick<DataState, "staff" | "t
   return created;
 }
 
-/** Calcula qué tareas automáticas faltan crear según el estado actual. */
-export function pendingAutomations(data: DataState, t = today()): Task[] {
-  const settings = data.settings[0];
-  const rules = settings?.rules ?? { preSalida: true, checkoutTasks: true, llegada: true, repasoDiario: false };
+export interface AutomationPlan {
+  create: Task[];
+  escalate: Task[];
+  noShows: Reservation[];
+}
+
+/** Calcula todo lo que el motor debe hacer según el estado actual. */
+export function planAutomations(data: DataState, t = today()): AutomationPlan {
+  const cfg = automationOf(data.settings[0]);
   const existing = new Set(data.tasks.map((x) => x.id));
   const out: Task[] = [];
   const push = (task: Task) => {
@@ -81,12 +94,13 @@ export function pendingAutomations(data: DataState, t = today()): Task[] {
       out.push(task);
     }
   };
-  const tomorrow = addDays(t, 1);
-  const allTasks = () => [...data.tasks, ...out];
+  const allTasks = () => (out.length ? [...data.tasks, ...out] : data.tasks);
+  const preLimit = addDays(t, cfg.preSalidaDias);
+  const arrLimit = addDays(t, cfg.llegadaDias);
 
   for (const r of data.reservations) {
     // 1) Próxima a salir → pre-salida (minibar, consumos, confirmar horario)
-    if (rules.preSalida && r.status === "checkin" && r.checkOut <= tomorrow) {
+    if (cfg.preSalida && r.status === "checkin" && r.checkOut <= preLimit) {
       push(
         buildTask({
           id: `${r.id}-pre_salida`,
@@ -95,18 +109,18 @@ export function pendingAutomations(data: DataState, t = today()): Task[] {
           reservationId: r.id,
           trigger: "proxima_salida",
           dueDate: r.checkOut,
-          assignedTo: autoAssign("pre_salida", data.staff, allTasks()),
+          assignedTo: autoAssign("pre_salida", data.staff, allTasks(), cfg.autoAsignar),
           notes: `${r.guestName} sale el ${r.checkOut.split("-").reverse().join("/")}`,
           priority: r.checkOut <= t ? "alta" : "media",
         }),
       );
     }
     // 2) Ya salió → sábanas, limpieza, reposición, inspección
-    if (rules.checkoutTasks && r.status === "checkout" && r.checkOut >= addDays(t, -2)) {
-      checkoutTasks(r, { staff: data.staff, tasks: allTasks() }).forEach(push);
+    if (cfg.checkoutTasks && r.status === "checkout" && r.checkOut >= addDays(t, -2)) {
+      checkoutTasks(r, { staff: data.staff, tasks: allTasks() }, "sistema", cfg).forEach(push);
     }
-    // 3) Llega hoy o mañana → preparar habitación
-    if (rules.llegada && (r.status === "confirmada" || r.status === "pendiente") && r.checkIn >= t && r.checkIn <= tomorrow) {
+    // 3) Llega pronto → preparar habitación
+    if (cfg.llegada && (r.status === "confirmada" || r.status === "pendiente") && r.checkIn >= t && r.checkIn <= arrLimit) {
       push(
         buildTask({
           id: `${r.id}-preparar_llegada`,
@@ -115,13 +129,13 @@ export function pendingAutomations(data: DataState, t = today()): Task[] {
           reservationId: r.id,
           trigger: "llegada",
           dueDate: r.checkIn,
-          assignedTo: autoAssign("preparar_llegada", data.staff, allTasks()),
+          assignedTo: autoAssign("preparar_llegada", data.staff, allTasks(), cfg.autoAsignar),
           notes: `Llega ${r.guestName} (${r.pax} pax)${r.notes ? " · " + r.notes : ""}`,
         }),
       );
     }
     // 4) Huésped en casa → repaso diario
-    if (rules.repasoDiario && r.status === "checkin" && r.checkIn < t && r.checkOut > t) {
+    if (cfg.repasoDiario && r.status === "checkin" && r.checkIn < t && r.checkOut > t) {
       push(
         buildTask({
           id: `${r.id}-repaso_diario-${t}`,
@@ -130,38 +144,54 @@ export function pendingAutomations(data: DataState, t = today()): Task[] {
           reservationId: r.id,
           trigger: "estadia",
           dueDate: t,
-          assignedTo: autoAssign("repaso_diario", data.staff, allTasks()),
+          assignedTo: autoAssign("repaso_diario", data.staff, allTasks(), cfg.autoAsignar),
         }),
       );
     }
   }
-  return out;
+
+  // 5) Tareas vencidas → prioridad urgente
+  const escalate = cfg.escalarVencidas
+    ? data.tasks.filter((x) => x.status !== "completada" && x.dueDate < t && x.priority !== "urgente")
+    : [];
+
+  // 6) No-show automático
+  const noShows = cfg.noShowAuto
+    ? data.reservations.filter((r) => (r.status === "confirmada" || r.status === "pendiente") && r.checkIn < addDays(t, -cfg.noShowDias + 1) && r.checkIn < t)
+    : [];
+
+  return { create: out, escalate, noShows };
+}
+
+export function planSize(p: AutomationPlan) {
+  return p.create.length + p.escalate.length + p.noShows.length;
 }
 
 /** Alertas para la campanita. */
 export function alerts(data: DataState, t = today()) {
   const list: { level: "alta" | "media"; text: string; href: string }[] = [];
-  const roomNum = (id: string) => data.rooms.find((r) => r.id === id)?.number ?? id;
+  const roomNum = new Map(data.rooms.map((r) => [r.id, r.number]));
+  const openByRoom = new Map<string, Task[]>();
+  for (const x of data.tasks)
+    if (x.status !== "completada" && (x.trigger === "checkout" || x.blocksRoom)) openByRoom.set(x.roomId, [...(openByRoom.get(x.roomId) ?? []), x]);
   for (const r of data.reservations) {
     if (r.status === "checkin" && r.checkOut < t)
-      list.push({ level: "alta", text: `Salida vencida: ${r.guestName} (Hab. ${roomNum(r.roomId)})`, href: "/recepcion" });
+      list.push({ level: "alta", text: `Salida vencida: ${r.guestName} (Hab. ${roomNum.get(r.roomId)})`, href: "/recepcion" });
     if ((r.status === "confirmada" || r.status === "pendiente") && r.checkIn === t) {
-      const open = data.tasks.filter(
-        (x) => x.roomId === r.roomId && x.status !== "completada" && (x.trigger === "checkout" || x.blocksRoom),
-      );
+      const open = openByRoom.get(r.roomId) ?? [];
       if (open.length)
         list.push({
           level: "alta",
-          text: `Hab. ${roomNum(r.roomId)} no está lista y llega ${r.guestName} hoy (${open.length} tareas abiertas)`,
+          text: `Hab. ${roomNum.get(r.roomId)} no está lista y llega ${r.guestName} hoy (${open.length} tareas abiertas)`,
           href: "/mantenimiento",
         });
     }
   }
   for (const task of data.tasks) {
-    if (task.status !== "completada" && task.priority === "urgente")
-      list.push({ level: "alta", text: `Urgente: ${task.title} · Hab. ${roomNum(task.roomId)}`, href: "/mantenimiento" });
-    else if (task.status !== "completada" && task.dueDate < t)
-      list.push({ level: "media", text: `Tarea vencida: ${task.title} · Hab. ${roomNum(task.roomId)}`, href: "/mantenimiento" });
+    if (task.status === "completada") continue;
+    if (task.priority === "urgente")
+      list.push({ level: "alta", text: `Urgente: ${task.title} · Hab. ${roomNum.get(task.roomId)}`, href: "/mantenimiento" });
+    else if (task.dueDate < t) list.push({ level: "media", text: `Tarea vencida: ${task.title} · Hab. ${roomNum.get(task.roomId)}`, href: "/mantenimiento" });
   }
   return list;
 }

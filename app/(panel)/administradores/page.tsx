@@ -1,35 +1,39 @@
 "use client";
-import { useState } from "react";
-import { Database, Plus } from "lucide-react";
+import { Fragment, useState } from "react";
+import { Database, Plus, RotateCcw } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
-import { Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Table, Tabs, toast } from "@/components/ui";
-import { fmtDateTime, nowISO } from "@/lib/dates";
-import { cls, money, ROLE_LABEL, ROLE_SECTIONS, roomState, ROOM_STATE_CLASS, ROOM_STATE_LABEL, uid, type Section } from "@/lib/logic";
+import { Avatar, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Table, Tabs, toast } from "@/components/ui";
+import { fmtDateTime, fmtTimeAgo, nowISO } from "@/lib/dates";
+import {
+  ALL_ROLES,
+  cls,
+  DEFAULT_PERMISSIONS,
+  money,
+  PERM_CEILING,
+  PERM_INFO,
+  permsFor,
+  ROLE_COLOR,
+  ROLE_LABEL,
+  roomState,
+  ROOM_STATE_CLASS,
+  ROOM_STATE_LABEL,
+  uid,
+} from "@/lib/logic";
 import { DEFAULT_SETTINGS } from "@/lib/seed";
-import type { Role, Room, RoomType, Settings, Staff } from "@/lib/types";
-
-const SECTION_LABEL: Record<Section, string> = {
-  dashboard: "Dashboard",
-  reservas: "Reservas",
-  recepcion: "Recepción",
-  facturacion: "Facturación",
-  menus: "Menús",
-  mantenimiento: "Mantenimiento",
-  whatsapp: "WhatsApp",
-  administradores: "Administradores",
-};
+import type { Perm, Role, Room, RoomType, Settings, Staff } from "@/lib/types";
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"usuarios" | "habitaciones" | "config" | "auditoria" | "datos">("usuarios");
+  const [tab, setTab] = useState<"usuarios" | "permisos" | "habitaciones" | "config" | "auditoria" | "datos">("usuarios");
   return (
-    <div className="p-4 lg:p-6">
-      <PageHeader title="Administradores" subtitle="Usuarios y permisos, habitaciones, configuración del hotel y auditoría" />
-      <div className="mb-4 overflow-x-auto">
+    <div className="space-y-4 p-4 lg:p-6">
+      <PageHeader title="Administradores" subtitle="Personal y cargos, permisos por rol, habitaciones, configuración y auditoría" />
+      <div className="overflow-x-auto">
         <Tabs
           value={tab}
           onChange={setTab}
           items={[
-            { value: "usuarios", label: "Usuarios y roles" },
+            { value: "usuarios", label: "Personal" },
+            { value: "permisos", label: "Permisos por cargo" },
             { value: "habitaciones", label: "Habitaciones" },
             { value: "config", label: "Configuración" },
             { value: "auditoria", label: "Auditoría" },
@@ -38,6 +42,7 @@ export default function AdminPage() {
         />
       </div>
       {tab === "usuarios" && <Users />}
+      {tab === "permisos" && <Permissions />}
       {tab === "habitaciones" && <Rooms />}
       {tab === "config" && <Config />}
       {tab === "auditoria" && <Audit />}
@@ -49,6 +54,7 @@ export default function AdminPage() {
 function Users() {
   const { data, actions, mode, me } = useApp();
   const [edit, setEdit] = useState<Partial<Staff> | null>(null);
+  const [roleFilter, setRoleFilter] = useState<Role | "">("");
 
   async function save() {
     if (!edit?.name?.trim() || !edit.email?.trim()) return toast("Completá nombre y email", "error");
@@ -61,54 +67,78 @@ function Users() {
     setEdit(null);
   }
 
-  const load = (id: string) => data.tasks.filter((t) => t.assignedTo === id && t.status !== "completada").length;
-  const done = (id: string) => data.tasks.filter((t) => t.completedBy === id).length;
+  const open = new Map<string, number>();
+  const done = new Map<string, number>();
+  for (const t of data.tasks) {
+    if (t.assignedTo && t.status !== "completada") open.set(t.assignedTo, (open.get(t.assignedTo) ?? 0) + 1);
+    if (t.completedBy) done.set(t.completedBy, (done.get(t.completedBy) ?? 0) + 1);
+  }
+  const isOnline = (s: Staff) => !!s.lastSeen && Date.now() - new Date(s.lastSeen).getTime() < 4 * 60_000;
+  const list = data.staff
+    .filter((s) => !roleFilter || s.role === roleFilter)
+    .slice()
+    .sort((a, b) => ALL_ROLES.indexOf(a.role) - ALL_ROLES.indexOf(b.role) || a.name.localeCompare(b.name));
 
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        {ALL_ROLES.map((r) => (
+          <button
+            key={r}
+            onClick={() => setRoleFilter(roleFilter === r ? "" : r)}
+            className={cls("rounded-xl border bg-white px-4 py-3 text-left transition", roleFilter === r ? "border-gray-900 ring-1 ring-gray-900" : "border-gray-200 hover:border-gray-300")}
+          >
+            <div className="text-xs text-gray-500">{ROLE_LABEL[r]}</div>
+            <div className="text-xl font-semibold">{data.staff.filter((s) => s.role === r && s.active).length}</div>
+          </button>
+        ))}
+      </div>
       <Card
-        title={`Personal (${data.staff.length})`}
+        title={`Personal (${list.length})`}
         actions={
-          <Button size="sm" variant="primary" onClick={() => setEdit({ role: "limpieza", active: true })}>
+          <Button size="sm" variant="primary" onClick={() => setEdit({ role: "mucama", active: true })}>
             <Plus size={14} /> Nuevo usuario
           </Button>
         }
       >
-        <Table head={["Nombre", "Email", "Teléfono", "Rol", "Tareas abiertas", "Tareas hechas", "Estado", ""]}>
-          {data.staff
-            .slice()
-            .sort((a, b) => a.role.localeCompare(b.role) || a.name.localeCompare(b.name))
-            .map((s) => (
-              <tr key={s.id}>
-                <td className="px-4 py-2.5 font-medium">{s.name} {s.id === me?.id && <span className="text-xs text-gray-400">(vos)</span>}</td>
-                <td className="px-4 py-2.5 text-gray-600">{s.email}</td>
-                <td className="px-4 py-2.5">{s.phone ?? "—"}</td>
-                <td className="px-4 py-2.5"><Badge className="bg-gray-100 text-gray-700">{ROLE_LABEL[s.role]}</Badge></td>
-                <td className="px-4 py-2.5 tabular-nums">{load(s.id)}</td>
-                <td className="px-4 py-2.5 tabular-nums">{done(s.id)}</td>
-                <td className="px-4 py-2.5">{s.active ? <Badge className="bg-green-50 text-green-700">Activo</Badge> : <Badge className="bg-gray-100 text-gray-500">Inactivo</Badge>}</td>
-                <td className="px-4 py-2.5 text-right"><Button size="sm" variant="ghost" onClick={() => setEdit(s)}>Editar</Button></td>
-              </tr>
-            ))}
+        <Table head={["Persona", "Cargo", "Teléfono", "Tareas abiertas", "Tareas hechas", "Conexión", "Estado", ""]}>
+          {list.map((s) => (
+            <tr key={s.id}>
+              <td className="px-4 py-2.5">
+                <div className="flex items-center gap-2.5">
+                  <span className="relative">
+                    <Avatar name={s.name} size={30} />
+                    {isOnline(s) && <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-green-500" />}
+                  </span>
+                  <div>
+                    <div className="font-medium">
+                      {s.name} {s.id === me?.id && <span className="text-xs text-gray-400">(vos)</span>}
+                    </div>
+                    <div className="text-xs text-gray-500">{s.email}</div>
+                  </div>
+                </div>
+              </td>
+              <td className="px-4 py-2.5">
+                <Badge className={ROLE_COLOR[s.role]}>{ROLE_LABEL[s.role]}</Badge>
+              </td>
+              <td className="px-4 py-2.5">{s.phone ?? "—"}</td>
+              <td className="px-4 py-2.5 tabular-nums">{open.get(s.id) ?? 0}</td>
+              <td className="px-4 py-2.5 tabular-nums">{done.get(s.id) ?? 0}</td>
+              <td className="px-4 py-2.5 text-xs text-gray-500">{isOnline(s) ? <span className="font-medium text-green-600">En línea</span> : s.lastSeen ? fmtTimeAgo(s.lastSeen) : "Nunca"}</td>
+              <td className="px-4 py-2.5">{s.active ? <Badge className="bg-green-50 text-green-700">Activo</Badge> : <Badge className="bg-gray-100 text-gray-500">Inactivo</Badge>}</td>
+              <td className="px-4 py-2.5 text-right">
+                <Button size="sm" variant="ghost" onClick={() => setEdit(s)}>
+                  Editar
+                </Button>
+              </td>
+            </tr>
+          ))}
         </Table>
         {mode === "firebase" && (
           <p className="border-t border-gray-100 px-4 py-3 text-xs text-gray-500">
             Para dar acceso: creá el usuario acá con su email y pedile que entre a la app y elija “Crear cuenta” con ese mismo email.
           </p>
         )}
-      </Card>
-
-      <Card title="Permisos por rol">
-        <Table head={["Sección", ...(Object.keys(ROLE_LABEL) as Role[]).map((r) => ROLE_LABEL[r])]}>
-          {(Object.keys(SECTION_LABEL) as Section[]).map((sec) => (
-            <tr key={sec}>
-              <td className="px-4 py-2 font-medium">{SECTION_LABEL[sec]}</td>
-              {(Object.keys(ROLE_LABEL) as Role[]).map((r) => (
-                <td key={r} className="px-4 py-2 text-center">{ROLE_SECTIONS[r].includes(sec) ? "✅" : "—"}</td>
-              ))}
-            </tr>
-          ))}
-        </Table>
       </Card>
 
       <Modal
@@ -118,23 +148,44 @@ function Users() {
         footer={
           <>
             {edit?.id && edit.id !== me?.id && (
-              <Button variant="ghost" className="mr-auto text-red-600" onClick={() => { if (confirm("¿Eliminar usuario? Su historial de tareas se conserva.")) { actions.deleteStaff(edit as Staff); setEdit(null); } }}>
+              <Button
+                variant="ghost"
+                className="mr-auto text-red-600"
+                onClick={() => {
+                  if (confirm("¿Eliminar usuario? Su historial de tareas se conserva.")) {
+                    actions.deleteStaff(edit as Staff);
+                    setEdit(null);
+                  }
+                }}
+              >
                 Eliminar
               </Button>
             )}
             <Button onClick={() => setEdit(null)}>Cancelar</Button>
-            <Button variant="primary" onClick={save}>Guardar</Button>
+            <Button variant="primary" onClick={save}>
+              Guardar
+            </Button>
           </>
         }
       >
         {edit && (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Nombre y apellido" className="sm:col-span-2"><Input value={edit.name ?? ""} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></Field>
-            <Field label="Email (con el que inicia sesión)"><Input type="email" value={edit.email ?? ""} disabled={!!edit.id && mode === "firebase"} onChange={(e) => setEdit({ ...edit, email: e.target.value })} /></Field>
-            <Field label="Teléfono WhatsApp (ej 5491155551234)"><Input value={edit.phone ?? ""} onChange={(e) => setEdit({ ...edit, phone: e.target.value })} /></Field>
-            <Field label="Rol">
+            <Field label="Nombre y apellido" className="sm:col-span-2">
+              <Input value={edit.name ?? ""} onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
+            </Field>
+            <Field label="Email (con el que inicia sesión)">
+              <Input type="email" value={edit.email ?? ""} disabled={!!edit.id && mode === "firebase"} onChange={(e) => setEdit({ ...edit, email: e.target.value })} />
+            </Field>
+            <Field label="Teléfono WhatsApp (ej 5491155551234)">
+              <Input value={edit.phone ?? ""} onChange={(e) => setEdit({ ...edit, phone: e.target.value })} />
+            </Field>
+            <Field label="Cargo" hint={edit.role ? `Accede a: ${permsFor(edit.role as Role, data.settings[0]).filter((p) => PERM_INFO[p].group === "Secciones").map((p) => PERM_INFO[p].label).join(", ")}` : undefined}>
               <Select value={edit.role} onChange={(e) => setEdit({ ...edit, role: e.target.value as Role })} disabled={edit.id === me?.id}>
-                {(Object.keys(ROLE_LABEL) as Role[]).map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+                {ALL_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABEL[r]}
+                  </option>
+                ))}
               </Select>
             </Field>
             <label className="flex items-end gap-2 pb-2 text-sm">
@@ -144,6 +195,89 @@ function Users() {
         )}
       </Modal>
     </div>
+  );
+}
+
+function Permissions() {
+  const { data, actions } = useApp();
+  const settings = data.settings[0] ?? DEFAULT_SETTINGS;
+  const roles = ALL_ROLES.filter((r) => r !== "admin");
+  const perms = Object.keys(PERM_INFO) as Perm[];
+
+  async function toggle(role: Role, p: Perm) {
+    const cur = permsFor(role, settings);
+    const next = cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p];
+    await actions.saveSettings({ ...settings, permissions: { ...(settings.permissions ?? {}), [role]: next } });
+  }
+  async function reset(role: Role) {
+    const rest = { ...(settings.permissions ?? {}) };
+    delete rest[role];
+    await actions.saveSettings({ ...settings, permissions: rest });
+    toast(`Permisos de ${ROLE_LABEL[role]} restablecidos`);
+  }
+
+  return (
+    <Card title="Qué puede ver y hacer cada cargo">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500">
+              <th className="px-4 py-2.5 text-left font-medium">Permiso</th>
+              <th className="px-3 py-2.5 text-center font-medium">{ROLE_LABEL.admin}</th>
+              {roles.map((r) => (
+                <th key={r} className="px-3 py-2.5 text-center font-medium">
+                  <div>{ROLE_LABEL[r]}</div>
+                  {settings.permissions?.[r] && (
+                    <button onClick={() => reset(r)} className="mt-0.5 inline-flex items-center gap-0.5 text-[11px] font-normal text-blue-600 hover:underline">
+                      <RotateCcw size={10} /> restablecer
+                    </button>
+                  )}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {(["Secciones", "Capacidades"] as const).map((g) => (
+              <Fragment key={g}>
+                <tr className="bg-gray-50/60">
+                  <td colSpan={roles.length + 2} className="px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                    {g}
+                  </td>
+                </tr>
+                {perms
+                  .filter((p) => PERM_INFO[p].group === g)
+                  .map((p) => (
+                    <tr key={p}>
+                      <td className="px-4 py-2">{PERM_INFO[p].label}</td>
+                      <td className="px-3 py-2 text-center text-gray-400">✓</td>
+                      {roles.map((r) => {
+                        const allowed = PERM_CEILING[r].includes(p);
+                        const on = permsFor(r, settings).includes(p);
+                        const changed = on !== DEFAULT_PERMISSIONS[r].includes(p);
+                        return (
+                          <td key={r} className="px-3 py-2 text-center">
+                            {allowed ? (
+                              <input type="checkbox" checked={on} onChange={() => toggle(r, p)} className={cls("h-4 w-4 cursor-pointer", changed && "accent-amber-500")} />
+                            ) : (
+                              <span className="text-gray-300" title="Bloqueado por seguridad de datos">
+                                —
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="border-t border-gray-100 px-4 py-3 text-xs text-gray-500">
+        Los cambios se aplican al instante para todo el personal. “—” = bloqueado por las reglas de seguridad de la base de datos (por ejemplo, las mucamas
+        nunca pueden leer pagos ni facturas). Las casillas en ámbar difieren del valor por defecto.
+      </p>
+    </Card>
   );
 }
 

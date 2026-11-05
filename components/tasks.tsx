@@ -66,13 +66,13 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: () => void }) {
 }
 
 export function TaskDrawer({ id, onClose }: { id: string | null; onClose: () => void }) {
-  const { data, actions, staffName, me } = useApp();
+  const { data, actions, staffName, me, can } = useApp();
   const task = data.tasks.find((t) => t.id === id);
   if (!task) return null;
   const room = data.rooms.find((r) => r.id === task.roomId);
   const res = data.reservations.find((r) => r.id === task.reservationId);
   const assignee = data.staff.find((s) => s.id === task.assignedTo);
-  const canManage = me?.role === "admin" || me?.role === "recepcion";
+  const canManage = can("gestionar_tareas");
   const settings = data.settings[0];
 
   function notify() {
@@ -213,7 +213,7 @@ export function TaskDrawer({ id, onClose }: { id: string | null; onClose: () => 
           </ol>
         </section>
 
-        {canManage && (
+        {me && ["admin", "gerente", "recepcion"].includes(me.role) && (
           <Button
             size="sm"
             variant="ghost"

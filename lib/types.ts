@@ -1,6 +1,26 @@
 // ===== Modelo de datos del PMS =====
 
-export type Role = "admin" | "recepcion" | "limpieza" | "mantenimiento";
+export type Role = "admin" | "gerente" | "recepcion" | "mucama" | "mantenimiento" | "restaurante";
+
+/** Secciones del panel + capacidades especiales. El admin puede ajustar qué tiene cada rol. */
+export type Perm =
+  | "dashboard"
+  | "mi_jornada"
+  | "recepcion"
+  | "reservas"
+  | "huespedes"
+  | "mantenimiento"
+  | "menus"
+  | "whatsapp"
+  | "facturacion"
+  | "finanzas"
+  | "automatizaciones"
+  | "administradores"
+  // capacidades
+  | "ver_montos"
+  | "editar_reservas"
+  | "gestionar_tareas"
+  | "registrar_pagos";
 
 export interface Staff {
   id: string;
@@ -10,6 +30,7 @@ export interface Staff {
   role: Role;
   active: boolean;
   createdAt: string;
+  lastSeen?: string;
 }
 
 export type RoomType = "Simple" | "Doble" | "Triple" | "Suite" | "Familiar";
@@ -33,6 +54,11 @@ export interface Guest {
   document?: string;
   nationality?: string;
   notes?: string;
+  tags?: string[]; // VIP, Frecuente, Empresa, etc.
+  company?: string;
+  birthday?: string; // YYYY-MM-DD
+  preferences?: string;
+  blacklisted?: boolean;
   createdAt: string;
 }
 
@@ -233,6 +259,23 @@ export interface Activity {
   detail?: string;
 }
 
+export interface AutomationConfig {
+  preSalida: boolean;
+  preSalidaDias: number; // 0 = el mismo día, 1 = desde el día anterior
+  checkoutTasks: boolean;
+  checkoutTipos: TaskType[];
+  llegada: boolean;
+  llegadaDias: number;
+  repasoDiario: boolean;
+  autoAsignar: boolean;
+  escalarVencidas: boolean;
+  noShowAuto: boolean;
+  noShowDias: number;
+  cerrarAlCheckin: boolean;
+  avisosEnVivo: boolean;
+  reporteBloquea: boolean; // un problema reportado por una mucama bloquea la habitación
+}
+
 export interface Settings {
   id: "general";
   hotelName: string;
@@ -240,12 +283,10 @@ export interface Settings {
   taxRate: number; // ej 21
   checkInTime: string;
   checkOutTime: string;
-  rules: {
-    preSalida: boolean;
-    checkoutTasks: boolean;
-    llegada: boolean;
-    repasoDiario: boolean;
-  };
+  /** legado (v1): se migra a `automation` */
+  rules?: { preSalida: boolean; checkoutTasks: boolean; llegada: boolean; repasoDiario: boolean };
+  automation?: Partial<AutomationConfig>;
+  permissions?: Partial<Record<Role, Perm[]>>;
   invoiceSeq: number;
 }
 

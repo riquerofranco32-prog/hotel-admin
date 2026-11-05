@@ -10,6 +10,7 @@ import {
   limit,
   orderBy,
   query,
+  where,
   onSnapshot,
   runTransaction,
   setDoc,
@@ -39,13 +40,44 @@ function clean<T>(o: T): T {
 }
 
 // ---------------- Firestore ----------------
+/**
+ * Para que el panel siga rápido con años de historia, sólo se sincroniza la ventana de datos útil.
+ * (Los datos más viejos siguen en Firestore; se pueden consultar/exportar desde la consola.)
+ */
+function windowedQuery(db: ReturnType<typeof fb>["db"], col: CollectionName) {
+  const ref = collection(db, col);
+  const day = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return d.toISOString().slice(0, 10);
+  };
+  switch (col) {
+    case "activity":
+      return query(ref, orderBy("at", "desc"), limit(1000));
+    case "reservations":
+      return query(ref, where("checkOut", ">=", day(400)));
+    case "tasks":
+      return query(ref, where("dueDate", ">=", day(90)));
+    case "charges":
+    case "payments":
+      return query(ref, where("date", ">=", day(400)));
+    case "invoices":
+      return query(ref, where("issuedAt", ">=", day(400)));
+    case "orders":
+      return query(ref, where("createdAt", ">=", day(120)));
+    case "messages":
+      return query(ref, where("sentAt", ">=", day(180)));
+    default:
+      return ref;
+  }
+}
 function firestoreAdapter(): Adapter {
   const { db } = fb();
   return {
     kind: "firebase",
     subscribe(col, cb, onError) {
       // El registro de actividad crece siempre: sólo traemos lo más reciente
-      const ref = col === "activity" ? query(collection(db, col), orderBy("at", "desc"), limit(1000)) : collection(db, col);
+      const ref = windowedQuery(db, col);
       return onSnapshot(
         ref,
         (snap) => cb(snap.docs.map((d) => ({ ...(d.data() as object), id: d.id }) as Doc)),

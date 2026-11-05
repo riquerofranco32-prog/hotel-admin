@@ -34,12 +34,14 @@ const GUEST_NAMES = [
 
 export const DEMO_STAFF: Staff[] = [
   { id: "st_admin", name: "Laura Méndez", email: "admin@hotelalmare.com", phone: "5491155550001", role: "admin", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
+  { id: "st_ger", name: "Martín Albornoz", email: "gerencia@hotelalmare.com", phone: "5491155550010", role: "gerente", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
   { id: "st_recep1", name: "Carlos Ruiz", email: "recepcion@hotelalmare.com", phone: "5491155550002", role: "recepcion", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
   { id: "st_recep2", name: "Marina Sosa", email: "marina@hotelalmare.com", phone: "5491155550003", role: "recepcion", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
-  { id: "st_limp1", name: "Rosa Gómez", email: "rosa@hotelalmare.com", phone: "5491155550004", role: "limpieza", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
-  { id: "st_limp2", name: "Ana Torres", email: "ana@hotelalmare.com", phone: "5491155550005", role: "limpieza", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
-  { id: "st_limp3", name: "Beatriz Luna", email: "beatriz@hotelalmare.com", phone: "5491155550006", role: "limpieza", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
+  { id: "st_limp1", name: "Rosa Gómez", email: "rosa@hotelalmare.com", phone: "5491155550004", role: "mucama", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
+  { id: "st_limp2", name: "Ana Torres", email: "ana@hotelalmare.com", phone: "5491155550005", role: "mucama", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
+  { id: "st_limp3", name: "Beatriz Luna", email: "beatriz@hotelalmare.com", phone: "5491155550006", role: "mucama", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
   { id: "st_mant1", name: "Pedro Díaz", email: "pedro@hotelalmare.com", phone: "5491155550007", role: "mantenimiento", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
+  { id: "st_rest", name: "Lucas Ferreyra", email: "restaurante@hotelalmare.com", phone: "5491155550008", role: "restaurante", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
 ];
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -49,7 +51,7 @@ export const DEFAULT_SETTINGS: Settings = {
   taxRate: 21,
   checkInTime: "14:00",
   checkOutTime: "10:00",
-  rules: { preSalida: true, checkoutTasks: true, llegada: true, repasoDiario: false },
+  automation: {},
   invoiceSeq: 1,
 };
 
@@ -105,6 +107,10 @@ export function buildSeed(): DataState {
     phone: `54911${String(40000000 + i * 137911).slice(0, 8)}`,
     document: String(28000000 + i * 731233).slice(0, 8),
     nationality: i % 6 === 0 ? "Uruguay" : i % 7 === 0 ? "Chile" : "Argentina",
+    tags: i % 5 === 0 ? ["VIP"] : i % 4 === 0 ? ["Empresa"] : i % 3 === 0 ? ["Frecuente"] : [],
+    company: i % 4 === 0 ? ["Techsur SA", "Agro del Plata", "Consultora Norte"][i % 3] : undefined,
+    preferences: i % 5 === 0 ? "Piso alto, almohada extra" : i % 7 === 0 ? "Sin gluten en desayuno" : undefined,
+    birthday: `19${70 + (i % 25)}-${String((i % 12) + 1).padStart(2, "0")}-${String((i % 27) + 1).padStart(2, "0")}`,
     createdAt: at(addDays(t, -90), 12),
   }));
 
@@ -153,7 +159,7 @@ export function buildSeed(): DataState {
   // Tareas históricas (completadas) + algunas en curso
   const staff = DEMO_STAFF;
   const tasks: Task[] = [];
-  const cleaners = staff.filter((s) => s.role === "limpieza").map((s) => s.id);
+  const cleaners = staff.filter((s) => s.role === "mucama").map((s) => s.id);
   for (const r of reservations.filter((x) => x.status === "checkout" && x.checkOut >= addDays(t, -12))) {
     const generated = checkoutTasks(r, { staff, tasks }, "sistema");
     generated.forEach((task, i) => {

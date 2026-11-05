@@ -19,7 +19,7 @@ export default function Page() {
 }
 
 function Facturacion() {
-  const { data, actions, staffName } = useApp();
+  const { data, idx, actions, staffName } = useApp();
   const params = useSearchParams();
   const [tab, setTab] = useState<"folios" | "facturas" | "resumen">("folios");
   const [filter, setFilter] = useState<"saldo" | "casa" | "todas">("saldo");
@@ -42,12 +42,12 @@ function Facturacion() {
     () =>
       data.reservations
         .filter((r) => isActive(r) && r.status !== "pendiente")
-        .map((r) => ({ r, f: folio(r, data) }))
+        .map((r) => ({ r, f: folio(r, idx) }))
         .filter(({ r, f }) => (filter === "saldo" ? f.balance > 0 && r.checkIn <= t : filter === "casa" ? r.status === "checkin" : true))
         .filter(({ r }) => !q || r.guestName.toLowerCase().includes(q.toLowerCase()) || room(r.roomId).includes(q))
         .sort((a, b) => b.r.checkIn.localeCompare(a.r.checkIn)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, filter, q, t],
+    [data.reservations, idx, filter, q, t],
   );
 
   const monthKey = t.slice(0, 7);
@@ -55,7 +55,7 @@ function Facturacion() {
   const payToday = data.payments.filter((p) => p.date === t);
   const pendingTotal = data.reservations
     .filter((r) => r.status === "checkin" || r.status === "checkout")
-    .reduce((s, r) => s + Math.max(0, folio(r, data).balance), 0);
+    .reduce((s, r) => s + Math.max(0, folio(r, idx).balance), 0);
 
   return (
     <div className="p-4 lg:p-6">
@@ -194,7 +194,7 @@ function Facturacion() {
 }
 
 function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void }) {
-  const { data, actions, staffName } = useApp();
+  const { data, idx, actions, staffName, can } = useApp();
   const t = today();
   const cur = data.settings[0]?.currency ?? "$";
   const room = (rid: string) => data.rooms.find((x) => x.id === rid)?.number ?? "?";
@@ -206,7 +206,8 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
   const [method, setMethod] = useState<PaymentMethod>("Efectivo");
   const [ref, setRef] = useState("");
   if (!r) return <Card><p className="p-10 text-center text-sm text-gray-500">Reserva no encontrada.</p></Card>;
-  const f = folio(r, data);
+  const f = folio(r, idx);
+  const canPay = can("registrar_pagos");
   const invoices = data.invoices.filter((i) => i.reservationId === r.id && !i.voided);
 
   return (
@@ -217,7 +218,7 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
         </span>
       }
       actions={
-        <Button
+        canPay && <Button
           size="sm"
           variant="primary"
           onClick={async () => {
@@ -259,7 +260,7 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
             </tr>
           ))}
         </Table>
-        <form
+        {canPay && <form
           className="flex flex-wrap items-end gap-2 rounded-md bg-gray-50 p-3"
           onSubmit={(e) => {
             e.preventDefault();
@@ -280,7 +281,7 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
           </Field>
           <Field label="Importe"><Input type="number" className="w-[120px]" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
           <Button type="submit">Agregar</Button>
-        </form>
+        </form>}
 
         <div>
           <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Pagos</h4>
@@ -301,7 +302,7 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
             ))}
             {f.payments.length === 0 && <li className="px-3 py-3 text-gray-500">Sin pagos registrados</li>}
           </ul>
-          <form
+          {canPay && <form
             className="mt-2 flex flex-wrap items-end gap-2 rounded-md bg-gray-50 p-3"
             onSubmit={(e) => {
               e.preventDefault();
@@ -324,7 +325,7 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
               <Button type="button" variant="ghost" onClick={() => setPay(String(Math.round(f.balance)))}>Saldo total</Button>
             )}
             <Button type="submit" variant="success">Cobrar</Button>
-          </form>
+          </form>}
         </div>
 
         <div className="ml-auto max-w-xs space-y-1 text-sm">

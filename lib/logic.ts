@@ -1,6 +1,13 @@
 import { addDays, diffDays, today } from "./dates";
+import { COLLECTIONS } from "./types";
 import type {
+  AutomationConfig,
+  Charge,
+  Payment,
   ChargeCategory,
+  CollectionName,
+  Perm,
+  Settings,
   DataState,
   Priority,
   Reservation,
@@ -131,11 +138,28 @@ export const PRIORITY_CLASS: Record<Priority, string> = {
 export const PRIORITY_ORDER: Record<Priority, number> = { urgente: 0, alta: 1, media: 2, baja: 3 };
 
 export const ROLE_LABEL: Record<Role, string> = {
-  admin: "Administrador",
+  admin: "Administrador general",
+  gerente: "Gerencia",
   recepcion: "Recepción",
-  limpieza: "Limpieza / Housekeeping",
+  mucama: "Mucama / Housekeeping",
   mantenimiento: "Mantenimiento técnico",
+  restaurante: "Restaurante",
 };
+
+export const ROLE_COLOR: Record<Role, string> = {
+  admin: "bg-gray-900 text-white",
+  gerente: "bg-indigo-600 text-white",
+  recepcion: "bg-blue-600 text-white",
+  mucama: "bg-emerald-600 text-white",
+  mantenimiento: "bg-purple-600 text-white",
+  restaurante: "bg-amber-500 text-white",
+};
+
+/** Roles guardados en versiones anteriores */
+export function normalizeRole(r: string): Role {
+  if (r === "limpieza") return "mucama";
+  return (["admin", "gerente", "recepcion", "mucama", "mantenimiento", "restaurante"].includes(r) ? r : "mucama") as Role;
+}
 
 export const CHARGE_LABEL: Record<ChargeCategory, string> = {
   alojamiento: "Alojamiento",
@@ -148,26 +172,68 @@ export const CHARGE_LABEL: Record<ChargeCategory, string> = {
 
 // ================== Permisos por rol ==================
 
-export type Section =
-  | "dashboard"
-  | "reservas"
-  | "recepcion"
-  | "facturacion"
-  | "menus"
-  | "mantenimiento"
-  | "whatsapp"
-  | "administradores";
+export const ALL_ROLES: Role[] = ["admin", "gerente", "recepcion", "mucama", "mantenimiento", "restaurante"];
 
-export const ROLE_SECTIONS: Record<Role, Section[]> = {
-  admin: ["dashboard", "reservas", "recepcion", "facturacion", "menus", "mantenimiento", "whatsapp", "administradores"],
-  recepcion: ["dashboard", "reservas", "recepcion", "facturacion", "menus", "mantenimiento", "whatsapp"],
-  limpieza: ["dashboard", "mantenimiento"],
-  mantenimiento: ["dashboard", "mantenimiento"],
+export const PERM_INFO: Record<Perm, { label: string; group: "Secciones" | "Capacidades"; hint?: string }> = {
+  dashboard: { label: "Dashboard (calendario)", group: "Secciones" },
+  mi_jornada: { label: "Mi jornada", group: "Secciones", hint: "Tareas propias del día" },
+  recepcion: { label: "Recepción", group: "Secciones" },
+  reservas: { label: "Reservas", group: "Secciones" },
+  huespedes: { label: "Huéspedes (CRM)", group: "Secciones" },
+  mantenimiento: { label: "Mantenimiento", group: "Secciones" },
+  menus: { label: "Menús / room service", group: "Secciones" },
+  whatsapp: { label: "WhatsApp", group: "Secciones" },
+  facturacion: { label: "Facturación", group: "Secciones" },
+  finanzas: { label: "Finanzas y reportes", group: "Secciones" },
+  automatizaciones: { label: "Automatizaciones", group: "Secciones" },
+  administradores: { label: "Administradores", group: "Secciones" },
+  ver_montos: { label: "Ver montos y saldos", group: "Capacidades" },
+  editar_reservas: { label: "Crear / editar reservas, check-in/out", group: "Capacidades" },
+  gestionar_tareas: { label: "Crear, asignar y borrar cualquier tarea", group: "Capacidades" },
+  registrar_pagos: { label: "Registrar pagos y emitir facturas", group: "Capacidades" },
 };
 
-export function canAccess(role: Role | undefined, s: Section) {
-  return !!role && ROLE_SECTIONS[role].includes(s);
+export const DEFAULT_PERMISSIONS: Record<Role, Perm[]> = {
+  admin: Object.keys(PERM_INFO) as Perm[],
+  gerente: ["dashboard", "mi_jornada", "recepcion", "reservas", "huespedes", "mantenimiento", "menus", "whatsapp", "facturacion", "finanzas", "ver_montos", "editar_reservas", "gestionar_tareas", "registrar_pagos"],
+  recepcion: ["dashboard", "mi_jornada", "recepcion", "reservas", "huespedes", "mantenimiento", "menus", "whatsapp", "facturacion", "ver_montos", "editar_reservas", "gestionar_tareas", "registrar_pagos"],
+  mucama: ["mi_jornada", "mantenimiento"],
+  mantenimiento: ["mi_jornada", "mantenimiento"],
+  restaurante: ["menus", "mi_jornada"],
+};
+
+/**
+ * Lo que la BASE DE DATOS permite a cada rol (ver firestore.rules). El admin puede quitar permisos,
+ * pero no dar algo que las reglas de seguridad no permiten (por ejemplo, finanzas a una mucama).
+ */
+export const PERM_CEILING: Record<Role, Perm[]> = {
+  admin: DEFAULT_PERMISSIONS.admin,
+  gerente: DEFAULT_PERMISSIONS.gerente,
+  recepcion: DEFAULT_PERMISSIONS.recepcion.concat(["finanzas"]),
+  mucama: ["dashboard", "mi_jornada", "mantenimiento", "gestionar_tareas"],
+  mantenimiento: ["dashboard", "mi_jornada", "mantenimiento", "gestionar_tareas"],
+  restaurante: ["dashboard", "mi_jornada", "menus", "mantenimiento", "ver_montos"],
+};
+
+export function permsFor(role: Role | undefined, settings?: Settings): Perm[] {
+  if (!role) return [];
+  const custom = settings?.permissions?.[role];
+  const base = custom ?? DEFAULT_PERMISSIONS[role];
+  const allowed = base.filter((p) => PERM_CEILING[role].includes(p));
+  // el administrador nunca puede quedarse sin acceso a Administradores
+  if (role === "admin" && !allowed.includes("administradores")) allowed.push("administradores");
+  return allowed;
 }
+
+/** Colecciones que cada rol puede leer (debe coincidir con firestore.rules). */
+export const ROLE_COLLECTIONS: Record<Role, CollectionName[]> = {
+  admin: [...COLLECTIONS],
+  gerente: [...COLLECTIONS],
+  recepcion: [...COLLECTIONS],
+  mucama: ["rooms", "guests", "reservations", "tasks", "staff", "settings"],
+  mantenimiento: ["rooms", "guests", "reservations", "tasks", "staff", "settings"],
+  restaurante: ["rooms", "guests", "reservations", "tasks", "staff", "settings", "menuItems", "orders", "charges"],
+};
 
 // ================== Estado visual de reservas ==================
 
@@ -222,12 +288,19 @@ export function currentReservation(roomId: string, reservations: Reservation[], 
 
 // ================== Folio / facturación ==================
 
-export function folio(r: Reservation, data: Pick<DataState, "charges" | "payments">) {
+type FolioSource =
+  | Pick<DataState, "charges" | "payments">
+  | { chargesByRes: Map<string, Charge[]>; paymentsByRes: Map<string, Payment[]> };
+
+/** Cuenta de la reserva. Acepta los índices del AppProvider (rápido) o las listas completas. */
+export function folio(r: Reservation, src: FolioSource) {
   const lodging = nights(r) * r.rate;
-  const charges = data.charges.filter((c) => c.reservationId === r.id);
-  const payments = data.payments.filter((p) => p.reservationId === r.id);
-  const extras = charges.reduce((s, c) => s + c.amount, 0);
-  const paid = payments.reduce((s, p) => s + p.amount, 0);
+  const charges = "chargesByRes" in src ? src.chargesByRes.get(r.id) ?? [] : src.charges.filter((c) => c.reservationId === r.id);
+  const payments = "paymentsByRes" in src ? src.paymentsByRes.get(r.id) ?? [] : src.payments.filter((p) => p.reservationId === r.id);
+  let extras = 0;
+  for (const c of charges) extras += c.amount;
+  let paid = 0;
+  for (const p of payments) paid += p.amount;
   const total = lodging + extras;
   return { lodging, charges, payments, extras, paid, total, balance: total - paid };
 }
@@ -287,15 +360,49 @@ export const CHECKOUT_SEQUENCE: TaskType[] = ["cambio_sabanas", "limpieza_salida
 /** Rol que naturalmente ejecuta cada tipo de tarea (para sugerir asignación). */
 export const TASK_DEFAULT_ROLE: Record<TaskType, Role> = {
   pre_salida: "recepcion",
-  cambio_sabanas: "limpieza",
-  limpieza_salida: "limpieza",
-  reposicion: "limpieza",
+  cambio_sabanas: "mucama",
+  limpieza_salida: "mucama",
+  reposicion: "mucama",
   inspeccion: "recepcion",
-  preparar_llegada: "limpieza",
-  repaso_diario: "limpieza",
+  preparar_llegada: "mucama",
+  repaso_diario: "mucama",
   reparacion: "mantenimiento",
-  otro: "limpieza",
+  otro: "mucama",
 };
+
+export const DEFAULT_AUTOMATION: AutomationConfig = {
+  preSalida: true,
+  preSalidaDias: 1,
+  checkoutTasks: true,
+  checkoutTipos: ["cambio_sabanas", "limpieza_salida", "reposicion", "inspeccion"],
+  llegada: true,
+  llegadaDias: 1,
+  repasoDiario: false,
+  autoAsignar: true,
+  escalarVencidas: true,
+  noShowAuto: false,
+  noShowDias: 1,
+  cerrarAlCheckin: true,
+  avisosEnVivo: true,
+  reporteBloquea: false,
+};
+
+/** Configuración de automatizaciones (con migración desde `rules` v1). */
+export function automationOf(s?: Settings): AutomationConfig {
+  const legacy = s?.rules
+    ? { preSalida: s.rules.preSalida, checkoutTasks: s.rules.checkoutTasks, llegada: s.rules.llegada, repasoDiario: s.rules.repasoDiario }
+    : {};
+  return { ...DEFAULT_AUTOMATION, ...legacy, ...(s?.automation ?? {}) };
+}
+
+export function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((x) => x[0]?.toUpperCase())
+    .join("");
+}
 
 export function cls(...xs: (string | false | null | undefined)[]) {
   return xs.filter(Boolean).join(" ");

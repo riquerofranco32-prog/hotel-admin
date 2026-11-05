@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plus, Zap } from "lucide-react";
@@ -30,7 +31,7 @@ export default function Page() {
 }
 
 function Mantenimiento() {
-  const { data, me, actions, staffName } = useApp();
+  const { data, idx, me, actions, staffName, can } = useApp();
   const params = useSearchParams();
   const [tab, setTab] = useState<"tablero" | "habitaciones" | "personal" | "reglas">("tablero");
   const [room, setRoom] = useState(params.get("hab") ?? "");
@@ -71,7 +72,7 @@ function Mantenimiento() {
     PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority] || a.dueDate.localeCompare(b.dueDate) || roomNum(a.roomId).localeCompare(roomNum(b.roomId), undefined, { numeric: true });
 
   const open = data.tasks.filter((x) => x.status !== "completada");
-  const roomsDirty = data.rooms.filter((r) => ["sucia", "en_limpieza"].includes(roomState(r, data, t))).length;
+  const roomsDirty = data.rooms.filter((r) => ["sucia", "en_limpieza"].includes((idx.roomStates.get(r.id) ?? "lista"))).length;
 
   return (
     <div className="p-4 lg:p-6">
@@ -80,17 +81,25 @@ function Mantenimiento() {
         subtitle="Las tareas se generan solas según el estado de las reservas: próxima salida, check-out y llegadas."
         actions={
           <>
-            <Button
-              onClick={async () => {
-                const n = await actions.runAutomations();
-                toast(n ? `Se crearon ${n} tareas automáticas` : "No hay tareas automáticas pendientes de crear");
-              }}
-            >
-              <Zap size={15} /> Ejecutar automatizaciones
-            </Button>
-            <Button variant="primary" onClick={() => setNewTask(true)}>
-              <Plus size={15} /> Nueva tarea
-            </Button>
+            {can("automatizaciones") && (
+              <Button
+                onClick={async () => {
+                  const n = await actions.runAutomations(can("editar_reservas"));
+                  toast(n ? `Se aplicaron ${n} acciones automáticas` : "No hay acciones automáticas pendientes");
+                }}
+              >
+                <Zap size={15} /> Ejecutar automatizaciones
+              </Button>
+            )}
+            {can("gestionar_tareas") ? (
+              <Button variant="primary" onClick={() => setNewTask(true)}>
+                <Plus size={15} /> Nueva tarea
+              </Button>
+            ) : (
+              <Link href="/mi-jornada">
+                <Button variant="primary">Ir a Mi jornada</Button>
+              </Link>
+            )}
           </>
         }
       />
@@ -111,7 +120,7 @@ function Mantenimiento() {
             { value: "tablero", label: "Tablero" },
             { value: "habitaciones", label: "Habitaciones" },
             { value: "personal", label: "Quién hizo qué" },
-            { value: "reglas", label: "Reglas automáticas" },
+            ...(can("automatizaciones") ? [{ value: "reglas" as const, label: "Reglas automáticas" }] : []),
           ]}
         />
       </div>
@@ -214,7 +223,7 @@ function Mantenimiento() {
                 .filter((r) => r.floor === f)
                 .sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }))
                 .map((r) => {
-                  const st = roomState(r, data, t);
+                  const st = (idx.roomStates.get(r.id) ?? "lista");
                   const res = currentReservation(r.id, data.reservations, t);
                   const ot = data.tasks.filter((x) => x.roomId === r.id && x.status !== "completada");
                   return (
@@ -293,41 +302,20 @@ function Mantenimiento() {
   }
 
   function Rules() {
-    const s = data.settings[0];
-    const rules = s?.rules ?? { preSalida: true, checkoutTasks: true, llegada: true, repasoDiario: false };
-    const canEdit = me?.role === "admin";
-    const toggle = (k: keyof typeof rules) => s && actions.saveSettings({ ...s, rules: { ...rules, [k]: !rules[k] } });
-    const items: { key: keyof typeof rules; color: string; when: string; then: string }[] = [
-      { key: "preSalida", color: "bg-proxima", when: "La reserva pasa a 🔴 Próxima a salir (sale hoy o mañana)", then: "Se crea “Pre-salida: revisar minibar y consumos” para Recepción. Se cierra sola al hacer el check-out." },
-      { key: "checkoutTasks", color: "bg-gray-400", when: "Se hace el check-out (el huésped ya salió)", then: "Se crean 4 tareas: 🛏️ cambio de sábanas y toallas, 🧹 limpieza de salida, 🧴 reposición de amenities y 🔍 inspección final. La habitación queda “Sucia” hasta completarlas y luego vuelve a “Lista”." },
-      { key: "llegada", color: "bg-reservada", when: "Hay una 🔵 reserva que llega hoy o mañana", then: "Se crea “Preparar habitación para llegada” con los pedidos especiales del huésped. Se cierra sola al hacer el check-in. Si la habitación sigue sucia el día de llegada, aparece una alerta 🔔." },
-      { key: "repasoDiario", color: "bg-ocupada", when: "Hay un 🟢 huésped en casa (estadías de varias noches)", then: "Se crea un “Repaso diario” por día para housekeeping." },
-    ];
     return (
-      <div className="space-y-3">
-        {items.map((it) => (
-          <Card key={it.key}>
-            <div className="flex flex-wrap items-start gap-4 p-4">
-              <span className={cls("mt-1 h-3 w-3 shrink-0 rounded-full", it.color)} />
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold">Cuando: {it.when}</div>
-                <div className="mt-1 text-sm text-gray-600">Entonces: {it.then}</div>
-              </div>
-              <label className={cls("flex items-center gap-2 text-sm", !canEdit && "opacity-60")}>
-                <input type="checkbox" checked={rules[it.key]} disabled={!canEdit} onChange={() => toggle(it.key)} />
-                {rules[it.key] ? <Badge className="bg-green-50 text-green-700">Activa</Badge> : <Badge className="bg-gray-100 text-gray-600">Inactiva</Badge>}
-              </label>
-            </div>
-          </Card>
-        ))}
-        <Card>
-          <div className="p-4 text-sm text-gray-600">
-            <b>Asignación automática:</b> cada tarea automática se asigna a la persona activa del rol correspondiente (limpieza, recepción o
-            mantenimiento) que tenga menos tareas abiertas. Cada acción (iniciar, tildar un ítem, completar) queda registrada con quién y
-            cuándo. Las reparaciones marcadas como “bloquea la habitación” la dejan fuera de servicio y se ven rayadas en el calendario.
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-3 p-5">
+          <div className="text-sm text-gray-600">
+            Las reglas que crean tareas solas (próxima salida, check-out, llegadas, repaso diario, asignación automática, escalamiento de vencidas) se
+            configuran en el centro de automatizaciones.
           </div>
-        </Card>
-      </div>
+          <Link href="/automatizaciones">
+            <Button variant="primary">
+              <Zap size={15} /> Abrir Automatizaciones
+            </Button>
+          </Link>
+        </div>
+      </Card>
     );
   }
 }

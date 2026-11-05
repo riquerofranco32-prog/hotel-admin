@@ -16,10 +16,10 @@ export function Button({
     <button
       {...props}
       className={cls(
-        "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
         size === "sm" ? "h-8 px-2.5 text-[13px]" : "h-9 px-3.5 text-sm",
         variant === "primary" && "bg-gray-900 text-white hover:bg-gray-700",
-        variant === "secondary" && "border border-gray-300 bg-white text-gray-800 hover:bg-gray-50",
+        variant === "secondary" && "border border-gray-200 bg-white text-gray-800 shadow-[0_1px_2px_rgba(16,24,40,0.05)] hover:bg-gray-50",
         variant === "danger" && "bg-red-600 text-white hover:bg-red-700",
         variant === "success" && "bg-green-600 text-white hover:bg-green-700",
         variant === "ghost" && "text-gray-600 hover:bg-gray-100",
@@ -87,9 +87,9 @@ export function Badge({ children, className }: { children: React.ReactNode; clas
 
 export function Card({ children, className, title, actions }: { children: React.ReactNode; className?: string; title?: React.ReactNode; actions?: React.ReactNode }) {
   return (
-    <section className={cls("rounded-lg border border-gray-200 bg-white", className)}>
+    <section className={cls("rounded-xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]", className)}>
       {(title || actions) && (
-        <header className="flex items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
+        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
           <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
           <div className="flex items-center gap-2">{actions}</div>
         </header>
@@ -99,20 +99,85 @@ export function Card({ children, className, title, actions }: { children: React.
   );
 }
 
-export function Stat({ label, value, sub, tone = "gray" }: { label: string; value: React.ReactNode; sub?: string; tone?: "gray" | "green" | "blue" | "red" | "orange" | "purple" }) {
+export function Stat({
+  label,
+  value,
+  sub,
+  tone = "gray",
+  icon: Icon,
+  href,
+}: {
+  label: string;
+  value: React.ReactNode;
+  sub?: React.ReactNode;
+  tone?: "gray" | "green" | "blue" | "red" | "orange" | "purple" | "indigo";
+  icon?: React.ElementType;
+  href?: string;
+}) {
   const tones = {
-    gray: "border-l-gray-400",
-    green: "border-l-green-600",
-    blue: "border-l-blue-600",
-    red: "border-l-red-600",
-    orange: "border-l-orange-500",
-    purple: "border-l-purple-500",
+    gray: "bg-gray-100 text-gray-600",
+    green: "bg-green-50 text-green-600",
+    blue: "bg-blue-50 text-blue-600",
+    red: "bg-red-50 text-red-600",
+    orange: "bg-orange-50 text-orange-600",
+    purple: "bg-purple-50 text-purple-600",
+    indigo: "bg-indigo-50 text-indigo-600",
   };
+  const body = (
+    <div className="flex h-full items-start gap-3 rounded-xl border border-gray-200/80 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300">
+      {Icon && (
+        <span className={cls("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", tones[tone])}>
+          <Icon size={18} />
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="line-clamp-1 text-xs font-medium text-gray-500" title={label}>{label}</div>
+        <div
+          className={cls(
+            "mt-0.5 whitespace-nowrap font-semibold leading-tight tabular-nums tracking-tight text-gray-900",
+            String(value).length > 11 ? "text-[17px]" : String(value).length > 8 ? "text-[19px]" : "text-[22px]",
+          )}
+        >
+          {value}
+        </div>
+        {sub && <div className="mt-0.5 line-clamp-2 text-xs text-gray-500">{sub}</div>}
+      </div>
+    </div>
+  );
+  return href ? (
+    <a href={href} className="block">
+      {body}
+    </a>
+  ) : (
+    body
+  );
+}
+
+export function Avatar({ name, className, size = 32 }: { name: string; className?: string; size?: number }) {
+  const palette = ["bg-rose-500", "bg-sky-600", "bg-emerald-600", "bg-amber-500", "bg-violet-600", "bg-teal-600", "bg-fuchsia-600", "bg-slate-700"];
+  let h = 0;
+  for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const ini = name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((x) => x[0]?.toUpperCase())
+    .join("");
   return (
-    <div className={cls("rounded-lg border border-l-4 border-gray-200 bg-white px-4 py-3", tones[tone])}>
-      <div className="text-xs font-medium text-gray-500">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tabular-nums text-gray-900">{value}</div>
-      {sub && <div className="mt-0.5 text-xs text-gray-500">{sub}</div>}
+    <span
+      className={cls("inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white", palette[h % palette.length], className)}
+      style={{ width: size, height: size, fontSize: size * 0.38 }}
+      title={name}
+    >
+      {ini}
+    </span>
+  );
+}
+
+export function Progress({ value, tone = "bg-blue-600" }: { value: number; tone?: string }) {
+  return (
+    <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+      <div className={cls("h-full rounded-full transition-all", tone)} style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
     </div>
   );
 }
@@ -121,7 +186,7 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   return (
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
+        <h1 className="text-[22px] font-semibold tracking-tight text-gray-900">{title}</h1>
         {subtitle && <p className="mt-0.5 text-sm text-gray-500">{subtitle}</p>}
       </div>
       <div className="flex flex-wrap items-center gap-2">{actions}</div>
@@ -152,9 +217,9 @@ export function Modal({
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 pt-[6vh]" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-gray-900/40 p-4 pt-[6vh] backdrop-blur-[2px]" onMouseDown={onClose}>
       <div
-        className={cls("w-full rounded-xl bg-white shadow-xl", wide ? "max-w-3xl" : "max-w-lg")}
+        className={cls("w-full rounded-2xl bg-white shadow-2xl ring-1 ring-black/5", wide ? "max-w-3xl" : "max-w-lg")}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
@@ -179,7 +244,7 @@ export function Drawer({ open, onClose, title, children }: { open: boolean; onCl
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex justify-end bg-gray-900/30 backdrop-blur-[1px]" onMouseDown={onClose}>
       <aside className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
           <h3 className="text-base font-semibold">{title}</h3>
@@ -236,17 +301,17 @@ export function Tabs<T extends string>({ value, onChange, items }: { value: T; o
 }
 
 /** Pequeño sistema de notificaciones */
-let toastFn: ((msg: string, tone?: "ok" | "error") => void) | null = null;
-export function toast(msg: string, tone: "ok" | "error" = "ok") {
+let toastFn: ((msg: string, tone?: "ok" | "error" | "live") => void) | null = null;
+export function toast(msg: string, tone: "ok" | "error" | "live" = "ok") {
   toastFn?.(msg, tone);
 }
 export function Toaster() {
-  const [items, setItems] = useState<{ id: number; msg: string; tone: "ok" | "error" }[]>([]);
+  const [items, setItems] = useState<{ id: number; msg: string; tone: "ok" | "error" | "live" }[]>([]);
   useEffect(() => {
     toastFn = (msg, tone = "ok") => {
       const id = Date.now() + Math.random();
-      setItems((x) => [...x, { id, msg, tone }]);
-      setTimeout(() => setItems((x) => x.filter((i) => i.id !== id)), 3500);
+      setItems((x) => [...x.slice(-3), { id, msg, tone }]);
+      setTimeout(() => setItems((x) => x.filter((i) => i.id !== id)), tone === "live" ? 6000 : 3500);
     };
     return () => {
       toastFn = null;
@@ -257,8 +322,14 @@ export function Toaster() {
       {items.map((i) => (
         <div
           key={i.id}
-          className={cls("rounded-lg px-4 py-2.5 text-sm text-white shadow-lg", i.tone === "ok" ? "bg-gray-900" : "bg-red-600")}
+          className={cls(
+            "max-w-sm rounded-xl px-4 py-2.5 text-sm shadow-lg",
+            i.tone === "ok" && "bg-gray-900 text-white",
+            i.tone === "error" && "bg-red-600 text-white",
+            i.tone === "live" && "border border-gray-200 bg-white text-gray-800",
+          )}
         >
+          {i.tone === "live" && <span className="mr-1.5 inline-block h-2 w-2 animate-pulse rounded-full bg-green-500" />}
           {i.msg}
         </div>
       ))}

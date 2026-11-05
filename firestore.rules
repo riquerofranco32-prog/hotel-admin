@@ -1,15 +1,23 @@
 rules_version = '2';
-// Reglas de seguridad del PMS.
-//  - Sólo personal dado de alta (colección staff, ID = email en minúsculas) y activo puede leer/escribir.
-//  - Sólo administradores gestionan usuarios y configuración.
+// Reglas de seguridad del PMS — control de acceso POR CARGO a nivel base de datos.
+//  - Sólo personal dado de alta (colección staff, ID = email en minúsculas) y activo accede.
+//  - Cada cargo sólo puede leer/escribir lo que necesita (mucamas no ven pagos ni facturas, etc.).
 //  - El primer usuario que inicia sesión se auto-registra como admin (una única vez, vía meta/bootstrap).
+// Debe coincidir con ROLE_COLLECTIONS / PERM_CEILING en lib/logic.ts.
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null && request.auth.token.email != null; }
     function myEmail() { return request.auth.token.email.lower(); }
     function staffPath() { return /databases/$(database)/documents/staff/$(myEmail()); }
-    function isStaff() { return signedIn() && exists(staffPath()) && get(staffPath()).data.active == true; }
-    function isAdmin() { return isStaff() && get(staffPath()).data.role == 'admin'; }
+    function me() { return get(staffPath()).data; }
+    function isStaff() { return signedIn() && exists(staffPath()) && me().active == true; }
+    function role() { return me().role; }
+    function hasRole(roles) { return isStaff() && role() in roles; }
+
+    function isAdmin()   { return hasRole(['admin']); }
+    function isManager() { return hasRole(['admin', 'gerente']); }
+    function isFront()   { return hasRole(['admin', 'gerente', 'recepcion']); }
+    function isFood()    { return hasRole(['admin', 'gerente', 'recepcion', 'restaurante']); }
     function bootstrapPath() { return /databases/$(database)/documents/meta/bootstrap; }
 
     match /meta/bootstrap {
@@ -17,23 +25,48 @@ service cloud.firestore {
       allow create: if signedIn() && !exists(bootstrapPath());
     }
 
+    // Personal: todos leen (para nombres/asignaciones); sólo el admin gestiona.
+    // Cada uno puede actualizar su propia "última conexión".
     match /staff/{id} {
       allow read: if isStaff();
       allow create: if isAdmin()
         || (signedIn() && id == myEmail() && !exists(bootstrapPath()) && existsAfter(bootstrapPath())
             && request.resource.data.role == 'admin');
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (isStaff() && id == myEmail() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen']));
+      allow delete: if isAdmin();
     }
 
     match /settings/{id} {
       allow read: if isStaff();
-      // recepción puede avanzar el número de factura
       allow write: if isAdmin()
-        || (isStaff() && resource != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['invoiceSeq']));
+        || (isFront() && resource != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['invoiceSeq']));
     }
 
-    match /{col}/{id} {
-      allow read, write: if isStaff() && !(col in ['staff', 'meta', 'settings']);
+    // Operación: todos leen habitaciones, huéspedes y reservas; sólo el front las modifica
+    match /rooms/{id}        { allow read: if isStaff(); allow write: if isManager(); }
+    match /guests/{id}       { allow read: if isStaff(); allow write: if isFront(); }
+    match /reservations/{id} { allow read: if isStaff(); allow write: if isFront(); }
+
+    // Tareas: todo el personal las lee y actualiza (mucamas tildan, completan, reportan problemas)
+    match /tasks/{id} {
+      allow read, create, update: if isStaff();
+      allow delete: if isFront();
     }
+
+    // Dinero: sólo administración, gerencia y recepción
+    match /payments/{id} { allow read, write: if isFront(); }
+    match /invoices/{id} { allow read, write: if isFront(); }
+    // Cargos: también el restaurante (room service se carga al folio)
+    match /charges/{id}  { allow read, write: if isFood(); }
+
+    // Restaurante
+    match /menuItems/{id} { allow read: if isStaff(); allow write: if hasRole(['admin', 'gerente', 'restaurante']); }
+    match /orders/{id}    { allow read, write: if isFood(); }
+
+    // Comunicación y auditoría
+    match /templates/{id} { allow read, write: if isFront(); }
+    match /messages/{id}  { allow read: if isFront(); allow create: if isStaff(); }
+    match /activity/{id}  { allow read: if isFront(); allow create: if isStaff(); allow delete: if isAdmin(); }
   }
 }

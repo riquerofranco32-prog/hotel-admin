@@ -10,7 +10,9 @@ import { folio, isActive, money, nights, roomState, ROOM_STATE_CLASS, ROOM_STATE
 import type { Reservation } from "@/lib/types";
 
 export default function RecepcionPage() {
-  const { data, actions } = useApp();
+  const { data, idx, actions, can } = useApp();
+  const showMoney = can("ver_montos");
+  const canEdit = can("editar_reservas");
   const t = today();
   const [openRes, setOpenRes] = useState<string | null>(null);
   const [form, setForm] = useState<{ open: boolean; initial?: Partial<Reservation> }>({ open: false });
@@ -36,7 +38,7 @@ export default function RecepcionPage() {
     toast(`Check-in de ${r.guestName} ✔`);
   }
   async function checkOut(r: Reservation) {
-    const f = folio(r, data);
+    const f = folio(r, idx);
     if (f.balance > 0 && !confirm(`${r.guestName} tiene saldo pendiente de ${money(f.balance)}. ¿Hacer check-out igual?`)) return;
     await actions.checkOut(r);
     toast(`Check-out de ${r.guestName} ✔ · Housekeeping notificado`);
@@ -48,9 +50,11 @@ export default function RecepcionPage() {
         title="Recepción"
         subtitle={`Hoy ${fmtDate(t)} · Check-in desde ${data.settings[0]?.checkInTime ?? "14:00"} · Check-out hasta ${data.settings[0]?.checkOutTime ?? "10:00"}`}
         actions={
-          <Button variant="primary" onClick={() => setForm({ open: true, initial: { checkIn: t, checkOut: addDays(t, 1), source: "Walk-in", status: "confirmada" } })}>
-            <Plus size={15} /> Walk-in
-          </Button>
+          canEdit && (
+            <Button variant="primary" onClick={() => setForm({ open: true, initial: { checkIn: t, checkOut: addDays(t, 1), source: "Walk-in", status: "confirmada" } })}>
+              <Plus size={15} /> Walk-in
+            </Button>
+          )
         }
       />
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
@@ -89,9 +93,11 @@ export default function RecepcionPage() {
                   <Link href={`/mantenimiento?hab=${r.roomId}`}>
                     <Badge className={ROOM_STATE_CLASS[st]}>{ROOM_STATE_LABEL[st]}</Badge>
                   </Link>
-                  <Button size="sm" variant="success" onClick={() => checkIn(r)}>
-                    <LogIn size={14} /> Check-in
-                  </Button>
+                  {canEdit && (
+                    <Button size="sm" variant="success" onClick={() => checkIn(r)}>
+                      <LogIn size={14} /> Check-in
+                    </Button>
+                  )}
                 </li>
               );
             })}
@@ -102,7 +108,7 @@ export default function RecepcionPage() {
         <Card title={`Salidas (${departures.length})`}>
           <ul className="divide-y divide-gray-100">
             {departures.map((r) => {
-              const f = folio(r, data);
+              const f = folio(r, idx);
               return (
                 <li key={r.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
                   <button className="min-w-0 flex-1 text-left" onClick={() => setOpenRes(r.id)}>
@@ -112,14 +118,16 @@ export default function RecepcionPage() {
                       {r.checkOut < t && <span className="ml-1 font-semibold text-red-600">· VENCIDA</span>}
                     </div>
                   </button>
-                  <Link href={`/facturacion?r=${r.id}`}>
+                  {showMoney && <Link href={`/facturacion?r=${r.id}`}>
                     <Badge className={f.balance > 0 ? "bg-red-50 text-red-700 ring-red-200" : "bg-green-50 text-green-700 ring-green-200"}>
                       {f.balance > 0 ? `Debe ${money(f.balance)}` : "Pagado"}
                     </Badge>
-                  </Link>
-                  <Button size="sm" variant="danger" onClick={() => checkOut(r)}>
-                    <LogOut size={14} /> Check-out
-                  </Button>
+                  </Link>}
+                  {canEdit && (
+                    <Button size="sm" variant="danger" onClick={() => checkOut(r)}>
+                      <LogOut size={14} /> Check-out
+                    </Button>
+                  )}
                 </li>
               );
             })}
@@ -134,7 +142,7 @@ export default function RecepcionPage() {
           <div className="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {inHouse.map((r) => {
               const vs = visualStatus(r, t);
-              const f = folio(r, data);
+              const f = folio(r, idx);
               return (
                 <button key={r.id} onClick={() => setOpenRes(r.id)} className="flex items-center gap-3 rounded-lg border border-gray-200 p-2.5 text-left hover:border-gray-400">
                   <span className={`flex h-10 w-12 shrink-0 items-center justify-center rounded-md text-sm font-semibold ${VISUAL_CLASS[vs]}`}>
@@ -143,7 +151,7 @@ export default function RecepcionPage() {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{r.guestName}</span>
                     <span className="block text-xs text-gray-500">
-                      {VISUAL_LABEL[vs]} · sale {fmtDate(r.checkOut).slice(0, 5)} {f.balance > 0 && <span className="text-red-600">· {money(f.balance)}</span>}
+                      {VISUAL_LABEL[vs]} · sale {fmtDate(r.checkOut).slice(0, 5)} {showMoney && f.balance > 0 && <span className="text-red-600">· {money(f.balance)}</span>}
                     </span>
                   </span>
                 </button>

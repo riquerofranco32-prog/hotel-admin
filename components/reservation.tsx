@@ -165,7 +165,8 @@ export function ReservationForm({
               <Select value={r.guestId ?? ""} onChange={(e) => set({ guestId: e.target.value })}>
                 <option value="">— Elegir huésped —</option>
                 {guests.map((x) => (
-                  <option key={x.id} value={x.id}>
+                  <option key={x.id} value={x.id} disabled={x.blacklisted}>
+                    {x.blacklisted ? "⛔ " : x.tags?.includes("VIP") ? "★ " : ""}
                     {x.name} {x.document ? `· ${x.document}` : ""}
                   </option>
                 ))}
@@ -238,18 +239,21 @@ export function ReservationForm({
 }
 
 export function ReservationDrawer({ id, onClose, onEdit }: { id: string | null; onClose: () => void; onEdit: (r: Reservation) => void }) {
-  const { data, actions, staffName, me } = useApp();
-  const r = data.reservations.find((x) => x.id === id);
+  const { data, idx, actions, staffName, me, can } = useApp();
+  const r = id ? idx.resById.get(id) : undefined;
   if (!r) return null;
   const room = data.rooms.find((x) => x.id === r.roomId);
   const guest = data.guests.find((x) => x.id === r.guestId);
-  const f = folio(r, data);
+  const f = folio(r, idx);
   const vs = visualStatus(r);
+  const canEdit = can("editar_reservas");
+  const showMoney = can("ver_montos");
   const tasks = data.tasks.filter((t) => t.reservationId === r.id || (t.roomId === r.roomId && t.status !== "completada"));
+  const guestTags = guest?.tags ?? [];
   const state = room ? roomState(room, data) : undefined;
   const t = today();
-  const canCheckIn = (r.status === "confirmada" || r.status === "pendiente") && r.checkIn <= t;
-  const canCheckOut = r.status === "checkin";
+  const canCheckIn = canEdit && (r.status === "confirmada" || r.status === "pendiente") && r.checkIn <= t;
+  const canCheckOut = canEdit && r.status === "checkin";
 
   async function doCheckIn() {
     if (state && state !== "lista" && !confirm(`La habitación figura como "${ROOM_STATE_LABEL[state]}". ¿Hacer check-in igual?`)) return;
@@ -283,10 +287,20 @@ export function ReservationDrawer({ id, onClose, onEdit }: { id: string | null; 
           <Info label="Canal" value={r.source} />
           <Info label="Teléfono" value={guest?.phone ?? "—"} />
         </dl>
+        {(guestTags.length > 0 || guest?.preferences) && (
+          <div className="flex flex-wrap items-center gap-1.5 rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-900">
+            {guestTags.map((tg) => (
+              <Badge key={tg} className={tg === "VIP" ? "bg-amber-100 text-amber-800" : "bg-white text-gray-700"}>
+                {tg}
+              </Badge>
+            ))}
+            {guest?.preferences && <span>⭐ {guest.preferences}</span>}
+          </div>
+        )}
         {r.notes && <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">📝 {r.notes}</p>}
 
         <div className="grid grid-cols-2 gap-2">
-          {r.status === "pendiente" && (
+          {canEdit && r.status === "pendiente" && (
             <Button variant="primary" onClick={() => actions.setReservationStatus(r, "confirmada").then(() => toast("Reserva confirmada"))}>
               Confirmar
             </Button>
@@ -301,22 +315,28 @@ export function ReservationDrawer({ id, onClose, onEdit }: { id: string | null; 
               <LogOut size={15} /> Check-out
             </Button>
           )}
-          <Button onClick={() => onEdit(r)}>
-            <Pencil size={15} /> Editar
-          </Button>
-          <Link href={`/facturacion?r=${r.id}`} className="contents">
-            <Button>
-              <Receipt size={15} /> Folio / factura
+          {canEdit && (
+            <Button onClick={() => onEdit(r)}>
+              <Pencil size={15} /> Editar
             </Button>
-          </Link>
-          <Link href={`/whatsapp?r=${r.id}`} className="contents">
-            <Button>
-              <MessageCircle size={15} /> WhatsApp
-            </Button>
-          </Link>
+          )}
+          {can("facturacion") && (
+            <Link href={`/facturacion?r=${r.id}`} className="contents">
+              <Button>
+                <Receipt size={15} /> Folio / factura
+              </Button>
+            </Link>
+          )}
+          {can("whatsapp") && (
+            <Link href={`/whatsapp?r=${r.id}`} className="contents">
+              <Button>
+                <MessageCircle size={15} /> WhatsApp
+              </Button>
+            </Link>
+          )}
         </div>
 
-        <section>
+        {showMoney && <section>
           <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Cuenta</h4>
           <div className="rounded-md border border-gray-200 text-sm">
             <Row label={`Alojamiento (${nights(r)} × ${money(r.rate)})`} value={money(f.lodging)} />
@@ -324,7 +344,7 @@ export function ReservationDrawer({ id, onClose, onEdit }: { id: string | null; 
             <Row label="Pagado" value={`− ${money(f.paid)}`} />
             <Row label="Saldo" value={money(f.balance)} strong tone={f.balance > 0 ? "text-red-600" : "text-green-700"} />
           </div>
-        </section>
+        </section>}
 
         <section>
           <h4 className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -365,7 +385,7 @@ export function ReservationDrawer({ id, onClose, onEdit }: { id: string | null; 
           {r.checkedOutAt && <div>Check-out {fmtDateTime(r.checkedOutAt)} por {staffName(r.checkedOutBy)}</div>}
         </section>
 
-        {isActive(r) && r.status !== "checkout" && (
+        {canEdit && isActive(r) && r.status !== "checkout" && (
           <div className="flex flex-wrap gap-2 border-t border-gray-100 pt-4">
             <Button size="sm" variant="ghost" onClick={() => confirm("¿Cancelar la reserva?") && actions.setReservationStatus(r, "cancelada")}>
               Cancelar reserva
@@ -377,7 +397,7 @@ export function ReservationDrawer({ id, onClose, onEdit }: { id: string | null; 
             )}
           </div>
         )}
-        {me?.role === "admin" && (
+        {(me?.role === "admin" || me?.role === "gerente") && (
           <Button
             size="sm"
             variant="ghost"
