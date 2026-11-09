@@ -1,19 +1,226 @@
+@import "./theme.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: light; }
-html, body { height: 100%; }
-body { background: #f9fafb; color: #111827; -webkit-font-smoothing: antialiased; }
+/* ─── Sistema visual ─────────────────────────────────────────────────────────
+   Mismo esquema que el panel de Se7en: superficies en capas (fondo → tarjeta →
+   realce), filo de luz arriba de cada tarjeta, sombra al apoyar y un brillo de
+   marca muy bajo en la esquina. Los grises y tintes de estado están en
+   theme.css (generado); acá van las superficies y el acento.
+   Todos los colores son tripletas «r g b» para que Tailwind pueda aplicarles
+   opacidad (bg-accent/10, border-gray-200/80…). */
+:root {
+  color-scheme: light;
+  --bg: 243 246 248;
+  --panel: 255 255 255;
+  --panel-2: 248 250 251;
+  --fg: 17 24 39;
+  --strong: 17 24 39;
+  --strong-fg: 255 255 255;
+  --accent: 13 148 136;
+  --accent-fg: 255 255 255;
+  --accent-hover: 15 118 110;
+  --glow: 13 148 136;
+  --glow-a: 0.07;
+  --shadow-card:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(16, 24, 40, 0.05),
+    0 8px 24px -14px rgba(16, 24, 40, 0.14);
+  --shadow-btn:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 1px 2px rgba(16, 24, 40, 0.25),
+    0 4px 14px -4px rgb(var(--accent) / 0.5);
+  --shadow-pop:
+    0 0 0 1px rgba(16, 24, 40, 0.08), 0 24px 60px -16px rgba(16, 24, 40, 0.35);
+  --scroll: rgba(15, 23, 42, 0.22);
+}
+.dark {
+  color-scheme: dark;
+  --bg: 8 13 18;
+  --panel: 14 21 28;
+  --panel-2: 19 28 37;
+  --fg: 232 238 245;
+  --strong: 226 232 240;
+  --strong-fg: 10 15 20;
+  --accent: 45 212 191;
+  --accent-fg: 4 32 28;
+  --accent-hover: 94 234 212;
+  --glow: 45 212 191;
+  --glow-a: 0.075;
+  --shadow-card:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 1px 2px rgba(0, 0, 0, 0.4),
+    0 10px 28px -14px rgba(0, 0, 0, 0.6);
+  --shadow-btn:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 1px 2px rgba(0, 0, 0, 0.45),
+    0 4px 14px -4px rgb(var(--accent) / 0.45);
+  --shadow-pop:
+    0 0 0 1px rgba(255, 255, 255, 0.1), 0 24px 60px -16px rgba(0, 0, 0, 0.75);
+  --scroll: rgba(255, 255, 255, 0.12);
+}
+
+html,
+body {
+  height: 100%;
+}
+body {
+  background-color: rgb(var(--bg));
+  background-image:
+    radial-gradient(
+      900px 420px at 92% -8%,
+      rgb(var(--glow) / var(--glow-a)),
+      transparent 70%
+    ),
+    radial-gradient(
+      700px 360px at -5% 0%,
+      rgb(255 255 255 / 0.5),
+      transparent 70%
+    );
+  background-attachment: fixed;
+  color: rgb(var(--fg));
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.dark body {
+  background-image:
+    radial-gradient(
+      900px 420px at 92% -8%,
+      rgb(var(--glow) / var(--glow-a)),
+      transparent 70%
+    ),
+    radial-gradient(
+      700px 360px at -5% 0%,
+      rgb(255 255 255 / 0.02),
+      transparent 70%
+    );
+}
+::selection {
+  background: rgb(var(--accent) / 0.22);
+}
+:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+button:not(:disabled):active {
+  transform: translateY(0.5px);
+}
+
+/* Selectores nativos: misma flecha en todos (la del navegador desentona). */
+select {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 1.75rem !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a96a6' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.55rem center;
+  background-size: 12px;
+}
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  color-scheme: inherit;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll) transparent;
+}
+
+/* Tipografía de marca: títulos en Inter, el acento en serif itálica. */
+.display {
+  letter-spacing: -0.025em;
+  font-weight: 650;
+  line-height: 1.08;
+}
+.serif-accent {
+  font-family: var(--font-serif), Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  font-size: 1.14em;
+  color: rgb(var(--accent));
+}
+.dark .serif-accent {
+  color: rgb(var(--accent));
+}
+
+/* Entradas (CSS puro, en el compositor) */
+@keyframes ui-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes ui-drawer {
+  from {
+    opacity: 0;
+    transform: translate3d(28px, 0, 0);
+  }
+}
+@keyframes ui-pop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0) scale(0.985);
+  }
+}
+@keyframes ui-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.ui-overlay {
+  animation: ui-fade 0.18s ease-out both;
+}
+.ui-drawer {
+  animation: ui-drawer 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.ui-pop {
+  animation: ui-pop 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.ui-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--gray-100)) 25%,
+    rgb(var(--gray-200)) 50%,
+    rgb(var(--gray-100)) 75%
+  );
+  background-size: 200% 100%;
+  animation: ui-shimmer 1.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-overlay,
+  .ui-drawer,
+  .ui-pop,
+  .ui-skeleton {
+    animation: none;
+  }
+}
 
 /* Celdas con mantenimiento bloqueante en el calendario */
 .hatch {
-  background-image: repeating-linear-gradient(135deg, rgba(147, 51, 234, 0.16) 0 4px, transparent 4px 8px);
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(147, 51, 234, 0.16) 0 4px,
+    transparent 4px 8px
+  );
 }
 
 @media print {
-  body * { visibility: hidden; }
-  .print-area, .print-area * { visibility: visible; }
-  .print-area { position: absolute; inset: 0; padding: 24px; }
-  .no-print { display: none !important; }
+  body {
+    background: #fff !important;
+    color: #000;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0;
+    padding: 24px;
+  }
+  .no-print {
+    display: none !important;
+  }
 }

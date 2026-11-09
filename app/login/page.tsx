@@ -49,20 +49,20 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-screen bg-white lg:grid-cols-[1fr_1.1fr]">
       {/* Panel de marca */}
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-gray-900 p-10 text-white lg:flex">
-        <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-blue-600/30 blur-3xl" />
+      <div className="relative hidden flex-col justify-between overflow-hidden bg-[#0b1218] p-10 text-white lg:flex">
+        <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-teal-500/25 blur-3xl" />
         <div className="absolute -bottom-24 -left-16 h-80 w-80 rounded-full bg-emerald-500/20 blur-3xl" />
         <div className="relative flex items-center gap-2.5">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-gray-900">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-400 text-[#04201c] shadow-btn">
             <BedDouble size={20} />
           </span>
           <span className="text-sm font-bold uppercase tracking-[0.22em]">{hotelName}</span>
         </div>
         <div className="relative space-y-6">
-          <h1 className="text-4xl font-semibold leading-tight tracking-tight">
+          <h1 className="display text-4xl">
             Todo el hotel,
             <br />
-            en un solo lugar.
+            en <span className="serif-accent">un solo lugar.</span>
           </h1>
           <ul className="space-y-3 text-[15px] text-gray-300">
             {[

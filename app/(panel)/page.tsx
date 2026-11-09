@@ -254,8 +254,8 @@ export default function DashboardPage() {
       {/* ===== Encabezado ===== */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">
-            {greeting()}, {me?.name.split(" ")[0]} 👋
+          <h1 className="display text-[26px]">
+            {greeting()}, <span className="serif-accent">{me?.name.split(" ")[0]}</span>
           </h1>
           <p className="text-sm text-gray-500">
             {now.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })} · {stats.huespedes} huéspedes en casa

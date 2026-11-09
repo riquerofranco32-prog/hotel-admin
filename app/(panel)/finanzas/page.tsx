@@ -24,7 +24,7 @@ function Bars({ data, format, height = 180, highlight }: { data: { label: string
         {data.map((d) => (
           <div key={d.label} className="group relative flex h-full flex-1 items-end justify-center">
             <div
-              className={`w-full max-w-[34px] rounded-t-[4px] transition-colors ${d.label === highlight ? "bg-blue-800" : "bg-blue-600 group-hover:bg-blue-700"}`}
+              className={`w-full max-w-[34px] rounded-t-[4px] transition-colors ${d.label === highlight ? "bg-accent" : "bg-accent/55 group-hover:bg-accent/80"}`}
               style={{ height: `${(d.value / max) * 100}%`, minHeight: d.value ? 2 : 0 }}
             />
             <div className="pointer-events-none absolute bottom-full z-10 mb-1 hidden whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs text-white shadow group-hover:block">
@@ -60,7 +60,7 @@ function HBars({ rows, format }: { rows: { label: string; value: number }[]; for
             </span>
           </div>
           <div className="h-2 rounded-full bg-gray-100">
-            <div className="h-2 rounded-full bg-blue-600 transition-colors group-hover:bg-blue-700" style={{ width: `${(r.value / max) * 100}%` }} />
+            <div className="h-2 rounded-full bg-accent/80 transition-colors group-hover:bg-accent" style={{ width: `${(r.value / max) * 100}%` }} />
           </div>
         </li>
       ))}

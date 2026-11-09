@@ -1,5 +1,5 @@
 "use client";
-import { X } from "lucide-react";
+import { Moon, Sun, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cls } from "@/lib/logic";
 
@@ -18,8 +18,8 @@ export function Button({
       className={cls(
         "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
         size === "sm" ? "h-8 px-2.5 text-[13px]" : "h-9 px-3.5 text-sm",
-        variant === "primary" && "bg-gray-900 text-white hover:bg-gray-700",
-        variant === "secondary" && "border border-gray-200 bg-white text-gray-800 shadow-[0_1px_2px_rgba(16,24,40,0.05)] hover:bg-gray-50",
+        variant === "primary" && "bg-accent text-accent-fg shadow-btn hover:bg-accent-hover",
+        variant === "secondary" && "border border-gray-200 bg-white text-gray-800 shadow-card hover:bg-gray-50",
         variant === "danger" && "bg-red-600 text-white hover:bg-red-700",
         variant === "success" && "bg-green-600 text-white hover:bg-green-700",
         variant === "ghost" && "text-gray-600 hover:bg-gray-100",
@@ -34,7 +34,7 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={cls(
-        "h-9 rounded-md border border-gray-300 bg-white px-3 text-sm outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900",
+        "h-9 rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-accent focus:ring-[3px] focus:ring-accent/20",
         !/\bw-/.test(props.className ?? "") && "w-full",
         props.className,
       )}
@@ -47,7 +47,7 @@ export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
     <textarea
       {...props}
       className={cls(
-        "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900",
+        "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-accent focus:ring-[3px] focus:ring-accent/20",
         props.className,
       )}
     />
@@ -59,7 +59,7 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
     <select
       {...props}
       className={cls(
-        "h-9 rounded-md border border-gray-300 bg-white px-2.5 text-sm outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900",
+        "h-9 rounded-lg border border-gray-300 bg-white px-2.5 text-sm outline-none transition focus:border-accent focus:ring-[3px] focus:ring-accent/20",
         !/\bw-/.test(props.className ?? "") && "w-full",
         props.className,
       )}
@@ -87,7 +87,7 @@ export function Badge({ children, className }: { children: React.ReactNode; clas
 
 export function Card({ children, className, title, actions }: { children: React.ReactNode; className?: string; title?: React.ReactNode; actions?: React.ReactNode }) {
   return (
-    <section className={cls("rounded-xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]", className)}>
+    <section className={cls("rounded-xl border border-gray-200/80 bg-white shadow-card", className)}>
       {(title || actions) && (
         <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
           <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
@@ -124,7 +124,7 @@ export function Stat({
     indigo: "bg-indigo-50 text-indigo-600",
   };
   const body = (
-    <div className="flex h-full items-start gap-3 rounded-xl border border-gray-200/80 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300">
+    <div className="flex h-full items-start gap-3 rounded-xl border border-gray-200/80 bg-white px-4 py-3.5 shadow-card transition hover:border-gray-300">
       {Icon && (
         <span className={cls("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", tones[tone])}>
           <Icon size={18} />
@@ -174,7 +174,7 @@ export function Avatar({ name, className, size = 32 }: { name: string; className
   );
 }
 
-export function Progress({ value, tone = "bg-blue-600" }: { value: number; tone?: string }) {
+export function Progress({ value, tone = "bg-accent" }: { value: number; tone?: string }) {
   return (
     <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
       <div className={cls("h-full rounded-full transition-all", tone)} style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
@@ -182,11 +182,11 @@ export function Progress({ value, tone = "bg-blue-600" }: { value: number; tone?
   );
 }
 
-export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: React.ReactNode }) {
+export function PageHeader({ title, subtitle, actions }: { title: React.ReactNode; subtitle?: string; actions?: React.ReactNode }) {
   return (
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-[22px] font-semibold tracking-tight text-gray-900">{title}</h1>
+        <h1 className="display text-[24px] text-gray-900">{title}</h1>
         {subtitle && <p className="mt-0.5 text-sm text-gray-500">{subtitle}</p>}
       </div>
       <div className="flex flex-wrap items-center gap-2">{actions}</div>
@@ -217,9 +217,9 @@ export function Modal({
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-gray-900/40 p-4 pt-[6vh] backdrop-blur-[2px]" onMouseDown={onClose}>
+    <div className="ui-overlay fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-gray-900/40 p-4 pt-[6vh] backdrop-blur-[2px]" onMouseDown={onClose}>
       <div
-        className={cls("w-full rounded-2xl bg-white shadow-2xl ring-1 ring-black/5", wide ? "max-w-3xl" : "max-w-lg")}
+        className={cls("ui-pop w-full rounded-2xl bg-white shadow-pop", wide ? "max-w-3xl" : "max-w-lg")}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
@@ -244,8 +244,8 @@ export function Drawer({ open, onClose, title, children }: { open: boolean; onCl
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-gray-900/30 backdrop-blur-[1px]" onMouseDown={onClose}>
-      <aside className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="ui-overlay fixed inset-0 z-50 flex justify-end bg-gray-900/30 backdrop-blur-[1px]" onMouseDown={onClose}>
+      <aside className="ui-drawer flex h-full w-full max-w-md flex-col bg-white shadow-pop" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
           <h3 className="text-base font-semibold">{title}</h3>
           <button onClick={onClose} className="rounded p-1 text-gray-500 hover:bg-gray-100" aria-label="Cerrar">
@@ -290,7 +290,7 @@ export function Tabs<T extends string>({ value, onChange, items }: { value: T; o
           onClick={() => onChange(it.value)}
           className={cls(
             "rounded-md px-3 py-1.5 text-sm font-medium transition",
-            value === it.value ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-800",
+            value === it.value ? "bg-white text-gray-900 shadow-card" : "text-gray-500 hover:text-gray-800",
           )}
         >
           {it.label}
@@ -323,7 +323,7 @@ export function Toaster() {
         <div
           key={i.id}
           className={cls(
-            "max-w-sm rounded-xl px-4 py-2.5 text-sm shadow-lg",
+            "ui-pop max-w-sm rounded-xl px-4 py-2.5 text-sm shadow-pop",
             i.tone === "ok" && "bg-gray-900 text-white",
             i.tone === "error" && "bg-red-600 text-white",
             i.tone === "live" && "border border-gray-200 bg-white text-gray-800",
@@ -335,4 +335,35 @@ export function Toaster() {
       ))}
     </div>
   );
+}
+
+/** Tema claro/oscuro: se guarda en el navegador; sin elección, sigue al sistema (ver app/layout.tsx). */
+export const THEME_KEY = "hotel-theme";
+export function ThemeToggle({ className }: { className?: string }) {
+  const [dark, setDark] = useState(false);
+  useEffect(() => setDark(document.documentElement.classList.contains("dark")), []);
+  function toggle() {
+    const next = !dark;
+    document.documentElement.classList.toggle("dark", next);
+    try {
+      localStorage.setItem(THEME_KEY, next ? "dark" : "light");
+    } catch {}
+    setDark(next);
+  }
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className={cls("flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-card transition hover:bg-gray-50 hover:text-gray-900", className)}
+      title={dark ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+      aria-label={dark ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+    >
+      {dark ? <Sun size={16} /> : <Moon size={16} />}
+    </button>
+  );
+}
+
+/** Bloque que se ve mientras carga algo (mismo brillo que el panel de Se7en). */
+export function Skeleton({ className }: { className?: string }) {
+  return <div aria-hidden className={cls("ui-skeleton rounded-lg", className)} />;
 }

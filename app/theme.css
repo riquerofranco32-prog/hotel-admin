@@ -1,0 +1,177 @@
+/* GENERADO por scripts/gen-theme.mjs: no editar a mano. */
+:root {
+  --gray-50: 249 250 251;
+  --gray-100: 243 244 246;
+  --gray-200: 229 231 235;
+  --gray-300: 209 213 219;
+  --gray-400: 156 163 175;
+  --gray-500: 107 114 128;
+  --gray-600: 75 85 99;
+  --gray-700: 55 65 81;
+  --gray-800: 31 41 55;
+  --red-50: 254 242 242;
+  --red-100: 254 226 226;
+  --red-200: 254 202 202;
+  --red-300: 252 165 165;
+  --green-50: 240 253 244;
+  --green-100: 220 252 231;
+  --green-200: 187 247 208;
+  --green-300: 134 239 172;
+  --amber-50: 255 251 235;
+  --amber-100: 254 243 199;
+  --amber-200: 253 230 138;
+  --amber-300: 252 211 77;
+  --blue-50: 239 246 255;
+  --blue-100: 219 234 254;
+  --blue-200: 191 219 254;
+  --blue-300: 147 197 253;
+  --indigo-50: 238 242 255;
+  --indigo-100: 224 231 255;
+  --indigo-200: 199 210 254;
+  --indigo-300: 165 180 252;
+  --purple-50: 250 245 255;
+  --purple-100: 243 232 255;
+  --purple-200: 233 213 255;
+  --purple-300: 216 180 254;
+  --teal-50: 240 253 250;
+  --teal-100: 204 251 241;
+  --teal-200: 153 246 228;
+  --teal-300: 94 234 212;
+  --emerald-50: 236 253 245;
+  --emerald-100: 209 250 229;
+  --emerald-200: 167 243 208;
+  --emerald-300: 110 231 183;
+  --orange-50: 255 247 237;
+  --orange-100: 255 237 213;
+  --orange-200: 254 215 170;
+  --orange-300: 253 186 116;
+  --yellow-50: 254 252 232;
+  --yellow-100: 254 249 195;
+  --yellow-200: 254 240 138;
+  --yellow-300: 253 224 71;
+  --sky-50: 240 249 255;
+  --sky-100: 224 242 254;
+  --sky-200: 186 230 253;
+  --sky-300: 125 211 252;
+  --rose-50: 255 241 242;
+  --rose-100: 255 228 230;
+  --rose-200: 254 205 211;
+  --rose-300: 253 164 175;
+  --violet-50: 245 243 255;
+  --violet-100: 237 233 254;
+  --violet-200: 221 214 254;
+  --violet-300: 196 181 253;
+  --fuchsia-50: 253 244 255;
+  --fuchsia-100: 250 232 255;
+  --fuchsia-200: 245 208 254;
+  --fuchsia-300: 240 171 252;
+  --slate-50: 248 250 252;
+  --slate-100: 241 245 249;
+  --slate-200: 226 232 240;
+  --slate-300: 203 213 225;
+}
+.dark {
+  --gray-50: 16 24 32;
+  --gray-100: 21 30 40;
+  --gray-200: 30 42 55;
+  --gray-300: 44 59 75;
+  --gray-400: 106 122 142;
+  --gray-500: 140 154 172;
+  --gray-600: 166 178 193;
+  --gray-700: 194 204 216;
+  --gray-800: 221 228 237;
+  --red-50: 37 26 32;
+  --red-100: 52 29 35;
+  --red-200: 77 34 39;
+  --red-300: 109 41 45;
+  --green-50: 16 39 35;
+  --green-100: 17 51 39;
+  --green-200: 20 70 46;
+  --green-300: 22 95 56;
+  --amber-50: 37 35 26;
+  --amber-100: 53 44 25;
+  --amber-200: 79 59 23;
+  --amber-300: 111 79 21;
+  --blue-50: 19 32 50;
+  --blue-100: 22 40 65;
+  --blue-200: 27 52 89;
+  --blue-300: 33 67 120;
+  --indigo-50: 23 29 49;
+  --indigo-100: 28 35 64;
+  --indigo-200: 38 44 88;
+  --indigo-300: 50 55 117;
+  --purple-50: 29 27 50;
+  --purple-100: 40 32 65;
+  --purple-200: 57 39 89;
+  --purple-300: 79 48 120;
+  --teal-50: 15 37 42;
+  --teal-100: 15 49 51;
+  --teal-200: 16 67 67;
+  --teal-300: 17 89 86;
+  --emerald-50: 14 37 38;
+  --emerald-100: 14 49 45;
+  --emerald-200: 15 67 56;
+  --emerald-300: 15 90 70;
+  --orange-50: 38 30 27;
+  --orange-100: 54 37 27;
+  --orange-200: 80 47 26;
+  --orange-300: 113 60 25;
+  --yellow-50: 36 37 26;
+  --yellow-100: 51 48 25;
+  --yellow-200: 76 65 22;
+  --yellow-300: 106 87 20;
+  --sky-50: 14 35 49;
+  --sky-100: 14 45 63;
+  --sky-200: 14 61 85;
+  --sky-300: 14 81 114;
+  --rose-50: 37 25 35;
+  --rose-100: 53 28 39;
+  --rose-200: 78 33 46;
+  --rose-300: 111 39 56;
+  --violet-50: 27 28 50;
+  --violet-100: 35 33 65;
+  --violet-200: 49 41 89;
+  --violet-300: 67 51 120;
+  --fuchsia-50: 34 26 49;
+  --fuchsia-100: 49 29 64;
+  --fuchsia-200: 71 35 87;
+  --fuchsia-300: 99 42 117;
+  --slate-50: 23 31 39;
+  --slate-100: 29 37 47;
+  --slate-200: 38 48 59;
+  --slate-300: 50 61 75;
+}
+/* El botón o chip "sólido" (bg-gray-900) pasa a ser claro en oscuro: el texto blanco se invierte. */
+.dark .bg-gray-900.text-white { color: rgb(var(--strong-fg)); }
+.dark .bg-gray-900 { background-color: rgb(var(--strong)); }
+.dark .bg-gray-900\/30 { background-color: rgba(2, 6, 10, 0.55); }
+.dark .bg-gray-900\/40 { background-color: rgba(2, 6, 10, 0.65); }
+.dark .bg-white { background-color: rgb(var(--panel) / 1); }
+.dark .bg-white\/90 { background-color: rgb(var(--panel) / 0.9); }
+.dark .border-white { border-color: rgb(var(--gray-200) / 1); }
+.dark .hover\:text-gray-900:hover { color: rgb(var(--fg)); }
+.dark .hover\:text-red-600:hover { color: rgb(248 113 113); }
+.dark .ring-black\/5 { --tw-ring-color: rgba(255, 255, 255, 0.08); }
+.dark .text-amber-600 { color: rgb(251 191 36); }
+.dark .text-amber-700 { color: rgb(252 211 77); }
+.dark .text-amber-800 { color: rgb(253 230 138); }
+.dark .text-amber-900 { color: rgb(254 243 199); }
+.dark .text-blue-600 { color: rgb(96 165 250); }
+.dark .text-blue-700 { color: rgb(147 197 253); }
+.dark .text-blue-800 { color: rgb(191 219 254); }
+.dark .text-blue-900 { color: rgb(219 234 254); }
+.dark .text-emerald-700 { color: rgb(110 231 183); }
+.dark .text-gray-900 { color: rgb(var(--fg)); }
+.dark .text-green-600 { color: rgb(74 222 128); }
+.dark .text-green-700 { color: rgb(134 239 172); }
+.dark .text-indigo-600 { color: rgb(129 140 248); }
+.dark .text-indigo-700 { color: rgb(165 180 252); }
+.dark .text-orange-600 { color: rgb(251 146 60); }
+.dark .text-orange-700 { color: rgb(253 186 116); }
+.dark .text-purple-600 { color: rgb(192 132 252); }
+.dark .text-purple-700 { color: rgb(216 180 254); }
+.dark .text-red-600 { color: rgb(248 113 113); }
+.dark .text-red-700 { color: rgb(252 165 165); }
+.dark .text-slate-600 { color: rgb(148 163 184); }
+.dark .text-teal-800 { color: rgb(153 246 228); }
+.dark .text-yellow-800 { color: rgb(254 240 138); }

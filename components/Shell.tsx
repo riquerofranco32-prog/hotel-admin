@@ -25,7 +25,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { useApp } from "./AppProvider";
-import { Avatar, toast } from "./ui";
+import { Avatar, ThemeToggle, toast } from "./ui";
 import { alerts, planAutomations, planSize } from "@/lib/automation";
 import { fmtDate, today } from "@/lib/dates";
 import { automationOf, cls, ROLE_LABEL, TASK_TYPE_ICON } from "@/lib/logic";
@@ -210,11 +210,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     perm === "mantenimiento" ? openTasks.length : perm === "mi_jornada" ? myOpen : perm === "mucamas" ? openTasks.filter((x) => x.id.startsWith("hk-") || x.type === "cambio_sabanas").length : perm === "menus" ? pendingOrders : 0;
 
   const sidebar = (
-    <div className="flex h-full flex-col border-r border-gray-200 bg-white">
+    <div className="flex h-full flex-col border-r border-gray-200/80 bg-white">
       <div className="flex h-16 items-center justify-between gap-2 px-4">
         {!collapsed && (
           <Link href={home} className="flex min-w-0 items-center gap-2">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-900 text-white">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-fg shadow-btn">
               <BedDouble size={16} />
             </span>
             <span className="truncate text-[12px] font-bold uppercase tracking-[0.12em] text-gray-900">{hotelName}</span>
@@ -247,7 +247,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                       title={n.label}
                       className={cls(
                         "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[14px] transition",
-                        active ? "bg-gray-900 font-medium text-white" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+                        active ? "bg-accent/10 font-medium text-accent ring-1 ring-inset ring-accent/20" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
                       )}
                     >
                       <n.icon size={17} className="shrink-0" />
@@ -256,7 +256,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                         <span
                           className={cls(
                             "rounded-full px-1.5 text-[11px] font-semibold leading-5",
-                            active ? "bg-white text-gray-900" : "bg-gray-900 text-white",
+                            active ? "bg-accent text-accent-fg" : "bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-200",
                             collapsed && "absolute right-1 top-0.5 scale-90",
                           )}
                         >
@@ -291,7 +291,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f6f7f9]">
+    <div className="flex h-screen overflow-hidden">
       <aside className={cls("hidden shrink-0 transition-[width] lg:block", collapsed ? "w-[72px]" : "w-[240px]")}>{sidebar}</aside>
       {mobileOpen && (
         <div className="fixed inset-0 z-40 bg-gray-900/30 lg:hidden" onClick={() => setMobileOpen(false)}>
@@ -315,6 +315,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             <kbd className="ml-auto hidden rounded border border-gray-200 bg-white px-1.5 text-[11px] text-gray-500 sm:inline">Ctrl K</kbd>
           </button>
           <div className="ml-auto flex items-center gap-1.5">
+            <ThemeToggle />
             <span
               className="hidden items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 md:flex"
               title={online.map((s) => s.name).join(", ") || "Sólo vos"}
