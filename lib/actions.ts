@@ -214,6 +214,76 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
       return n + plan.escalate.length + ns;
     },
 
+    // ---------------- Plan diario de mucamas ----------------
+    /** Asigna (o reasigna) la tarea diaria de housekeeping de cada habitación. Una por habitación y día. */
+    async planHousekeeping(items: { roomId: string; type: "servicio" | "fondo" | "repaso"; staffId?: string }[], date = today()) {
+      const d = get();
+      for (const it of items) {
+        const id = `hk-${it.roomId}-${date}`;
+        const prev = d.tasks.find((x) => x.id === id);
+        const res = d.reservations.find((r) => r.roomId === it.roomId && r.status === "checkin");
+        const fresh = buildTask({
+          id,
+          type: it.type,
+          roomId: it.roomId,
+          reservationId: res?.id,
+          trigger: res ? "estadia" : "manual",
+          dueDate: date,
+          createdBy: by(),
+          assignedTo: it.staffId,
+        });
+        const name = it.staffId ? d.staff.find((x) => x.id === it.staffId)?.name : "nadie";
+        if (prev && prev.type === it.type && prev.assignedTo === it.staffId) continue;
+        fresh.log = [
+          ...(prev?.log ?? []),
+          { at: nowISO(), by: by(), action: prev ? `Cambió a ${fresh.title.split(" (")[0]} · asignada a ${name}` : `Asignó ${fresh.title.split(" (")[0]} a ${name}` },
+        ];
+        if (prev) fresh.createdAt = prev.createdAt;
+        await db.set("tasks", id, fresh);
+      }
+      if (items.length) await log("Asignó plan de mucamas", "tasks", `${items.length} habitación(es) · ${date}`);
+    },
+    async clearHousekeeping(roomIds: string[], date = today()) {
+      const ids = get()
+        .tasks.filter((x) => roomIds.includes(x.roomId) && x.id === `hk-${x.roomId}-${date}`)
+        .map((x) => x.id);
+      if (ids.length) {
+        await db.clear("tasks", ids);
+        await log("Quitó tareas del plan de mucamas", "tasks", `${ids.length} habitación(es)`);
+      }
+    },
+    /** “Ya las cambié”: cierra la tarea de sábanas abierta o registra el cambio como tarea completada. */
+    async markSheetsChanged(roomId: string) {
+      const d = get();
+      const open = d.tasks.find((x) => x.roomId === roomId && x.type === "cambio_sabanas" && x.status !== "completada" && x.trigger === "estadia");
+      if (open) {
+        await db.update("tasks", open.id, {
+          status: "completada",
+          completedAt: nowISO(),
+          completedBy: by(),
+          startedAt: open.startedAt ?? nowISO(),
+          startedBy: open.startedBy ?? by(),
+          assignedTo: open.assignedTo ?? by(),
+          checklist: open.checklist.map((c) => (c.done ? c : { ...c, done: true, doneBy: by(), doneAt: nowISO() })),
+          log: taskLog(open, "Completó el cambio de sábanas"),
+        });
+      } else {
+        const res = d.reservations.find((r) => r.roomId === roomId && r.status === "checkin");
+        const t = buildTask({ id: uid("task"), type: "cambio_sabanas", roomId, reservationId: res?.id, trigger: "estadia", dueDate: today(), createdBy: by(), assignedTo: by(), title: "Cambio de sábanas (estadía en curso)" });
+        Object.assign(t, {
+          status: "completada",
+          startedAt: nowISO(),
+          startedBy: by(),
+          completedAt: nowISO(),
+          completedBy: by(),
+          checklist: t.checklist.map((c) => ({ ...c, done: true, doneBy: by(), doneAt: nowISO() })),
+        });
+        t.log.push({ at: nowISO(), by: by(), action: "Registró cambio de sábanas" });
+        await db.set("tasks", t.id, t);
+      }
+      await log("Cambió sábanas", `rooms/${roomId}`, `Hab. ${roomNum(roomId)}`);
+    },
+
     /** Una mucama/empleado reporta un problema → se crea una reparación para mantenimiento. */
     async reportIssue(roomId: string, description: string, opts: { urgent?: boolean; block?: boolean } = {}) {
       const d = get();

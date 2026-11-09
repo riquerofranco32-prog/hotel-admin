@@ -107,6 +107,21 @@ export default function AutomatizacionesPage() {
           then="Cierra solas las tareas de “Preparar llegada” y “Pre-salida” que quedaron abiertas."
         />
         <Rule
+          on={cfg.sabanasAuto}
+          onToggle={() => set({ sabanasAuto: !cfg.sabanasAuto })}
+          color="bg-teal-600"
+          when="Una habitación ocupada lleva varios días con las mismas sábanas"
+          then="Crea “Cambio de sábanas” para una mucama y la habitación aparece marcada en la sección Mucamas. Al tocar “Ya las cambié” se reinicia el contador."
+        >
+          <Select value={cfg.sabanasCadaDias} onChange={(e) => set({ sabanasCadaDias: Number(e.target.value) })} className="h-8 w-[190px]">
+            {[2, 3, 4, 5, 7].map((n) => (
+              <option key={n} value={n}>
+                Cada {n} días
+              </option>
+            ))}
+          </Select>
+        </Rule>
+        <Rule
           on={cfg.repasoDiario}
           onToggle={() => set({ repasoDiario: !cfg.repasoDiario })}
           color="bg-ocupada"

@@ -51,7 +51,8 @@ service cloud.firestore {
     // Tareas: todo el personal las lee y actualiza (mucamas tildan, completan, reportan problemas)
     match /tasks/{id} {
       allow read, create, update: if isStaff();
-      allow delete: if isFront();
+      // el encargado de housekeeping puede quitar tareas del plan diario de mucamas (id "hk-…")
+      allow delete: if isFront() || (hasRole(['encargado']) && id.matches('hk-.*'));
     }
 
     // Dinero: sólo administración, gerencia y recepción

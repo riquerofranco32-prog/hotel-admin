@@ -98,6 +98,9 @@ export const TASK_TYPE_LABEL: Record<TaskType, string> = {
   inspeccion: "Inspección final",
   preparar_llegada: "Preparar llegada",
   repaso_diario: "Repaso diario",
+  servicio: "Servicio",
+  fondo: "Limpieza a fondo",
+  repaso: "Repaso",
   reparacion: "Reparación",
   otro: "Otro",
 };
@@ -110,6 +113,9 @@ export const TASK_TYPE_ICON: Record<TaskType, string> = {
   inspeccion: "🔍",
   preparar_llegada: "🛎️",
   repaso_diario: "✨",
+  servicio: "🧽",
+  fondo: "🧼",
+  repaso: "🪶",
   reparacion: "🔧",
   otro: "📌",
 };
@@ -141,6 +147,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   admin: "Administrador general",
   gerente: "Gerencia",
   recepcion: "Recepción",
+  encargado: "Encargado/a de housekeeping",
   mucama: "Mucama / Housekeeping",
   mantenimiento: "Mantenimiento técnico",
   restaurante: "Restaurante",
@@ -150,6 +157,7 @@ export const ROLE_COLOR: Record<Role, string> = {
   admin: "bg-gray-900 text-white",
   gerente: "bg-indigo-600 text-white",
   recepcion: "bg-blue-600 text-white",
+  encargado: "bg-teal-700 text-white",
   mucama: "bg-emerald-600 text-white",
   mantenimiento: "bg-purple-600 text-white",
   restaurante: "bg-amber-500 text-white",
@@ -158,7 +166,7 @@ export const ROLE_COLOR: Record<Role, string> = {
 /** Roles guardados en versiones anteriores */
 export function normalizeRole(r: string): Role {
   if (r === "limpieza") return "mucama";
-  return (["admin", "gerente", "recepcion", "mucama", "mantenimiento", "restaurante"].includes(r) ? r : "mucama") as Role;
+  return (["admin", "gerente", "recepcion", "encargado", "mucama", "mantenimiento", "restaurante"].includes(r) ? r : "mucama") as Role;
 }
 
 export const CHARGE_LABEL: Record<ChargeCategory, string> = {
@@ -172,11 +180,12 @@ export const CHARGE_LABEL: Record<ChargeCategory, string> = {
 
 // ================== Permisos por rol ==================
 
-export const ALL_ROLES: Role[] = ["admin", "gerente", "recepcion", "mucama", "mantenimiento", "restaurante"];
+export const ALL_ROLES: Role[] = ["admin", "gerente", "recepcion", "encargado", "mucama", "mantenimiento", "restaurante"];
 
 export const PERM_INFO: Record<Perm, { label: string; group: "Secciones" | "Capacidades"; hint?: string }> = {
   dashboard: { label: "Dashboard (calendario)", group: "Secciones" },
   mi_jornada: { label: "Mi jornada", group: "Secciones", hint: "Tareas propias del día" },
+  mucamas: { label: "Mucamas (plan de housekeeping)", group: "Secciones" },
   recepcion: { label: "Recepción", group: "Secciones" },
   reservas: { label: "Reservas", group: "Secciones" },
   huespedes: { label: "Huéspedes (CRM)", group: "Secciones" },
@@ -195,9 +204,10 @@ export const PERM_INFO: Record<Perm, { label: string; group: "Secciones" | "Capa
 
 export const DEFAULT_PERMISSIONS: Record<Role, Perm[]> = {
   admin: Object.keys(PERM_INFO) as Perm[],
-  gerente: ["dashboard", "mi_jornada", "recepcion", "reservas", "huespedes", "mantenimiento", "menus", "whatsapp", "facturacion", "finanzas", "ver_montos", "editar_reservas", "gestionar_tareas", "registrar_pagos"],
+  gerente: ["dashboard", "mi_jornada", "mucamas", "recepcion", "reservas", "huespedes", "mantenimiento", "menus", "whatsapp", "facturacion", "finanzas", "ver_montos", "editar_reservas", "gestionar_tareas", "registrar_pagos"],
   recepcion: ["dashboard", "mi_jornada", "recepcion", "reservas", "huespedes", "mantenimiento", "menus", "whatsapp", "facturacion", "ver_montos", "editar_reservas", "gestionar_tareas", "registrar_pagos"],
-  mucama: ["mi_jornada", "mantenimiento"],
+  encargado: ["mucamas", "mi_jornada", "mantenimiento", "gestionar_tareas"],
+  mucama: ["mi_jornada", "mucamas", "mantenimiento"],
   mantenimiento: ["mi_jornada", "mantenimiento"],
   restaurante: ["menus", "mi_jornada"],
 };
@@ -209,8 +219,9 @@ export const DEFAULT_PERMISSIONS: Record<Role, Perm[]> = {
 export const PERM_CEILING: Record<Role, Perm[]> = {
   admin: DEFAULT_PERMISSIONS.admin,
   gerente: DEFAULT_PERMISSIONS.gerente,
-  recepcion: DEFAULT_PERMISSIONS.recepcion.concat(["finanzas"]),
-  mucama: ["dashboard", "mi_jornada", "mantenimiento", "gestionar_tareas"],
+  recepcion: DEFAULT_PERMISSIONS.recepcion.concat(["finanzas", "mucamas"]),
+  encargado: ["dashboard", "mi_jornada", "mucamas", "mantenimiento", "gestionar_tareas"],
+  mucama: ["dashboard", "mi_jornada", "mucamas", "mantenimiento", "gestionar_tareas"],
   mantenimiento: ["dashboard", "mi_jornada", "mantenimiento", "gestionar_tareas"],
   restaurante: ["dashboard", "mi_jornada", "menus", "mantenimiento", "ver_montos"],
 };
@@ -230,6 +241,7 @@ export const ROLE_COLLECTIONS: Record<Role, CollectionName[]> = {
   admin: [...COLLECTIONS],
   gerente: [...COLLECTIONS],
   recepcion: [...COLLECTIONS],
+  encargado: ["rooms", "guests", "reservations", "tasks", "staff", "settings"],
   mucama: ["rooms", "guests", "reservations", "tasks", "staff", "settings"],
   mantenimiento: ["rooms", "guests", "reservations", "tasks", "staff", "settings"],
   restaurante: ["rooms", "guests", "reservations", "tasks", "staff", "settings", "menuItems", "orders", "charges"],
@@ -347,6 +359,21 @@ export const TASK_TEMPLATES: Record<TaskType, { title: string; checklist: string
     checklist: ["Tender cama", "Cambiar toallas si se solicitó", "Repaso de baño", "Vaciar papeleras"],
     priority: "baja",
   },
+  servicio: {
+    title: "Servicio (limpieza diaria de habitación ocupada)",
+    checklist: ["Tender cama", "Baño: limpiar y reponer papel", "Toallas: cambiar las del piso", "Vaciar papeleras", "Repaso de pisos"],
+    priority: "media",
+  },
+  fondo: {
+    title: "Limpieza a fondo",
+    checklist: ["Mover muebles y aspirar debajo", "Limpiar vidrios y cortinas", "Desinfección completa del baño", "Colchón: aspirar y rotar", "Placard y cajones"],
+    priority: "media",
+  },
+  repaso: {
+    title: "Repaso rápido",
+    checklist: ["Quitar polvo de superficies", "Ventilar", "Revisar baño y amenities"],
+    priority: "baja",
+  },
   reparacion: {
     title: "Reparación",
     checklist: ["Diagnosticar problema", "Reparar", "Probar funcionamiento"],
@@ -366,6 +393,9 @@ export const TASK_DEFAULT_ROLE: Record<TaskType, Role> = {
   inspeccion: "recepcion",
   preparar_llegada: "mucama",
   repaso_diario: "mucama",
+  servicio: "mucama",
+  fondo: "mucama",
+  repaso: "mucama",
   reparacion: "mantenimiento",
   otro: "mucama",
 };
@@ -385,6 +415,8 @@ export const DEFAULT_AUTOMATION: AutomationConfig = {
   cerrarAlCheckin: true,
   avisosEnVivo: true,
   reporteBloquea: false,
+  sabanasAuto: true,
+  sabanasCadaDias: 3,
 };
 
 /** Configuración de automatizaciones (con migración desde `rules` v1). */

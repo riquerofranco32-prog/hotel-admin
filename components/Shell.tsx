@@ -17,6 +17,7 @@ import {
   Menu as MenuIcon,
   MessageCircle,
   Search,
+  Sparkles,
   ShieldCheck,
   Users,
   UtensilsCrossed,
@@ -45,6 +46,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: "Servicios",
     items: [
+      { href: "/mucamas", label: "Mucamas", icon: Sparkles, perm: "mucamas" },
       { href: "/mantenimiento", label: "Mantenimiento", icon: Wrench, perm: "mantenimiento" },
       { href: "/menus", label: "Menús", icon: UtensilsCrossed, perm: "menus" },
       { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, perm: "whatsapp" },
@@ -154,7 +156,13 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       for (const x of mine) {
         if (seenTasks.current.has(x.id)) continue;
         seenTasks.current.add(x.id);
-        if (cfg.avisosEnVivo) toast(`Nueva tarea para vos: ${TASK_TYPE_ICON[x.type]} ${x.title} · Hab. ${idx.roomById.get(x.roomId)?.number ?? ""}`, "live");
+        const msg = `${TASK_TYPE_ICON[x.type]} ${x.title} · Hab. ${idx.roomById.get(x.roomId)?.number ?? ""}`;
+        if (cfg.avisosEnVivo) toast(`Nueva tarea para vos: ${msg}`, "live");
+        // Aviso del sistema (celular / escritorio) si la persona lo activó en "Mucamas"
+        try {
+          if (cfg.avisosEnVivo && "Notification" in window && Notification.permission === "granted")
+            new Notification("Nueva tarea", { body: msg, tag: x.id });
+        } catch {}
       }
   }, [data.activity, data.tasks, loaded, me, cfg.avisosEnVivo, staffName, idx.roomById]);
 
@@ -199,7 +207,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const hotelName = data.settings[0]?.hotelName ?? "Hotel";
 
   const badgeFor = (perm: Perm) =>
-    perm === "mantenimiento" ? openTasks.length : perm === "mi_jornada" ? myOpen : perm === "menus" ? pendingOrders : 0;
+    perm === "mantenimiento" ? openTasks.length : perm === "mi_jornada" ? myOpen : perm === "mucamas" ? openTasks.filter((x) => x.id.startsWith("hk-") || x.type === "cambio_sabanas").length : perm === "menus" ? pendingOrders : 0;
 
   const sidebar = (
     <div className="flex h-full flex-col border-r border-gray-200 bg-white">

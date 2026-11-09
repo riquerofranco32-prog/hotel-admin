@@ -10,6 +10,7 @@ Panel de gestión hotelera (tipo CRM / PMS) hecho con **Next.js 15 + React 19 + 
 |---|---|
 | **Dashboard** | Saludo + indicadores del día (ocupación, llegadas, salidas, housekeeping, cobrado hoy, ADR). Calendario mensual habitación × día con colores: 🟢 Ocupada · 🔵 Reservada · 🔴 Próxima a salir · ⚪ Otros · rayado = mantenimiento. Clic en día libre = reservar, clic en barra = ficha, **arrastrar** = mover de habitación/fecha. Abajo: llegadas y salidas de hoy, estado de habitaciones y **actividad en vivo** del personal. |
 | **Mi jornada** | Vista para mucamas, mantenimiento y restaurante (pensada para celular): mis tareas con checklist de un toque, botones grandes Empezar/Terminar, tareas libres para “tomar”, **reportar problema** (crea la reparación para mantenimiento) y estado de todas las habitaciones. |
+| **Mucamas** | Plan de limpieza del día por habitación (aporte del equipo): el encargado asigna Servicio / Fondo / Repaso y mucama, de a una o en lote, o con **“Armar plan automático”** (ocupadas → servicio, libres → repaso, repartido entre las mucamas). Cada mucama ve “Mis habitaciones” y marca hecha. Control de **cambio de sábanas cada N días** con “Ya las cambié”, avance por mucama y avisos en el celular/escritorio. |
 | **Recepción** | Llegadas, salidas y huéspedes en casa con check-in / check-out en un clic, walk-ins, estado de limpieza de la habitación antes de entregarla. |
 | **Reservas** | Listado con filtros rápidos por estado, fechas y canal; alta/edición con control de superposición y capacidad. |
 | **Huéspedes (CRM)** | Segmentos (en casa, próximas llegadas, VIP, frecuentes, empresas, cumpleaños del mes, bloqueados), valor de cada cliente, etiquetas, preferencias (aparecen al preparar la habitación), historial y acceso directo a WhatsApp. |
@@ -30,7 +31,8 @@ Búsqueda global con **Ctrl + K** (huéspedes, reservas, habitaciones) y alertas
 | **Administrador general** | Todo, incluidas finanzas, automatizaciones y administración. |
 | **Gerencia** | Todo lo operativo + facturación y finanzas (no usuarios ni automatizaciones). |
 | **Recepción** | Dashboard, recepción, reservas, huéspedes, mantenimiento, menús, WhatsApp y facturación. Sin reportes financieros. |
-| **Mucama / Housekeeping** | Mi jornada y Mantenimiento. **Nunca ve montos, pagos ni facturas.** |
+| **Encargado/a de housekeeping** | Mucamas (asigna el plan del día), Mi jornada y Mantenimiento. Sin montos. |
+| **Mucama / Housekeeping** | Mi jornada, Mucamas (sus habitaciones) y Mantenimiento. **Nunca ve montos, pagos ni facturas.** |
 | **Mantenimiento técnico** | Mi jornada y Mantenimiento. |
 | **Restaurante** | Menús / room service y Mi jornada. |
 

@@ -1,11 +1,12 @@
 // ===== Modelo de datos del PMS =====
 
-export type Role = "admin" | "gerente" | "recepcion" | "mucama" | "mantenimiento" | "restaurante";
+export type Role = "admin" | "gerente" | "recepcion" | "encargado" | "mucama" | "mantenimiento" | "restaurante";
 
 /** Secciones del panel + capacidades especiales. El admin puede ajustar qué tiene cada rol. */
 export type Perm =
   | "dashboard"
   | "mi_jornada"
+  | "mucamas"
   | "recepcion"
   | "reservas"
   | "huespedes"
@@ -102,6 +103,9 @@ export type TaskType =
   | "inspeccion"
   | "preparar_llegada"
   | "repaso_diario"
+  | "servicio"
+  | "fondo"
+  | "repaso"
   | "reparacion"
   | "otro";
 
@@ -274,6 +278,8 @@ export interface AutomationConfig {
   cerrarAlCheckin: boolean;
   avisosEnVivo: boolean;
   reporteBloquea: boolean; // un problema reportado por una mucama bloquea la habitación
+  sabanasAuto: boolean; // crear tarea de cambio de sábanas en habitaciones ocupadas
+  sabanasCadaDias: number;
 }
 
 export interface Settings {

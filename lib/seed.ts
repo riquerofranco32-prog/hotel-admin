@@ -37,6 +37,7 @@ export const DEMO_STAFF: Staff[] = [
   { id: "st_ger", name: "Martín Albornoz", email: "gerencia@hotelalmare.com", phone: "5491155550010", role: "gerente", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
   { id: "st_recep1", name: "Carlos Ruiz", email: "recepcion@hotelalmare.com", phone: "5491155550002", role: "recepcion", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
   { id: "st_recep2", name: "Marina Sosa", email: "marina@hotelalmare.com", phone: "5491155550003", role: "recepcion", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
+  { id: "st_enc", name: "Graciela Ponce", email: "housekeeping@hotelalmare.com", phone: "5491155550009", role: "encargado", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
   { id: "st_limp1", name: "Rosa Gómez", email: "rosa@hotelalmare.com", phone: "5491155550004", role: "mucama", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
   { id: "st_limp2", name: "Ana Torres", email: "ana@hotelalmare.com", phone: "5491155550005", role: "mucama", active: true, createdAt: "2026-01-01T09:00:00.000Z" },
   { id: "st_limp3", name: "Beatriz Luna", email: "beatriz@hotelalmare.com", phone: "5491155550006", role: "mucama", active: true, createdAt: "2026-01-01T09:00:00.000Z" },

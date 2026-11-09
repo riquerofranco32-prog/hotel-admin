@@ -77,6 +77,25 @@ export function checkoutTasks(
   return created;
 }
 
+/**
+ * Días desde el último cambio de sábanas de la estadía actual.
+ * Base: el check-in, o el último “cambio de sábanas” completado en la habitación después del check-in.
+ */
+export function sheetsInfo(r: Reservation, roomTasks: Task[], t = today()) {
+  let base = r.checkIn;
+  let by: string | undefined;
+  for (const x of roomTasks)
+    if (x.type === "cambio_sabanas" && x.status === "completada" && x.completedAt) {
+      const d = x.completedAt.slice(0, 10);
+      if (d >= r.checkIn && d >= base) {
+        base = d;
+        by = x.completedBy;
+      }
+    }
+  const days = Math.max(0, Math.round((new Date(t).getTime() - new Date(base).getTime()) / 86400000));
+  return { base, days, by };
+}
+
 export interface AutomationPlan {
   create: Task[];
   escalate: Task[];
@@ -147,6 +166,32 @@ export function planAutomations(data: DataState, t = today()): AutomationPlan {
           assignedTo: autoAssign("repaso_diario", data.staff, allTasks(), cfg.autoAsignar),
         }),
       );
+    }
+  }
+
+  // 4b) Cambio de sábanas cada N días en habitaciones ocupadas
+  if (cfg.sabanasAuto) {
+    const byRoom = new Map<string, Task[]>();
+    for (const x of data.tasks) byRoom.set(x.roomId, [...(byRoom.get(x.roomId) ?? []), x]);
+    for (const r of data.reservations) {
+      if (r.status !== "checkin" || r.checkOut <= t) continue;
+      const roomTasks = byRoom.get(r.roomId) ?? [];
+      if (roomTasks.some((x) => x.type === "cambio_sabanas" && x.status !== "completada" && x.trigger === "estadia")) continue;
+      if (sheetsInfo(r, roomTasks, t).days >= cfg.sabanasCadaDias)
+        push(
+          buildTask({
+            id: `${r.id}-sabanas-${t}`,
+            type: "cambio_sabanas",
+            roomId: r.roomId,
+            reservationId: r.id,
+            trigger: "estadia",
+            dueDate: t,
+            title: "Cambio de sábanas (estadía en curso)",
+            assignedTo: autoAssign("cambio_sabanas", data.staff, allTasks(), cfg.autoAsignar),
+            notes: `Cada ${cfg.sabanasCadaDias} días · ${r.guestName}`,
+            priority: "media",
+          }),
+        );
     }
   }
 
