@@ -131,7 +131,7 @@ export function Stat({
         </span>
       )}
       <div className="min-w-0 flex-1">
-        <div className="line-clamp-1 text-xs font-medium text-gray-500" title={label}>{label}</div>
+        <div className="line-clamp-2 text-xs font-medium leading-snug text-gray-500" title={label}>{label}</div>
         <div
           className={cls(
             "mt-0.5 whitespace-nowrap font-semibold leading-tight tabular-nums tracking-tight text-gray-900",
