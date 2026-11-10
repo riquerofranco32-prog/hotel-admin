@@ -28,7 +28,7 @@ import { useApp } from "./AppProvider";
 import { Avatar, ThemeToggle, toast } from "./ui";
 import { alerts, planAutomations, planSize } from "@/lib/automation";
 import { fmtDate, today } from "@/lib/dates";
-import { automationOf, cls, ROLE_LABEL } from "@/lib/logic";
+import { automationOf, cls, isActive, ROLE_LABEL } from "@/lib/logic";
 import type { Perm } from "@/lib/types";
 
 type NavItem = { href: string; label: string; icon: React.ElementType; perm: Perm };
@@ -63,6 +63,11 @@ const NAV: { group: string; items: NavItem[] }[] = [
   },
 ];
 const ALL_NAV = NAV.flatMap((g) => g.items);
+
+function greeting() {
+  const h = new Date().getHours();
+  return h < 12 ? "Buen día" : h < 20 ? "Buenas tardes" : "Buenas noches";
+}
 
 export function permForPath(path: string): Perm {
   const n = ALL_NAV.filter((x) => x.href !== "/").find((x) => path === x.href || path.startsWith(x.href + "/"));
@@ -169,6 +174,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const alertList = useMemo(() => (loaded && (can("dashboard") || can("mantenimiento")) ? alerts(data, t) : []), [data, t, loaded, can]);
   const openTasks = data.tasks.filter((x) => x.status !== "completada");
   const myOpen = me ? openTasks.filter((x) => x.assignedTo === me.id).length : 0;
+  const guestsToday = useMemo(
+    () => data.reservations.reduce((s, r) => (isActive(r) && r.status === "checkin" ? s + r.pax : s), 0),
+    [data.reservations],
+  );
   const pendingOrders = data.orders.filter((o) => o.status === "pendiente" || o.status === "preparando").length;
 
   // Título de la pestaña con contador
@@ -315,6 +324,18 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             <span className="truncate">Buscar huésped, habitación o reserva…</span>
             <kbd className="ml-auto hidden rounded border border-gray-200 bg-white px-1.5 text-xs text-gray-600 sm:inline">Ctrl K</kbd>
           </button>
+          {/* Saludo (sólo en Inicio): entre el buscador y el botón de tema */}
+          {path === "/" && (
+            <div className="hidden min-w-0 shrink px-3 leading-tight lg:block">
+              <div className="display truncate text-[17px]">
+                {greeting()},{" "}
+                <span className="serif-accent">{me.name.split(" ")[0]}</span>
+              </div>
+              <div className="hidden truncate text-[12.5px] text-gray-600 xl:block">
+                {new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })} · {guestsToday} huéspedes alojados hoy
+              </div>
+            </div>
+          )}
           <div className="ml-auto flex items-center gap-1.5">
             <ThemeToggle />
             <span
