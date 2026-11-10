@@ -149,7 +149,7 @@ export function planAutomations(data: DataState, t = today()): AutomationPlan {
           trigger: "llegada",
           dueDate: r.checkIn,
           assignedTo: autoAssign("preparar_llegada", data.staff, allTasks(), cfg.autoAsignar),
-          notes: `Llega ${r.guestName} (${r.pax} pax)${r.notes ? " · " + r.notes : ""}`,
+          notes: `Llega ${r.guestName} (${r.pax} ${r.pax === 1 ? "persona" : "personas"})${r.notes ? " · " + r.notes : ""}`,
         }),
       );
     }
@@ -221,13 +221,13 @@ export function alerts(data: DataState, t = today()) {
     if (x.status !== "completada" && (x.trigger === "checkout" || x.blocksRoom)) openByRoom.set(x.roomId, [...(openByRoom.get(x.roomId) ?? []), x]);
   for (const r of data.reservations) {
     if (r.status === "checkin" && r.checkOut < t)
-      list.push({ level: "alta", text: `Salida vencida: ${r.guestName} (Hab. ${roomNum.get(r.roomId)})`, href: "/recepcion" });
+      list.push({ level: "alta", text: `Ya pasó el día de salida de ${r.guestName} (habitación ${roomNum.get(r.roomId)})`, href: "/recepcion" });
     if ((r.status === "confirmada" || r.status === "pendiente") && r.checkIn === t) {
       const open = openByRoom.get(r.roomId) ?? [];
       if (open.length)
         list.push({
           level: "alta",
-          text: `Hab. ${roomNum.get(r.roomId)} no está lista y llega ${r.guestName} hoy (${open.length} tareas abiertas)`,
+          text: `La habitación ${roomNum.get(r.roomId)} todavía no está lista y hoy llega ${r.guestName} (faltan ${open.length} tareas)`,
           href: "/mantenimiento",
         });
     }
@@ -235,8 +235,8 @@ export function alerts(data: DataState, t = today()) {
   for (const task of data.tasks) {
     if (task.status === "completada") continue;
     if (task.priority === "urgente")
-      list.push({ level: "alta", text: `Urgente: ${task.title} · Hab. ${roomNum.get(task.roomId)}`, href: "/mantenimiento" });
-    else if (task.dueDate < t) list.push({ level: "media", text: `Tarea vencida: ${task.title} · Hab. ${roomNum.get(task.roomId)}`, href: "/mantenimiento" });
+      list.push({ level: "alta", text: `Urgente: ${task.title} · habitación ${roomNum.get(task.roomId)}`, href: "/mantenimiento" });
+    else if (task.dueDate < t) list.push({ level: "media", text: `Tarea atrasada: ${task.title} · habitación ${roomNum.get(task.roomId)}`, href: "/mantenimiento" });
   }
   return list;
 }

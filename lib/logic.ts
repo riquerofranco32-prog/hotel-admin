@@ -1,3 +1,4 @@
+import { BedDouble, Brush, ClipboardCheck, ConciergeBell, Droplets, Feather, PackagePlus, Pin, ScanSearch, SprayCan, Sparkles, Wrench, type LucideIcon } from "lucide-react";
 import { addDays, diffDays, today } from "./dates";
 import { COLLECTIONS } from "./types";
 import type {
@@ -25,10 +26,10 @@ import type {
 // ================== Etiquetas y colores ==================
 
 export const VISUAL_LABEL: Record<VisualStatus, string> = {
-  ocupada: "Ocupada",
-  reservada: "Reservada",
-  proxima: "Próxima a salir",
-  otros: "Otros estados",
+  ocupada: "Con huéspedes",
+  reservada: "Por llegar",
+  proxima: "Se van pronto",
+  otros: "Sin confirmar o terminada",
 };
 
 export const VISUAL_CLASS: Record<VisualStatus, string> = {
@@ -46,12 +47,12 @@ export const VISUAL_DOT: Record<VisualStatus, string> = {
 };
 
 export const RES_STATUS_LABEL: Record<ReservationStatus, string> = {
-  pendiente: "Pendiente",
+  pendiente: "Sin confirmar",
   confirmada: "Confirmada",
-  checkin: "En casa (check-in)",
-  checkout: "Salió (check-out)",
+  checkin: "Alojado (ya entró)",
+  checkout: "Ya se fue",
   cancelada: "Cancelada",
-  no_show: "No show",
+  no_show: "No se presentó",
 };
 
 export const RES_STATUS_BADGE: Record<ReservationStatus, string> = {
@@ -91,65 +92,76 @@ export const ROOM_STATE_DOT: Record<RoomState, string> = {
 };
 
 export const TASK_TYPE_LABEL: Record<TaskType, string> = {
-  pre_salida: "Pre-salida",
+  pre_salida: "Revisar antes de la salida",
   cambio_sabanas: "Cambio de sábanas",
   limpieza_salida: "Limpieza de salida",
-  reposicion: "Reposición amenities",
-  inspeccion: "Inspección final",
+  reposicion: "Reponer jabón, toallas y artículos",
+  inspeccion: "Revisión final",
   preparar_llegada: "Preparar llegada",
-  repaso_diario: "Repaso diario",
-  servicio: "Servicio",
+  repaso_diario: "Repaso del día",
+  servicio: "Limpieza completa",
   fondo: "Limpieza a fondo",
-  repaso: "Repaso",
+  repaso: "Repaso rápido",
   reparacion: "Reparación",
   otro: "Otro",
 };
 
-export const TASK_TYPE_ICON: Record<TaskType, string> = {
-  pre_salida: "🧾",
-  cambio_sabanas: "🛏️",
-  limpieza_salida: "🧹",
-  reposicion: "🧴",
-  inspeccion: "🔍",
-  preparar_llegada: "🛎️",
-  repaso_diario: "✨",
-  servicio: "🧽",
-  fondo: "🧼",
-  repaso: "🪶",
-  reparacion: "🔧",
-  otro: "📌",
+/** Íconos (lucide) de cada tipo de tarea. Se muestran con <TaskIcon type=... /> */
+export const TASK_TYPE_LUCIDE: Record<TaskType, LucideIcon> = {
+  pre_salida: ClipboardCheck,
+  cambio_sabanas: BedDouble,
+  limpieza_salida: SprayCan,
+  reposicion: PackagePlus,
+  inspeccion: ScanSearch,
+  preparar_llegada: ConciergeBell,
+  repaso_diario: Sparkles,
+  servicio: Brush,
+  fondo: Droplets,
+  repaso: Feather,
+  reparacion: Wrench,
+  otro: Pin,
 };
 
 export const TRIGGER_LABEL: Record<TaskTrigger, string> = {
-  proxima_salida: "Automática · próxima a salir",
-  checkout: "Automática · check-out",
-  llegada: "Automática · llegada",
-  estadia: "Automática · estadía",
+  proxima_salida: "Automática · el huésped se va pronto",
+  checkout: "Automática · el huésped se fue",
+  llegada: "Automática · llega un huésped",
+  estadia: "Automática · huésped alojado",
   manual: "Manual",
 };
 
 export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
-  pendiente: "Pendiente",
-  en_progreso: "En progreso",
-  completada: "Completada",
+  pendiente: "Por hacer",
+  en_progreso: "Empezada",
+  completada: "Terminada",
 };
 
-export const PRIORITY_LABEL: Record<Priority, string> = { baja: "Baja", media: "Media", alta: "Alta", urgente: "Urgente" };
+export const PRIORITY_LABEL: Record<Priority, string> = {
+  baja: "Puede esperar",
+  media: "Normal",
+  alta: "Importante",
+  urgente: "Urgente",
+};
 export const PRIORITY_CLASS: Record<Priority, string> = {
   baja: "bg-gray-100 text-gray-600",
   media: "bg-blue-50 text-blue-700",
   alta: "bg-orange-100 text-orange-700",
   urgente: "bg-red-600 text-white",
 };
-export const PRIORITY_ORDER: Record<Priority, number> = { urgente: 0, alta: 1, media: 2, baja: 3 };
+export const PRIORITY_ORDER: Record<Priority, number> = {
+  urgente: 0,
+  alta: 1,
+  media: 2,
+  baja: 3,
+};
 
 export const ROLE_LABEL: Record<Role, string> = {
   admin: "Administrador general",
   gerente: "Gerencia",
   recepcion: "Recepción",
-  encargado: "Encargado/a de housekeeping",
-  mucama: "Mucama / Housekeeping",
-  mantenimiento: "Mantenimiento técnico",
+  encargado: "Encargado/a de limpieza",
+  mucama: "Mucama",
+  mantenimiento: "Mantenimiento (arreglos)",
   restaurante: "Restaurante",
 };
 
@@ -166,46 +178,112 @@ export const ROLE_COLOR: Record<Role, string> = {
 /** Roles guardados en versiones anteriores */
 export function normalizeRole(r: string): Role {
   if (r === "limpieza") return "mucama";
-  return (["admin", "gerente", "recepcion", "encargado", "mucama", "mantenimiento", "restaurante"].includes(r) ? r : "mucama") as Role;
+  return (
+    [
+      "admin",
+      "gerente",
+      "recepcion",
+      "encargado",
+      "mucama",
+      "mantenimiento",
+      "restaurante",
+    ].includes(r)
+      ? r
+      : "mucama"
+  ) as Role;
 }
 
 export const CHARGE_LABEL: Record<ChargeCategory, string> = {
   alojamiento: "Alojamiento",
-  restaurante: "Restaurante / Room service",
+  restaurante: "Comidas y pedidos a la habitación",
   minibar: "Minibar",
   lavanderia: "Lavandería",
   spa: "Spa",
-  otros: "Otros",
+  otros: "Otros gastos",
 };
 
 // ================== Permisos por rol ==================
 
-export const ALL_ROLES: Role[] = ["admin", "gerente", "recepcion", "encargado", "mucama", "mantenimiento", "restaurante"];
+export const ALL_ROLES: Role[] = [
+  "admin",
+  "gerente",
+  "recepcion",
+  "encargado",
+  "mucama",
+  "mantenimiento",
+  "restaurante",
+];
 
-export const PERM_INFO: Record<Perm, { label: string; group: "Secciones" | "Capacidades"; hint?: string }> = {
-  dashboard: { label: "Dashboard (calendario)", group: "Secciones" },
-  mi_jornada: { label: "Mi jornada", group: "Secciones", hint: "Tareas propias del día" },
-  mucamas: { label: "Mucamas (plan de housekeeping)", group: "Secciones" },
+export const PERM_INFO: Record<
+  Perm,
+  { label: string; group: "Secciones" | "Capacidades"; hint?: string }
+> = {
+  dashboard: { label: "Inicio (calendario de habitaciones)", group: "Secciones" },
+  mi_jornada: {
+    label: "Mi trabajo de hoy",
+    group: "Secciones",
+    hint: "Tareas propias del día",
+  },
+  mucamas: { label: "Mucamas (reparto de la limpieza)", group: "Secciones" },
   recepcion: { label: "Recepción", group: "Secciones" },
   reservas: { label: "Reservas", group: "Secciones" },
-  huespedes: { label: "Huéspedes (CRM)", group: "Secciones" },
-  mantenimiento: { label: "Mantenimiento", group: "Secciones" },
-  menus: { label: "Menús / room service", group: "Secciones" },
+  huespedes: { label: "Huéspedes", group: "Secciones" },
+  mantenimiento: { label: "Limpieza y arreglos", group: "Secciones" },
+  menus: { label: "Comidas y pedidos a la habitación", group: "Secciones" },
   whatsapp: { label: "WhatsApp", group: "Secciones" },
-  facturacion: { label: "Facturación", group: "Secciones" },
-  finanzas: { label: "Finanzas y reportes", group: "Secciones" },
+  facturacion: { label: "Cobros y facturas", group: "Secciones" },
+  finanzas: { label: "Plata y resultados", group: "Secciones" },
   automatizaciones: { label: "Automatizaciones", group: "Secciones" },
-  administradores: { label: "Administradores", group: "Secciones" },
-  ver_montos: { label: "Ver montos y saldos", group: "Capacidades" },
-  editar_reservas: { label: "Crear / editar reservas, check-in/out", group: "Capacidades" },
-  gestionar_tareas: { label: "Crear, asignar y borrar cualquier tarea", group: "Capacidades" },
-  registrar_pagos: { label: "Registrar pagos y emitir facturas", group: "Capacidades" },
+  administradores: { label: "Administración (personal y datos del hotel)", group: "Secciones" },
+  ver_montos: { label: "Ver la plata y lo que debe cada huésped", group: "Capacidades" },
+  editar_reservas: {
+    label: "Crear y cambiar reservas, dar entrada y salida",
+    group: "Capacidades",
+  },
+  gestionar_tareas: {
+    label: "Crear, repartir y borrar cualquier tarea",
+    group: "Capacidades",
+  },
+  registrar_pagos: {
+    label: "Anotar pagos y hacer facturas",
+    group: "Capacidades",
+  },
 };
 
 export const DEFAULT_PERMISSIONS: Record<Role, Perm[]> = {
   admin: Object.keys(PERM_INFO) as Perm[],
-  gerente: ["dashboard", "mi_jornada", "mucamas", "recepcion", "reservas", "huespedes", "mantenimiento", "menus", "whatsapp", "facturacion", "finanzas", "ver_montos", "editar_reservas", "gestionar_tareas", "registrar_pagos"],
-  recepcion: ["dashboard", "mi_jornada", "recepcion", "reservas", "huespedes", "mantenimiento", "menus", "whatsapp", "facturacion", "ver_montos", "editar_reservas", "gestionar_tareas", "registrar_pagos"],
+  gerente: [
+    "dashboard",
+    "mi_jornada",
+    "mucamas",
+    "recepcion",
+    "reservas",
+    "huespedes",
+    "mantenimiento",
+    "menus",
+    "whatsapp",
+    "facturacion",
+    "finanzas",
+    "ver_montos",
+    "editar_reservas",
+    "gestionar_tareas",
+    "registrar_pagos",
+  ],
+  recepcion: [
+    "dashboard",
+    "mi_jornada",
+    "recepcion",
+    "reservas",
+    "huespedes",
+    "mantenimiento",
+    "menus",
+    "whatsapp",
+    "facturacion",
+    "ver_montos",
+    "editar_reservas",
+    "gestionar_tareas",
+    "registrar_pagos",
+  ],
   encargado: ["mucamas", "mi_jornada", "mantenimiento", "gestionar_tareas"],
   mucama: ["mi_jornada", "mucamas", "mantenimiento"],
   mantenimiento: ["mi_jornada", "mantenimiento"],
@@ -220,10 +298,33 @@ export const PERM_CEILING: Record<Role, Perm[]> = {
   admin: DEFAULT_PERMISSIONS.admin,
   gerente: DEFAULT_PERMISSIONS.gerente,
   recepcion: DEFAULT_PERMISSIONS.recepcion.concat(["finanzas", "mucamas"]),
-  encargado: ["dashboard", "mi_jornada", "mucamas", "mantenimiento", "gestionar_tareas"],
-  mucama: ["dashboard", "mi_jornada", "mucamas", "mantenimiento", "gestionar_tareas"],
-  mantenimiento: ["dashboard", "mi_jornada", "mantenimiento", "gestionar_tareas"],
-  restaurante: ["dashboard", "mi_jornada", "menus", "mantenimiento", "ver_montos"],
+  encargado: [
+    "dashboard",
+    "mi_jornada",
+    "mucamas",
+    "mantenimiento",
+    "gestionar_tareas",
+  ],
+  mucama: [
+    "dashboard",
+    "mi_jornada",
+    "mucamas",
+    "mantenimiento",
+    "gestionar_tareas",
+  ],
+  mantenimiento: [
+    "dashboard",
+    "mi_jornada",
+    "mantenimiento",
+    "gestionar_tareas",
+  ],
+  restaurante: [
+    "dashboard",
+    "mi_jornada",
+    "menus",
+    "mantenimiento",
+    "ver_montos",
+  ],
 };
 
 export function permsFor(role: Role | undefined, settings?: Settings): Perm[] {
@@ -232,7 +333,8 @@ export function permsFor(role: Role | undefined, settings?: Settings): Perm[] {
   const base = custom ?? DEFAULT_PERMISSIONS[role];
   const allowed = base.filter((p) => PERM_CEILING[role].includes(p));
   // el administrador nunca puede quedarse sin acceso a Administradores
-  if (role === "admin" && !allowed.includes("administradores")) allowed.push("administradores");
+  if (role === "admin" && !allowed.includes("administradores"))
+    allowed.push("administradores");
   return allowed;
 }
 
@@ -243,8 +345,25 @@ export const ROLE_COLLECTIONS: Record<Role, CollectionName[]> = {
   recepcion: [...COLLECTIONS],
   encargado: ["rooms", "guests", "reservations", "tasks", "staff", "settings"],
   mucama: ["rooms", "guests", "reservations", "tasks", "staff", "settings"],
-  mantenimiento: ["rooms", "guests", "reservations", "tasks", "staff", "settings"],
-  restaurante: ["rooms", "guests", "reservations", "tasks", "staff", "settings", "menuItems", "orders", "charges"],
+  mantenimiento: [
+    "rooms",
+    "guests",
+    "reservations",
+    "tasks",
+    "staff",
+    "settings",
+  ],
+  restaurante: [
+    "rooms",
+    "guests",
+    "reservations",
+    "tasks",
+    "staff",
+    "settings",
+    "menuItems",
+    "orders",
+    "charges",
+  ],
 };
 
 // ================== Estado visual de reservas ==================
@@ -260,7 +379,10 @@ export function isActive(r: Reservation) {
  *  - Azul (Reservada): reserva confirmada, aún sin check-in.
  *  - Gris (Otros): pendiente de confirmar, ya salió, etc.
  */
-export function visualStatus(r: Reservation, t: string = today()): VisualStatus {
+export function visualStatus(
+  r: Reservation,
+  t: string = today(),
+): VisualStatus {
   if (r.status === "checkin") {
     return r.checkOut <= addDays(t, 1) ? "proxima" : "ocupada";
   }
@@ -279,11 +401,19 @@ export function openTasks(tasks: Task[]) {
 }
 
 /** Estado calculado de la habitación a partir de reservas + tareas. */
-export function roomState(room: Room, data: Pick<DataState, "reservations" | "tasks">, t = today()): RoomState {
+export function roomState(
+  room: Room,
+  data: Pick<DataState, "reservations" | "tasks">,
+  t = today(),
+): RoomState {
   if (room.outOfService) return "fuera_servicio";
-  const roomTasks = data.tasks.filter((x) => x.roomId === room.id && x.status !== "completada");
+  const roomTasks = data.tasks.filter(
+    (x) => x.roomId === room.id && x.status !== "completada",
+  );
   if (roomTasks.some((x) => x.blocksRoom)) return "mantenimiento";
-  const inHouse = data.reservations.find((r) => r.roomId === room.id && r.status === "checkin");
+  const inHouse = data.reservations.find(
+    (r) => r.roomId === room.id && r.status === "checkin",
+  );
   if (inHouse) return "ocupada";
   const cleaning = roomTasks.filter((x) => x.trigger === "checkout");
   if (cleaning.some((x) => x.status === "en_progreso")) return "en_limpieza";
@@ -291,10 +421,21 @@ export function roomState(room: Room, data: Pick<DataState, "reservations" | "ta
   return "lista";
 }
 
-export function currentReservation(roomId: string, reservations: Reservation[], t = today()) {
+export function currentReservation(
+  roomId: string,
+  reservations: Reservation[],
+  t = today(),
+) {
   return (
     reservations.find((r) => r.roomId === roomId && r.status === "checkin") ||
-    reservations.find((r) => r.roomId === roomId && isActive(r) && r.status !== "checkout" && r.checkIn <= t && r.checkOut > t)
+    reservations.find(
+      (r) =>
+        r.roomId === roomId &&
+        isActive(r) &&
+        r.status !== "checkout" &&
+        r.checkIn <= t &&
+        r.checkOut > t,
+    )
   );
 }
 
@@ -302,19 +443,36 @@ export function currentReservation(roomId: string, reservations: Reservation[], 
 
 type FolioSource =
   | Pick<DataState, "charges" | "payments">
-  | { chargesByRes: Map<string, Charge[]>; paymentsByRes: Map<string, Payment[]> };
+  | {
+      chargesByRes: Map<string, Charge[]>;
+      paymentsByRes: Map<string, Payment[]>;
+    };
 
 /** Cuenta de la reserva. Acepta los índices del AppProvider (rápido) o las listas completas. */
 export function folio(r: Reservation, src: FolioSource) {
   const lodging = nights(r) * r.rate;
-  const charges = "chargesByRes" in src ? src.chargesByRes.get(r.id) ?? [] : src.charges.filter((c) => c.reservationId === r.id);
-  const payments = "paymentsByRes" in src ? src.paymentsByRes.get(r.id) ?? [] : src.payments.filter((p) => p.reservationId === r.id);
+  const charges =
+    "chargesByRes" in src
+      ? (src.chargesByRes.get(r.id) ?? [])
+      : src.charges.filter((c) => c.reservationId === r.id);
+  const payments =
+    "paymentsByRes" in src
+      ? (src.paymentsByRes.get(r.id) ?? [])
+      : src.payments.filter((p) => p.reservationId === r.id);
   let extras = 0;
   for (const c of charges) extras += c.amount;
   let paid = 0;
   for (const p of payments) paid += p.amount;
   const total = lodging + extras;
-  return { lodging, charges, payments, extras, paid, total, balance: total - paid };
+  return {
+    lodging,
+    charges,
+    payments,
+    extras,
+    paid,
+    total,
+    balance: total - paid,
+  };
 }
 
 export function money(n: number, currency = "$") {
@@ -323,66 +481,125 @@ export function money(n: number, currency = "$") {
 
 // ================== Plantillas de tareas (automatizaciones) ==================
 
-export const TASK_TEMPLATES: Record<TaskType, { title: string; checklist: string[]; priority: Priority }> = {
+export const TASK_TEMPLATES: Record<
+  TaskType,
+  { title: string; checklist: string[]; priority: Priority }
+> = {
   pre_salida: {
-    title: "Pre-salida: revisar minibar y consumos",
-    checklist: ["Revisar minibar y cargar consumos al folio", "Verificar daños o faltantes", "Confirmar hora de salida con el huésped"],
+    title: "Antes de la salida: revisar el minibar y los consumos",
+    checklist: [
+      "Revisar el minibar y anotar lo consumido en la cuenta",
+      "Ver si hay daños o algo que falte",
+      "Confirmar con el huésped a qué hora se va",
+    ],
     priority: "media",
   },
   cambio_sabanas: {
     title: "Cambio de sábanas y toallas",
-    checklist: ["Retirar sábanas, fundas y toallas", "Colocar ropa de cama limpia", "Colocar toallas limpias", "Enviar ropa a lavandería"],
+    checklist: [
+      "Retirar sábanas, fundas y toallas",
+      "Colocar ropa de cama limpia",
+      "Colocar toallas limpias",
+      "Enviar ropa a lavandería",
+    ],
     priority: "alta",
   },
   limpieza_salida: {
     title: "Limpieza completa de salida",
-    checklist: ["Limpieza y desinfección de baño", "Aspirar y trapear pisos", "Quitar polvo de superficies", "Vaciar papeleras", "Ventilar habitación"],
+    checklist: [
+      "Limpieza y desinfección de baño",
+      "Aspirar y trapear pisos",
+      "Quitar polvo de superficies",
+      "Vaciar papeleras",
+      "Ventilar habitación",
+    ],
     priority: "alta",
   },
   reposicion: {
-    title: "Reposición de amenities y minibar",
-    checklist: ["Shampoo, jabón y acondicionador", "Papel higiénico", "Agua de cortesía", "Reponer minibar"],
+    title: "Reponer jabón, toallas y artículos del minibar",
+    checklist: [
+      "Shampoo, jabón y acondicionador",
+      "Papel higiénico",
+      "Agua de cortesía",
+      "Reponer minibar",
+    ],
     priority: "media",
   },
   inspeccion: {
-    title: "Inspección final — habilitar habitación",
-    checklist: ["Revisión visual general", "Luces, A/C y TV funcionando", "Cama y baño impecables", "Habitación habilitada para venta"],
+    title: "Revisión final: dejar la habitación lista",
+    checklist: [
+      "Revisión visual general",
+      "Luces, aire y tele funcionando",
+      "Cama y baño impecables",
+      "Habitación lista para alquilar",
+    ],
     priority: "media",
   },
   preparar_llegada: {
     title: "Preparar habitación para llegada",
-    checklist: ["Verificar que esté limpia e inspeccionada", "Climatizar habitación", "Amenities de bienvenida", "Revisar pedidos especiales del huésped"],
+    checklist: [
+      "Ver que esté limpia y revisada",
+      "Prender el aire o la calefacción",
+      "Dejar los artículos de bienvenida",
+      "Revisar pedidos especiales del huésped",
+    ],
     priority: "alta",
   },
   repaso_diario: {
-    title: "Repaso diario (huésped en casa)",
-    checklist: ["Tender cama", "Cambiar toallas si se solicitó", "Repaso de baño", "Vaciar papeleras"],
+    title: "Repaso del día (huésped alojado)",
+    checklist: [
+      "Tender cama",
+      "Cambiar toallas si se solicitó",
+      "Repaso de baño",
+      "Vaciar papeleras",
+    ],
     priority: "baja",
   },
   servicio: {
-    title: "Servicio (limpieza diaria de habitación ocupada)",
-    checklist: ["Tender cama", "Baño: limpiar y reponer papel", "Toallas: cambiar las del piso", "Vaciar papeleras", "Repaso de pisos"],
+    title: "Limpieza completa (habitación con huéspedes)",
+    checklist: [
+      "Tender cama",
+      "Baño: limpiar y reponer papel",
+      "Toallas: cambiar las del piso",
+      "Vaciar papeleras",
+      "Repaso de pisos",
+    ],
     priority: "media",
   },
   fondo: {
     title: "Limpieza a fondo",
-    checklist: ["Mover muebles y aspirar debajo", "Limpiar vidrios y cortinas", "Desinfección completa del baño", "Colchón: aspirar y rotar", "Placard y cajones"],
+    checklist: [
+      "Mover muebles y aspirar debajo",
+      "Limpiar vidrios y cortinas",
+      "Desinfección completa del baño",
+      "Colchón: aspirar y rotar",
+      "Placard y cajones",
+    ],
     priority: "media",
   },
   repaso: {
     title: "Repaso rápido",
-    checklist: ["Quitar polvo de superficies", "Ventilar", "Revisar baño y amenities"],
+    checklist: [
+      "Quitar polvo de superficies",
+      "Ventilar",
+      "Revisar el baño y los artículos",
+    ],
     priority: "baja",
   },
   reparacion: {
     title: "Reparación",
-    checklist: ["Diagnosticar problema", "Reparar", "Probar funcionamiento"],
+    checklist: ["Ver qué le pasa", "Arreglarlo", "Probar que funcione"],
     priority: "alta",
   },
   otro: { title: "Tarea", checklist: [], priority: "media" },
 };
 
-export const CHECKOUT_SEQUENCE: TaskType[] = ["cambio_sabanas", "limpieza_salida", "reposicion", "inspeccion"];
+export const CHECKOUT_SEQUENCE: TaskType[] = [
+  "cambio_sabanas",
+  "limpieza_salida",
+  "reposicion",
+  "inspeccion",
+];
 
 /** Rol que naturalmente ejecuta cada tipo de tarea (para sugerir asignación). */
 export const TASK_DEFAULT_ROLE: Record<TaskType, Role> = {
@@ -404,7 +621,12 @@ export const DEFAULT_AUTOMATION: AutomationConfig = {
   preSalida: true,
   preSalidaDias: 1,
   checkoutTasks: true,
-  checkoutTipos: ["cambio_sabanas", "limpieza_salida", "reposicion", "inspeccion"],
+  checkoutTipos: [
+    "cambio_sabanas",
+    "limpieza_salida",
+    "reposicion",
+    "inspeccion",
+  ],
   llegada: true,
   llegadaDias: 1,
   repasoDiario: false,
@@ -422,7 +644,12 @@ export const DEFAULT_AUTOMATION: AutomationConfig = {
 /** Configuración de automatizaciones (con migración desde `rules` v1). */
 export function automationOf(s?: Settings): AutomationConfig {
   const legacy = s?.rules
-    ? { preSalida: s.rules.preSalida, checkoutTasks: s.rules.checkoutTasks, llegada: s.rules.llegada, repasoDiario: s.rules.repasoDiario }
+    ? {
+        preSalida: s.rules.preSalida,
+        checkoutTasks: s.rules.checkoutTasks,
+        llegada: s.rules.llegada,
+        repasoDiario: s.rules.repasoDiario,
+      }
     : {};
   return { ...DEFAULT_AUTOMATION, ...legacy, ...(s?.automation ?? {}) };
 }
@@ -441,6 +668,7 @@ export function cls(...xs: (string | false | null | undefined)[]) {
 }
 
 export function uid(prefix = ""): string {
-  const r = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+  const r =
+    Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
   return prefix ? `${prefix}_${r}` : r;
 }

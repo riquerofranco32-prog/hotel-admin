@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { BedDouble, Download, HandCoins, Percent, TrendingUp, Wallet } from "lucide-react";
+import { BedDouble, BarChart3, CheckCircle2, Download, HandCoins, Percent, TrendingUp, Users, Wallet } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { Button, Card, PageHeader, Select, Stat, Table } from "@/components/ui";
 import { addDays, daysInMonth, fmtDate, MONTHS, parseISO, toISO, today } from "@/lib/dates";
@@ -12,34 +12,37 @@ import type { ChargeCategory } from "@/lib/types";
 function Bars({ data, format, height = 180, highlight }: { data: { label: string; value: number; tip?: string }[]; format: (n: number) => string; height?: number; highlight?: string }) {
   const max = Math.max(1, ...data.map((d) => d.value));
   const peak = data.reduce((a, b) => (b.value > a.value ? b : a), data[0] ?? { label: "", value: 0 });
+  const wide = data.length > 16;
   return (
-    <div className="px-4 pb-3 pt-6">
-      <div className="relative flex items-end gap-[2px]" style={{ height }}>
-        {/* grilla recesiva */}
-        {[0.5, 1].map((g) => (
-          <div key={g} className="pointer-events-none absolute inset-x-0 border-t border-dashed border-gray-200" style={{ bottom: height * g }}>
-            <span className="absolute -top-4 right-0 text-[10px] text-gray-400">{format(max * g)}</span>
-          </div>
-        ))}
-        {data.map((d) => (
-          <div key={d.label} className="group relative flex h-full flex-1 items-end justify-center">
-            <div
-              className={`w-full max-w-[34px] rounded-t-[4px] transition-colors ${d.label === highlight ? "bg-accent" : "bg-accent/55 group-hover:bg-accent/80"}`}
-              style={{ height: `${(d.value / max) * 100}%`, minHeight: d.value ? 2 : 0 }}
-            />
-            <div className="pointer-events-none absolute bottom-full z-10 mb-1 hidden whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs text-white shadow group-hover:block">
-              {d.tip ?? d.label}: <b>{format(d.value)}</b>
+    <div className="overflow-x-auto px-4 pb-4 pt-8">
+      <div className={wide ? "min-w-[560px]" : ""}>
+        <div className="relative flex items-end gap-[3px]" style={{ height }}>
+          {/* grilla recesiva */}
+          {[0.5, 1].map((g) => (
+            <div key={g} className="pointer-events-none absolute inset-x-0 border-t border-dashed border-gray-200" style={{ bottom: height * g }}>
+              <span className="absolute -top-6 left-0 text-[13.5px] font-medium tabular-nums text-gray-600">{format(max * g)}</span>
             </div>
-            {d === peak && d.value > 0 && <span className="absolute text-[10px] font-medium text-gray-700" style={{ bottom: `calc(${(d.value / max) * 100}% + 2px)` }}>{format(d.value)}</span>}
-          </div>
-        ))}
-      </div>
-      <div className="mt-1 flex gap-[2px] border-t border-gray-300 pt-1">
-        {data.map((d, i) => (
-          <div key={d.label} className="flex-1 text-center text-[10px] text-gray-500">
-            {data.length > 16 ? (i % 3 === 0 ? d.label : "") : d.label}
-          </div>
-        ))}
+          ))}
+          {data.map((d) => (
+            <div key={d.label} tabIndex={0} className="group relative flex h-full flex-1 items-end justify-center rounded-t-md outline-none focus-visible:ring-2 focus-visible:ring-accent/50">
+              <div
+                className={`w-full max-w-[40px] rounded-t-[6px] transition-colors duration-150 motion-reduce:transition-none ${d.label === highlight ? "bg-accent" : "bg-accent/60 group-hover:bg-accent/85 group-focus:bg-accent/85"}`}
+                style={{ height: `${(d.value / max) * 100}%`, minHeight: d.value ? 3 : 0 }}
+              />
+              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-900 px-2.5 py-1.5 text-[14px] text-white shadow-pop group-hover:block group-focus:block">
+                {d.tip ?? d.label}: <b>{format(d.value)}</b>
+              </div>
+              {d === peak && d.value > 0 && <span className="absolute text-[13.5px] font-semibold tabular-nums text-gray-800" style={{ bottom: `calc(${(d.value / max) * 100}% + 3px)` }}>{format(d.value)}</span>}
+            </div>
+          ))}
+        </div>
+        <div className="mt-1 flex gap-[3px] border-t border-gray-300 pt-1.5">
+          {data.map((d, i) => (
+            <div key={d.label} className="flex-1 text-center text-[13.5px] font-medium tabular-nums text-gray-700">
+              {wide ? (i % 3 === 0 ? d.label : "") : d.label}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -50,21 +53,26 @@ function HBars({ rows, format }: { rows: { label: string; value: number }[]; for
   const max = Math.max(1, ...rows.map((r) => r.value));
   const total = rows.reduce((s, r) => s + r.value, 0) || 1;
   return (
-    <ul className="space-y-2.5 p-4">
+    <ul className="space-y-4 p-4">
       {rows.map((r) => (
         <li key={r.label} className="group">
-          <div className="mb-1 flex justify-between text-sm">
-            <span className="text-gray-700">{r.label}</span>
+          <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3 text-[15px]">
+            <span className="font-medium text-gray-800">{r.label}</span>
             <span className="tabular-nums text-gray-900">
-              <b>{format(r.value)}</b> <span className="text-xs text-gray-400">{Math.round((r.value / total) * 100)}%</span>
+              <b>{format(r.value)}</b> <span className="text-[13.5px] text-gray-600">{Math.round((r.value / total) * 100)}%</span>
             </span>
           </div>
-          <div className="h-2 rounded-full bg-gray-100">
-            <div className="h-2 rounded-full bg-accent/80 transition-colors group-hover:bg-accent" style={{ width: `${(r.value / max) * 100}%` }} />
+          <div className="h-2.5 overflow-hidden rounded-full bg-gray-100">
+            <div className="h-full rounded-full bg-accent/85 transition-all duration-200 group-hover:bg-accent motion-reduce:transition-none" style={{ width: `${(r.value / max) * 100}%` }} />
           </div>
         </li>
       ))}
-      {!rows.length && <li className="py-4 text-center text-sm text-gray-500">Sin datos</li>}
+      {!rows.length && (
+        <li className="flex flex-col items-center gap-2 py-6 text-center text-[15px] text-gray-600">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-500"><BarChart3 size={20} aria-hidden /></span>
+          Todavía no hay datos en este mes.
+        </li>
+      )}
     </ul>
   );
 }
@@ -117,7 +125,7 @@ export default function FinanzasPage() {
     const adr = roomNights ? lodging / roomNights : 0;
     const revpar = lodging / available;
     return {
-      occ: occ.map((n, i) => ({ label: String(i + 1), value: Math.round((n / rooms) * 100), tip: `${i + 1}/${month + 1} · ${n} hab.` })),
+      occ: occ.map((n, i) => ({ label: String(i + 1), value: Math.round((n / rooms) * 100), tip: `${i + 1}/${month + 1} · ${n} habitaciones ocupadas` })),
       lodging,
       extras,
       cobrado,
@@ -171,14 +179,14 @@ export default function FinanzasPage() {
     const rows = [
       ["Concepto", "Valor"],
       ["Mes", `${MONTHS[month]} ${year}`],
-      ["Producción alojamiento", String(Math.round(m.lodging))],
-      ["Consumos / extras", String(Math.round(m.extras))],
-      ["Cobrado", String(Math.round(m.cobrado))],
-      ["Ocupación %", m.occPct.toFixed(1)],
-      ["ADR", String(Math.round(m.adr))],
-      ["RevPAR", String(Math.round(m.revpar))],
-      ...m.bySource.map((x) => [`Canal ${x.label}`, String(Math.round(x.value))]),
-      ...m.byMethod.map((x) => [`Cobro ${x.label}`, String(Math.round(x.value))]),
+      ["Ventas de hospedaje", String(Math.round(m.lodging))],
+      ["Gastos extra (consumos)", String(Math.round(m.extras))],
+      ["Se cobró", String(Math.round(m.cobrado))],
+      ["Habitaciones ocupadas (%)", m.occPct.toFixed(1)],
+      ["Precio promedio por noche", String(Math.round(m.adr))],
+      ["Ingreso por habitación disponible", String(Math.round(m.revpar))],
+      ...m.bySource.map((x) => [`Por dónde llegó: ${x.label}`, String(Math.round(x.value))]),
+      ...m.byMethod.map((x) => [`Cobrado con ${x.label}`, String(Math.round(x.value))]),
     ];
     const csv = rows.map((r) => r.map((c) => `"${c}"`).join(";")).join("\n");
     const a = document.createElement("a");
@@ -188,87 +196,99 @@ export default function FinanzasPage() {
   }
 
   return (
-    <div className="space-y-4 p-4 lg:p-6">
+    <div className="mx-auto max-w-[1400px] space-y-5 p-4 lg:p-6">
       <PageHeader
-        title="Finanzas y reportes"
-        subtitle="Producción, cobranzas, ocupación e indicadores hoteleros"
+        title="Plata y resultados del hotel"
+        subtitle="Acá ves cuánto se vendió y cuánto se cobró en el mes, cuántas habitaciones estuvieron ocupadas y quién todavía debe plata. Elegí el mes en la lista de arriba."
         actions={
           <>
-            <Select value={ym} onChange={(e) => setYm(e.target.value)} className="w-[170px]">
+            <Select value={ym} onChange={(e) => setYm(e.target.value)} className="w-full text-[15px] sm:w-[190px]">
               {months.map((d) => (
                 <option key={d.toISOString()} value={`${d.getFullYear()}-${d.getMonth()}`}>
                   {MONTHS[d.getMonth()]} {d.getFullYear()}
                 </option>
               ))}
             </Select>
-            <Button onClick={exportCSV}>
-              <Download size={15} /> Exportar
+            <Button className="h-11 sm:h-10" onClick={exportCSV}>
+              <Download size={15} /> Bajar planilla (Excel)
             </Button>
           </>
         }
       />
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Stat icon={TrendingUp} tone="blue" label="Producción del mes" value={fm(m.lodging + m.extras)} sub={`${fm(m.extras)} en consumos`} />
-        <Stat icon={Wallet} tone="green" label="Cobrado en el mes" value={fm(m.cobrado)} />
-        <Stat icon={Percent} tone="indigo" label="Ocupación promedio" value={`${m.occPct.toFixed(1)}%`} />
-        <Stat icon={BedDouble} tone="purple" label="ADR (tarifa media)" value={fm(m.adr)} />
-        <Stat icon={BedDouble} tone="gray" label="RevPAR" value={fm(m.revpar)} sub="ingreso por hab. disponible" />
-        <Stat icon={HandCoins} tone="red" label="Cuentas por cobrar" value={fm(receivableTotal)} sub={`${receivables.length} folios`} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <Stat icon={TrendingUp} tone="blue" label="Vendido en el mes" value={fm(m.lodging + m.extras)} sub={`${fm(m.extras)} son gastos extra (consumos)`} />
+        <Stat icon={Wallet} tone="green" label="Se cobró en el mes" value={fm(m.cobrado)} sub="plata que ya entró" />
+        <Stat icon={Percent} tone="indigo" label="Habitaciones ocupadas" value={`${m.occPct.toFixed(1)}%`} sub="promedio del mes sobre todas las habitaciones" />
+        <Stat icon={BedDouble} tone="purple" label="Precio promedio por noche" value={fm(m.adr)} sub="lo que se cobra en promedio por habitación y noche" />
+        <Stat icon={BedDouble} tone="gray" label="Ingreso por habitación disponible" value={fm(m.revpar)} sub="lo vendido, repartido entre todas las habitaciones y días del mes" />
+        <Stat icon={HandCoins} tone="red" label="Falta cobrar" value={fm(receivableTotal)} sub={`${receivables.length} cuentas con deuda`} />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
-        <Card title={`Ocupación diaria · ${MONTHS[month]} ${year}`}>
+      <div className="grid gap-5 xl:grid-cols-[2fr_1fr]">
+        <Card title={`Habitaciones ocupadas cada día · ${MONTHS[month]} ${year}`}>
           <Bars data={m.occ} format={(n) => `${Math.round(n)}%`} highlight={t.slice(0, 7) === mStart.slice(0, 7) ? String(now.getDate()) : undefined} />
         </Card>
-        <Card title="Cobranzas · últimos 6 meses">
+        <Card title="Lo que se cobró en los últimos 6 meses">
           <Bars data={last6} format={short} highlight={MONTHS[month].slice(0, 3)} />
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card title="Producción de alojamiento por canal">
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Card title="Ventas de hospedaje, según por dónde llegó la reserva">
           <HBars rows={m.bySource} format={fm} />
         </Card>
-        <Card title="Producción por concepto">
+        <Card title="Ventas, según el tipo">
           <HBars rows={m.byCat} format={fm} />
         </Card>
-        <Card title="Cobros por medio de pago">
+        <Card title="Lo que se cobró, según cómo pagaron">
           <HBars rows={m.byMethod} format={fm} />
         </Card>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Card title={`Cuentas por cobrar (${receivables.length})`}>
-          <Table head={["Huésped", "Hab.", "Salida", "Saldo"]}>
+      <div className="grid gap-5 xl:grid-cols-2">
+        <Card title={`Plata que falta cobrar (${receivables.length})`}>
+          <Table head={["Huésped", "Habitación", "Salida", "Debe"]}>
             {receivables.slice(0, 15).map(({ r, f }) => (
-              <tr key={r.id} className="hover:bg-gray-50">
-                <td className="px-4 py-2">
+              <tr key={r.id} className="transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none">
+                <td className="px-4 py-3 text-[15px]">
                   <Link href={`/facturacion?r=${r.id}`} className="font-medium hover:underline">
                     {r.guestName}
                   </Link>
-                  {r.status === "checkin" && <span className="ml-1 text-xs text-green-600">en casa</span>}
+                  {r.status === "checkin" && <span className="ml-1 text-[13.5px] text-green-700">está en el hotel</span>}
                 </td>
-                <td className="px-4 py-2">{idx.roomById.get(r.roomId)?.number}</td>
-                <td className="px-4 py-2">{fmtDate(r.checkOut)}</td>
-                <td className="px-4 py-2 tabular-nums text-red-600">{fm(f.balance)}</td>
+                <td className="px-4 py-3 text-[15px]">{idx.roomById.get(r.roomId)?.number}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-[15px]">{fmtDate(r.checkOut)}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-[16px] font-semibold tabular-nums text-red-700">{fm(f.balance)}</td>
               </tr>
             ))}
           </Table>
+          {receivables.length === 0 && (
+            <div className="flex flex-col items-center gap-2 p-8 text-center text-[15px] text-gray-600">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-green-50 text-green-700"><CheckCircle2 size={20} aria-hidden /></span>
+              Nadie debe plata por ahora.
+            </div>
+          )}
         </Card>
-        <Card title="Mejores clientes (valor histórico)">
-          <Table head={["Huésped", "Estadías", "Valor"]}>
+        <Card title="Huéspedes que más gastaron (en total)">
+          <Table head={["Huésped", "Veces que se alojó", "Total gastado"]}>
             {topGuests.map(([id, g]) => (
-              <tr key={id} className="hover:bg-gray-50">
-                <td className="px-4 py-2">
+              <tr key={id} className="transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none">
+                <td className="px-4 py-3 text-[15px]">
                   <Link href={`/huespedes?g=${id}`} className="font-medium hover:underline">
                     {g.name}
                   </Link>
                 </td>
-                <td className="px-4 py-2 tabular-nums">{g.stays}</td>
-                <td className="px-4 py-2 tabular-nums">{fm(g.value)}</td>
+                <td className="px-4 py-3 text-[15px] tabular-nums">{g.stays}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-[15px] font-semibold tabular-nums">{fm(g.value)}</td>
               </tr>
             ))}
           </Table>
+          {topGuests.length === 0 && (
+            <div className="flex flex-col items-center gap-2 p-8 text-center text-[15px] text-gray-600">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-500"><Users size={20} aria-hidden /></span>
+              Todavía no hay huéspedes con estadías.
+            </div>
+          )}
         </Card>
       </div>
     </div>

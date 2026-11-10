@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus, Zap } from "lucide-react";
+import { Inbox, Plus, Zap } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { NewTaskModal, TaskCard, TaskDrawer } from "@/components/tasks";
 import { Badge, Button, Card, Input, PageHeader, Select, Stat, Table, Tabs, toast } from "@/components/ui";
@@ -63,9 +63,9 @@ function Mantenimiento() {
   );
 
   const columns: { status: TaskStatus; title: string; tone: string }[] = [
-    { status: "pendiente", title: "Pendientes", tone: "bg-gray-400" },
-    { status: "en_progreso", title: "En progreso", tone: "bg-blue-500" },
-    { status: "completada", title: "Completadas (últimos 7 días)", tone: "bg-green-500" },
+    { status: "pendiente", title: "Por hacer", tone: "bg-gray-400" },
+    { status: "en_progreso", title: "Empezadas", tone: "bg-blue-500" },
+    { status: "completada", title: "Terminadas (última semana)", tone: "bg-green-500" },
   ];
 
   const sortTasks = (a: Task, b: Task) =>
@@ -77,70 +77,72 @@ function Mantenimiento() {
   return (
     <div className="p-4 lg:p-6">
       <PageHeader
-        title="Mantenimiento y housekeeping"
-        subtitle="Las tareas se generan solas según el estado de las reservas: próxima salida, check-out y llegadas."
+        title="Limpieza y arreglos"
+        subtitle="Las tareas se crean solas según las reservas: cuando un huésped está por irse, se va o llega."
         actions={
           <>
             {can("automatizaciones") && (
               <Button
                 onClick={async () => {
                   const n = await actions.runAutomations(can("editar_reservas"));
-                  toast(n ? `Se aplicaron ${n} acciones automáticas` : "No hay acciones automáticas pendientes");
+                  toast(n ? `Listo: se hicieron ${n} cambios automáticos ✔` : "No hay nada pendiente por hacer");
                 }}
               >
-                <Zap size={15} /> Ejecutar automatizaciones
+                <Zap size={16} /> Crear las tareas pendientes ahora
               </Button>
             )}
             {can("gestionar_tareas") ? (
               <Button variant="primary" onClick={() => setNewTask(true)}>
-                <Plus size={15} /> Nueva tarea
+                <Plus size={16} /> Nueva tarea
               </Button>
             ) : (
               <Link href="/mi-jornada">
-                <Button variant="primary">Ir a Mi jornada</Button>
+                <Button variant="primary">Ir a Mi trabajo de hoy</Button>
               </Link>
             )}
           </>
         }
       />
 
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Stat label="Tareas abiertas" value={open.length} tone="gray" />
-        <Stat label="En progreso" value={open.filter((x) => x.status === "en_progreso").length} tone="blue" />
-        <Stat label="Urgentes / alta" value={open.filter((x) => x.priority === "urgente" || x.priority === "alta").length} tone="red" />
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <Stat label="Tareas por terminar" value={open.length} tone="gray" />
+        <Stat label="Empezadas" value={open.filter((x) => x.status === "en_progreso").length} tone="blue" />
+        <Stat label="Urgentes o importantes" value={open.filter((x) => x.priority === "urgente" || x.priority === "alta").length} tone="red" />
         <Stat label="Habitaciones por limpiar" value={roomsDirty} tone="orange" />
-        <Stat label="Completadas hoy" value={data.tasks.filter((x) => x.completedAt?.slice(0, 10) === t).length} tone="green" />
+        <Stat label="Terminadas hoy" value={data.tasks.filter((x) => x.completedAt?.slice(0, 10) === t).length} tone="green" />
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="-mx-4 mb-4 overflow-x-auto px-4 pb-1 lg:mx-0 lg:px-0">
+        <div className="w-max">
         <Tabs
           value={tab}
           onChange={setTab}
           items={[
-            { value: "tablero", label: "Tablero" },
+            { value: "tablero", label: "Tareas" },
             { value: "habitaciones", label: "Habitaciones" },
             { value: "personal", label: "Quién hizo qué" },
-            ...(can("automatizaciones") ? [{ value: "reglas" as const, label: "Reglas automáticas" }] : []),
+            ...(can("automatizaciones") ? [{ value: "reglas" as const, label: "Tareas automáticas" }] : []),
           ]}
         />
+        </div>
       </div>
 
       {tab === "tablero" && (
         <>
-          <div className="mb-4 flex flex-wrap gap-2">
-            <Input placeholder="Buscar tarea o habitación" value={q} onChange={(e) => setQ(e.target.value)} className="w-[200px]" />
-            <Select value={room} onChange={(e) => setRoom(e.target.value)} className="w-[150px]">
-              <option value="">Todas las hab.</option>
+          <div className="mb-4 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
+            <Input placeholder="Buscar tarea o habitación" value={q} onChange={(e) => setQ(e.target.value)} className="w-full sm:w-[240px]" />
+            <Select value={room} onChange={(e) => setRoom(e.target.value)} className="w-full sm:w-[210px]">
+              <option value="">Todas las habitaciones</option>
               {data.rooms
                 .slice()
                 .sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }))
                 .map((r) => (
                   <option key={r.id} value={r.id}>
-                    Hab. {r.number}
+                    Habitación {r.number}
                   </option>
                 ))}
             </Select>
-            <Select value={type} onChange={(e) => setType(e.target.value as TaskType | "")} className="w-[180px]">
+            <Select value={type} onChange={(e) => setType(e.target.value as TaskType | "")} className="w-full sm:w-[180px]">
               <option value="">Todos los tipos</option>
               {(Object.keys(TASK_TYPE_LABEL) as TaskType[]).map((k) => (
                 <option key={k} value={k}>
@@ -148,23 +150,23 @@ function Mantenimiento() {
                 </option>
               ))}
             </Select>
-            <Select value={assignee} onChange={(e) => setAssignee(e.target.value)} className="w-[190px]">
-              <option value="">Todo el personal</option>
-              <option value="none">Sin asignar</option>
+            <Select value={assignee} onChange={(e) => setAssignee(e.target.value)} className="w-full sm:w-[190px]">
+              <option value="">Todas las personas</option>
+              <option value="none">Sin responsable</option>
               {data.staff.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.id === me?.id ? `${s.name} (yo)` : s.name}
                 </option>
               ))}
             </Select>
-            <Select value={range} onChange={(e) => setRange(e.target.value as typeof range)} className="w-[160px]">
+            <Select value={range} onChange={(e) => setRange(e.target.value as typeof range)} className="w-full sm:w-[200px]">
               <option value="todas">Cualquier fecha</option>
-              <option value="hoy">Vencen hoy o antes</option>
+              <option value="hoy">Para hoy o atrasadas</option>
               <option value="semana">Próximos 7 días</option>
             </Select>
             {(room || assignee || type || q) && (
               <Button variant="ghost" onClick={() => { setRoom(""); setAssignee(""); setType(""); setQ(""); }}>
-                Limpiar filtros
+                Quitar filtros
               </Button>
             )}
           </div>
@@ -175,16 +177,22 @@ function Mantenimiento() {
                 .filter((x) => col.status !== "completada" || (x.completedAt ?? "") >= addDays(t, -7))
                 .sort(col.status === "completada" ? (a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? "") : sortTasks);
               return (
-                <div key={col.status} className="rounded-xl bg-gray-100/80 p-3">
-                  <div className="mb-3 flex items-center gap-2 px-1 text-sm font-semibold text-gray-700">
-                    <span className={cls("h-2.5 w-2.5 rounded-full", col.tone)} /> {col.title}
-                    <span className="ml-auto rounded-full bg-white px-2 text-xs">{items.length}</span>
+                <div key={col.status} className="flex flex-col rounded-2xl border border-gray-200/80 bg-gray-100/70 p-3">
+                  <div className="mb-3 flex items-center gap-2 px-1">
+                    <span className={cls("h-3 w-3 shrink-0 rounded-full", col.tone)} />
+                    <h3 className="text-[16px] font-semibold text-gray-900">{col.title}</h3>
+                    <span className="ml-auto min-w-[30px] rounded-full bg-white px-2.5 py-0.5 text-center text-[14px] font-semibold tabular-nums text-gray-700">{items.length}</span>
                   </div>
-                  <div className="flex max-h-[calc(100vh-330px)] min-h-[120px] flex-col gap-2 overflow-y-auto pr-1">
+                  <div className="flex min-h-[120px] flex-col gap-2.5 lg:max-h-[calc(100vh-330px)] lg:overflow-y-auto lg:pr-1">
                     {items.map((task) => (
                       <TaskCard key={task.id} task={task} onOpen={() => setOpenTask(task.id)} />
                     ))}
-                    {items.length === 0 && <p className="py-6 text-center text-sm text-gray-400">Sin tareas</p>}
+                    {items.length === 0 && (
+                      <div className="flex flex-col items-center gap-1.5 py-8 text-center">
+                        <Inbox size={28} className="text-gray-500" aria-hidden />
+                        <p className="text-[15px] text-gray-600">No hay tareas</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -207,36 +215,42 @@ function Mantenimiento() {
   function RoomsBoard({ onFilter }: { onFilter: (id: string) => void }) {
     const floors = Array.from(new Set(data.rooms.map((r) => r.floor))).sort();
     return (
-      <div className="space-y-5">
-        <div className="flex flex-wrap gap-3 text-sm">
+      <div className="space-y-6">
+        <div className="flex flex-wrap gap-x-4 gap-y-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-[15px] shadow-card">
           {(Object.keys(ROOM_STATE_LABEL) as RoomState[]).map((s) => (
-            <span key={s} className="flex items-center gap-1.5">
-              <span className={cls("h-2.5 w-2.5 rounded-full", ROOM_STATE_DOT[s])} /> {ROOM_STATE_LABEL[s]}
+            <span key={s} className="flex items-center gap-2">
+              <span className={cls("h-3 w-3 rounded-full", ROOM_STATE_DOT[s])} /> {ROOM_STATE_LABEL[s]}
             </span>
           ))}
         </div>
         {floors.map((f) => (
           <div key={f}>
-            <h3 className="mb-2 text-sm font-semibold text-gray-700">Piso {f}</h3>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
+            <h3 className="mb-2.5 text-[17px] font-semibold text-gray-900">Piso {f}</h3>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
               {data.rooms
                 .filter((r) => r.floor === f)
                 .sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }))
                 .map((r) => {
-                  const st = (idx.roomStates.get(r.id) ?? "lista");
+                  const st = idx.roomStates.get(r.id) ?? "lista";
                   const res = currentReservation(r.id, data.reservations, t);
                   const ot = data.tasks.filter((x) => x.roomId === r.id && x.status !== "completada");
                   return (
-                    <button key={r.id} onClick={() => onFilter(r.id)} className={cls("rounded-lg p-3 text-left ring-1 transition hover:shadow", ROOM_STATE_CLASS[st])}>
-                      <div className="flex items-center justify-between">
-                        <span className="text-lg font-semibold">{r.number}</span>
-                        <span className="text-[11px] opacity-80">{r.type}</span>
+                    <button
+                      key={r.id}
+                      onClick={() => onFilter(r.id)}
+                      className={cls("min-h-[104px] rounded-xl p-3 text-left ring-1 transition duration-150 hover:-translate-y-0.5 hover:shadow-pop motion-reduce:transform-none motion-reduce:transition-none", ROOM_STATE_CLASS[st])}
+                    >
+                      <div className="flex items-baseline justify-between gap-1">
+                        <span className="text-[22px] font-bold leading-none">{r.number}</span>
+                        <span className="truncate text-[14px] opacity-90">{r.type}</span>
                       </div>
-                      <div className="text-xs font-medium">{ROOM_STATE_LABEL[st]}</div>
-                      <div className="mt-1 truncate text-[11px] opacity-80">
-                        {res ? `${res.guestName} · ${VISUAL_LABEL[visualStatus(res, t)]}` : "Sin huésped"}
-                      </div>
-                      {ot.length > 0 && <div className="mt-1 text-[11px] font-semibold">{ot.length} tarea{ot.length > 1 ? "s" : ""} abierta{ot.length > 1 ? "s" : ""}</div>}
+                      <div className="mt-1.5 text-[15px] font-semibold leading-tight">{ROOM_STATE_LABEL[st]}</div>
+                      <div className="mt-0.5 truncate text-[14px] opacity-90">{res ? `${res.guestName} · ${VISUAL_LABEL[visualStatus(res, t)]}` : "Sin huésped"}</div>
+                      {ot.length > 0 && (
+                        <div className="mt-1 text-[14px] font-semibold">
+                          {ot.length} {ot.length > 1 ? "tareas por hacer" : "tarea por hacer"}
+                        </div>
+                      )}
                     </button>
                   );
                 })}
@@ -271,12 +285,12 @@ function Mantenimiento() {
       .slice(0, 40);
     return (
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card title="Rendimiento del personal (últimos 30 días)">
-          <Table head={["Persona", "Rol", "Hoy", "30 días", "Abiertas", "Tiempo prom."]}>
+        <Card title="Cómo viene trabajando cada persona (últimos 30 días)">
+          <Table head={["Persona", "Cargo", "Hoy", "En 30 días", "Le quedan", "Tiempo promedio"]}>
             {rows.map(({ s, done, today: td, open, avg }) => (
               <tr key={s.id} className="cursor-pointer hover:bg-gray-50" onClick={() => { setAssignee(s.id); setTab("tablero"); }}>
                 <td className="px-4 py-2.5 font-medium">{s.name}</td>
-                <td className="px-4 py-2.5 text-gray-500">{ROLE_LABEL[s.role]}</td>
+                <td className="px-4 py-3 text-gray-600">{ROLE_LABEL[s.role]}</td>
                 <td className="px-4 py-2.5 tabular-nums">{td}</td>
                 <td className="px-4 py-2.5 tabular-nums font-semibold">{done}</td>
                 <td className="px-4 py-2.5 tabular-nums">{open}</td>
@@ -285,11 +299,11 @@ function Mantenimiento() {
             ))}
           </Table>
         </Card>
-        <Card title="Últimas tareas completadas">
-          <Table head={["Cuándo", "Hab.", "Tarea", "Hecha por"]}>
+        <Card title="Últimas tareas terminadas">
+          <Table head={["Cuándo", "Habitación", "Tarea", "La hizo"]}>
             {recent.map((x) => (
               <tr key={x.id} className="cursor-pointer hover:bg-gray-50" onClick={() => setOpenTask(x.id)}>
-                <td className="whitespace-nowrap px-4 py-2 text-gray-500">{fmtDateTime(x.completedAt)}</td>
+                <td className="whitespace-nowrap px-4 py-2.5 text-gray-600">{fmtDateTime(x.completedAt)}</td>
                 <td className="px-4 py-2 font-medium">{roomNum(x.roomId)}</td>
                 <td className="px-4 py-2">{x.title}</td>
                 <td className="px-4 py-2">{staffName(x.completedBy)}</td>
@@ -305,13 +319,13 @@ function Mantenimiento() {
     return (
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3 p-5">
-          <div className="text-sm text-gray-600">
-            Las reglas que crean tareas solas (próxima salida, check-out, llegadas, repaso diario, asignación automática, escalamiento de vencidas) se
-            configuran en el centro de automatizaciones.
+          <div className="text-[15px] text-gray-700">
+            Las tareas que se crean solas (cuando un huésped se va o llega, el repaso del día, a quién se le asigna, qué hacer con las atrasadas) se
+            ajustan en la pantalla de Automatizaciones.
           </div>
           <Link href="/automatizaciones">
             <Button variant="primary">
-              <Zap size={15} /> Abrir Automatizaciones
+              <Zap size={16} /> Ver y cambiar las tareas automáticas
             </Button>
           </Link>
         </div>

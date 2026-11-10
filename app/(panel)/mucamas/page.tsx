@@ -1,20 +1,21 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { BedDouble, BellRing, CheckCircle2, DoorOpen, ListChecks, Sparkles, Wand2 } from "lucide-react";
+import { BedDouble, BellRing, CheckCircle2, DoorOpen, ListChecks, Sparkles, User, Wand2 } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { TaskDrawer } from "@/components/tasks";
 import { Avatar, Badge, Button, Card, PageHeader, Progress, Select, Stat, toast } from "@/components/ui";
 import { sheetsInfo } from "@/lib/automation";
 import { fmtDate, today } from "@/lib/dates";
-import { automationOf, cls, ROOM_STATE_DOT, ROOM_STATE_LABEL, TASK_TYPE_ICON, TASK_TYPE_LABEL } from "@/lib/logic";
+import { automationOf, cls, ROOM_STATE_DOT, ROOM_STATE_LABEL, TASK_TYPE_LABEL } from "@/lib/logic";
 import type { Reservation, Room, Task } from "@/lib/types";
+import { TaskIcon } from "@/components/TaskIcon";
 
 type HkType = "servicio" | "fondo" | "repaso";
 const TAREAS: { valor: HkType; etiqueta: string; ayuda: string }[] = [
-  { valor: "servicio", etiqueta: "Servicio", ayuda: "Limpieza diaria de habitación ocupada" },
-  { valor: "fondo", etiqueta: "Fondo", ayuda: "Limpieza profunda" },
-  { valor: "repaso", etiqueta: "Repaso", ayuda: "Repaso rápido" },
+  { valor: "servicio", etiqueta: "Limpieza completa", ayuda: "Limpieza del día de una habitación con huéspedes" },
+  { valor: "fondo", etiqueta: "Limpieza a fondo", ayuda: "Limpieza profunda de toda la habitación" },
+  { valor: "repaso", etiqueta: "Repaso rápido", ayuda: "Una pasada rápida a una habitación libre" },
 ];
 type HkRow = {
   room: Room;
@@ -129,18 +130,18 @@ export default function MucamasPage() {
   async function asignarLote() {
     if (!sel.length) return;
     await actions.planHousekeeping(sel.map((roomId) => ({ roomId, type: bulkTarea, staffId: bulkMucama || undefined })));
-    toast(`${sel.length} habitación(es) asignadas a ${staffName(bulkMucama)}`);
+    toast(`Listo: ${sel.length} ${sel.length === 1 ? "habitación" : "habitaciones"} para ${staffName(bulkMucama)} ✔`);
     setSel([]);
   }
   async function quitarLote() {
     if (!sel.length) return;
     await actions.clearHousekeeping(sel);
-    toast("Tareas quitadas");
+    toast("Listo, se quitaron las tareas ✔");
     setSel([]);
   }
   /** Plan automático: ocupadas → Servicio, libres listas → Repaso; reparte equitativamente entre las mucamas activas. */
   async function planAutomatico() {
-    if (!mucamas.length) return toast("No hay mucamas activas para asignar", "error");
+    if (!mucamas.length) return toast("No hay mucamas cargadas para repartir el trabajo", "error");
     const carga = new Map(mucamas.map((m) => [m.id, data.tasks.filter((x) => x.assignedTo === m.id && x.status !== "completada").length]));
     const items: { roomId: string; type: HkType; staffId: string }[] = [];
     for (const r of rooms) {
@@ -153,10 +154,10 @@ export default function MucamasPage() {
       carga.set(m, (carga.get(m) ?? 0) + 1);
       items.push({ roomId: r.room.id, type, staffId: m });
     }
-    if (!items.length) return toast("Todas las habitaciones ya tienen tarea para hoy");
-    if (!confirm(`Se asignarán ${items.length} habitaciones (${items.filter((i) => i.type === "servicio").length} servicios y ${items.filter((i) => i.type === "repaso").length} repasos) entre ${mucamas.length} mucamas. ¿Continuar?`)) return;
+    if (!items.length) return toast("Todas las habitaciones ya tienen su tarea de hoy");
+    if (!confirm(`Se van a repartir ${items.length} habitaciones (${items.filter((i) => i.type === "servicio").length} limpiezas completas y ${items.filter((i) => i.type === "repaso").length} repasos rápidos) entre ${mucamas.length} mucamas.\n\n¿Seguimos?`)) return;
     await actions.planHousekeeping(items);
-    toast(`Plan del día armado: ${items.length} habitaciones`);
+    toast(`Listo, el trabajo de hoy quedó repartido: ${items.length} habitaciones ✔`);
   }
   async function activarAvisos() {
     try {
@@ -172,115 +173,131 @@ export default function MucamasPage() {
   const filtros: { valor: Filtro; etiqueta: string }[] = [
     ...(esMucama ? [{ valor: "mias" as const, etiqueta: "Mis habitaciones" }] : []),
     { valor: "todas", etiqueta: "Todas" },
-    { valor: "ocupadas", etiqueta: "Ocupadas" },
-    { valor: "desocupadas", etiqueta: "Desocupadas" },
-    { valor: "pendientes", etiqueta: "Pendientes" },
-    { valor: "sabanas", etiqueta: `Sábanas (${resumen.sabanas.length})` },
+    { valor: "ocupadas", etiqueta: "Con huéspedes" },
+    { valor: "desocupadas", etiqueta: "Libres" },
+    { valor: "pendientes", etiqueta: "Falta limpiar" },
+    { valor: "sabanas", etiqueta: `Cambiar sábanas (${resumen.sabanas.length})` },
     { valor: "llegan", etiqueta: `Llegan hoy (${resumen.llegan})` },
-    ...(puedeAsignar ? [{ valor: "sinasignar" as const, etiqueta: "Sin asignar" }] : []),
+    ...(puedeAsignar ? [{ valor: "sinasignar" as const, etiqueta: "Sin mucama" }] : []),
   ];
 
   return (
     <div className="space-y-4 p-4 lg:p-6">
       <PageHeader
         title="Mucamas"
-        subtitle={`${new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })} · plan de limpieza por habitación`}
+        subtitle={`${new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })} · quién limpia cada habitación hoy`}
         actions={
           <>
             {permiso === "default" && (
               <Button onClick={activarAvisos}>
-                <BellRing size={15} /> Activar avisos en este dispositivo
+                <BellRing size={16} /> Activar avisos en este aparato
               </Button>
             )}
-            {permiso === "denied" && <span className="text-xs text-gray-500">Los avisos están bloqueados en el navegador.</span>}
+            {permiso === "denied" && <span className="text-[14px] text-gray-600">Los avisos están bloqueados. Se activan desde la configuración del navegador.</span>}
             {puedeAsignar && (
               <Button variant="primary" onClick={planAutomatico}>
-                <Wand2 size={15} /> Armar plan automático
+                <Wand2 size={16} /> Repartir el día automáticamente
               </Button>
             )}
           </>
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Stat icon={BedDouble} tone="blue" label="Ocupadas" value={resumen.ocupadas} />
-        <Stat icon={DoorOpen} tone="gray" label="Desocupadas" value={resumen.desocupadas} />
-        <Stat icon={ListChecks} tone="green" label="Hechas hoy" value={`${resumen.hechas}/${resumen.conTarea}`} />
-        <Stat icon={Sparkles} tone="orange" label="Sábanas por cambiar" value={resumen.sabanas.length} sub={`cada ${cfg.sabanasCadaDias} días en ocupadas`} />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <Stat icon={BedDouble} tone="blue" label="Con huéspedes" value={resumen.ocupadas} />
+        <Stat icon={DoorOpen} tone="gray" label="Libres" value={resumen.desocupadas} />
+        <Stat icon={ListChecks} tone="green" label="Limpiezas hechas hoy" value={`${resumen.hechas} de ${resumen.conTarea}`} />
+        <Stat icon={Sparkles} tone="orange" label="Sábanas por cambiar" value={resumen.sabanas.length} sub={`cada ${cfg.sabanasCadaDias} días en habitaciones con gente`} />
         <Stat icon={CheckCircle2} tone="indigo" label="Llegan hoy" value={resumen.llegan} />
       </div>
 
       {resumen.sabanas.length > 0 && (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
-          <b>Cambio de sábanas hoy:</b> {resumen.sabanas.map((r) => r.room.number).join(", ")}{" "}
-          <span className="opacity-80">
-            (cada {cfg.sabanasCadaDias} días en habitaciones ocupadas
-            {can("automatizaciones") && (
-              <>
-                {" · "}
-                <Link href="/automatizaciones" className="underline">
-                  cambiar
-                </Link>
-              </>
-            )}
-            )
-          </span>
+        <div className="flex gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3.5 text-[15px] text-amber-900" role="status">
+          <Sparkles size={20} className="mt-0.5 shrink-0" aria-hidden />
+          <div>
+            <b>Cambio de sábanas hoy:</b> {resumen.sabanas.map((r) => r.room.number).join(", ")}{" "}
+            <span className="opacity-90">
+              (se cambian cada {cfg.sabanasCadaDias} días en habitaciones con gente
+              {can("automatizaciones") && (
+                <>
+                  {" · "}
+                  <Link href="/automatizaciones" className="font-medium underline">
+                    cambiar cada cuánto
+                  </Link>
+                </>
+              )}
+              )
+            </span>
+          </div>
         </div>
       )}
 
       {puedeAsignar && (
         <>
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             {resumen.equipo.map((m) => (
-              <div key={m.id} className="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5">
-                <Avatar name={m.name} size={30} />
+              <div key={m.id} className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3.5 shadow-card">
+                <Avatar name={m.name} size={40} />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">{m.name}</div>
-                  <div className="text-xs text-gray-500">
-                    {m.hechas}/{m.total} hechas{m.otras ? ` · +${m.otras} tareas más` : ""}
+                  <div className="truncate text-[15px] font-semibold">{m.name}</div>
+                  <div className="mb-1.5 text-[14px] text-gray-600">
+                    {m.hechas} de {m.total} hechas{m.otras ? ` · y ${m.otras} tareas más` : ""}
                   </div>
-                  <Progress value={m.total ? (m.hechas / m.total) * 100 : 0} tone={m.total && m.hechas === m.total ? "bg-green-500" : "bg-teal-600"} />
+                  <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                    <div
+                      className={cls("h-full rounded-full transition-all duration-200 motion-reduce:transition-none", m.total && m.hechas === m.total ? "bg-green-500" : "bg-teal-600")}
+                      style={{ width: `${m.total ? (m.hechas / m.total) * 100 : 0}%` }}
+                    />
+                  </div>
                 </div>
               </div>
             ))}
-            {!mucamas.length && <p className="text-sm text-gray-500">No hay mucamas activas. Dalas de alta en Administradores.</p>}
+            {!mucamas.length && <p className="text-[15px] text-gray-600">No hay mucamas cargadas. Agregalas en Administradores.</p>}
           </div>
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2.5">
-            <span className="mr-1 text-sm font-semibold">{sel.length === 1 ? "1 habitación seleccionada" : `${sel.length} habitaciones seleccionadas`}</span>
-            <Select value={bulkTarea} onChange={(e) => setBulkTarea(e.target.value as HkType)} className="h-8 w-[130px]" aria-label="Tarea a asignar">
-              {TAREAS.map((x) => (
-                <option key={x.valor} value={x.valor}>
-                  {x.etiqueta}
-                </option>
-              ))}
-            </Select>
-            <Select value={bulkMucama} onChange={(e) => setBulkMucama(e.target.value)} className="h-8 w-[170px]" aria-label="Mucama">
-              {mucamas.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </Select>
-            <Button size="sm" variant="primary" disabled={!sel.length} onClick={asignarLote}>
-              Asignar
-            </Button>
-            <Button size="sm" disabled={!sel.length} onClick={quitarLote}>
-              Quitar tarea
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setSel(sel.length ? [] : visibles.map((r) => r.room.id))}>
-              {sel.length ? "Limpiar selección" : "Seleccionar las visibles"}
-            </Button>
+          <div className="rounded-2xl border border-teal-200 bg-teal-50 p-4">
+            <div className="mb-3 flex items-start gap-2 text-[15px] font-semibold">
+              <ListChecks size={20} className="mt-0.5 shrink-0 text-teal-800" aria-hidden />
+              <span>{sel.length === 0 ? "Tildá las habitaciones de abajo, elegí la tarea y la mucama, y tocá Asignar." : sel.length === 1 ? "Elegiste 1 habitación" : `Elegiste ${sel.length} habitaciones`}</span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
+              <Select value={bulkTarea} onChange={(e) => setBulkTarea(e.target.value as HkType)} className="w-full lg:w-[200px]" aria-label="Tarea a asignar">
+                {TAREAS.map((x) => (
+                  <option key={x.valor} value={x.valor}>
+                    {x.etiqueta}
+                  </option>
+                ))}
+              </Select>
+              <Select value={bulkMucama} onChange={(e) => setBulkMucama(e.target.value)} className="w-full lg:w-[200px]" aria-label="Mucama">
+                {mucamas.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </Select>
+              <Button variant="primary" disabled={!sel.length} onClick={asignarLote}>
+                Asignar a la mucama
+              </Button>
+              <Button disabled={!sel.length} onClick={quitarLote}>
+                Quitarles la tarea
+              </Button>
+              <Button variant="ghost" className="sm:col-span-2 lg:col-span-1" onClick={() => setSel(sel.length ? [] : visibles.map((r) => r.room.id))}>
+                {sel.length ? "Desmarcar todas" : "Elegir todas las que se ven"}
+              </Button>
+            </div>
           </div>
         </>
       )}
 
-      <nav className="flex flex-wrap gap-1.5" aria-label="Filtrar habitaciones">
+      <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0" aria-label="Filtrar habitaciones">
         {filtros.map((f) => (
           <button
             key={f.valor}
             aria-pressed={filtro === f.valor}
             onClick={() => setFiltro(f.valor)}
-            className={cls("rounded-full px-3 py-1.5 text-sm font-medium", filtro === f.valor ? "bg-gray-900 text-white" : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50")}
+            className={cls(
+              "min-h-[44px] shrink-0 whitespace-nowrap rounded-full px-4 text-[15px] font-medium transition-colors duration-150 motion-reduce:transition-none",
+              filtro === f.valor ? "bg-gray-900 text-white" : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
+            )}
           >
             {f.etiqueta}
           </button>
@@ -288,9 +305,14 @@ export default function MucamasPage() {
       </nav>
 
       {visibles.length === 0 ? (
-        <p className="py-10 text-center text-sm text-gray-500">No hay habitaciones para este filtro.</p>
+        <div className="flex flex-col items-center gap-2 py-14 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+            <BedDouble size={26} aria-hidden />
+          </span>
+          <p className="text-[15px] text-gray-600">No hay habitaciones en este grupo.</p>
+        </div>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {visibles.map((r) => (
             <RoomCard
               key={r.room.id}
@@ -337,129 +359,158 @@ function RoomCard({
   const tarea = r.hk?.type as HkType | undefined;
   const info = TAREAS.find((x) => x.valor === tarea);
   const d = r.sheets?.days;
-  const txtSab = d === undefined ? "Sin dato" : r.tocaSabanas ? `Cambiar (hace ${d} día${d === 1 ? "" : "s"})` : d === 0 ? "Cambiadas hoy" : `Hace ${d} día${d === 1 ? "" : "s"}`;
+  const txtSab = d === undefined ? "Sin dato" : r.tocaSabanas ? `Hay que cambiarlas (hace ${d} día${d === 1 ? "" : "s"})` : d === 0 ? "Cambiadas hoy" : `Hace ${d} día${d === 1 ? "" : "s"}`;
   const asignar = onAsignar;
 
   return (
     <li
       className={cls(
-        "flex flex-col gap-2.5 rounded-xl border border-l-[5px] bg-white p-3.5 transition",
-        r.hecha ? "border-green-200 border-l-green-600 bg-green-50" : r.res ? "border-gray-200 border-l-teal-600" : "border-gray-200 border-l-gray-400",
+        "flex flex-col overflow-hidden rounded-2xl border border-l-[6px] bg-white shadow-card transition-shadow duration-150 motion-reduce:transition-none",
+        r.hecha ? "border-green-200 border-l-green-600 bg-green-50" : r.res ? "border-gray-200 border-l-teal-600" : "border-gray-200 border-l-gray-300",
         selected && "ring-2 ring-teal-500",
       )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-2.5 text-xl font-bold">
-          {puedeAsignar && <input type="checkbox" className="h-5 w-5 accent-teal-600" checked={selected} onChange={onSelect} aria-label={`Seleccionar habitación ${r.room.number}`} />}
-          {r.room.number}
-          <span className={cls("h-2.5 w-2.5 rounded-full", ROOM_STATE_DOT[r.state])} title={ROOM_STATE_LABEL[r.state]} />
-        </span>
-        <div className="flex flex-wrap justify-end gap-1">
-          {r.arriving && <Badge className="bg-blue-600 text-white">Llega hoy</Badge>}
-          <Badge className={r.res ? "bg-teal-50 text-teal-800" : "bg-gray-100 text-gray-600"}>{r.res ? "Ocupada" : "Desocupada"}</Badge>
+      <div className="flex items-start justify-between gap-3 px-4 pb-2 pt-4">
+        <div className="flex items-center gap-3">
+          {puedeAsignar && (
+            <label className="-m-2 flex cursor-pointer p-2">
+              <input type="checkbox" className="h-6 w-6 accent-teal-600" checked={selected} onChange={onSelect} aria-label={`Seleccionar habitación ${r.room.number}`} />
+            </label>
+          )}
+          <span className="text-[34px] font-bold leading-none tracking-tight tabular-nums">{r.room.number}</span>
+          <span className={cls("h-3 w-3 rounded-full", ROOM_STATE_DOT[r.state])} title={ROOM_STATE_LABEL[r.state]} />
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          {r.arriving && <Badge className="bg-blue-700 text-white">Llega hoy</Badge>}
+          <Badge className={r.res ? "bg-teal-50 text-teal-800" : "bg-gray-100 text-gray-700"}>{r.res ? "Con huéspedes" : "Libre"}</Badge>
         </div>
       </div>
       {r.res && (
-        <div className="-mt-1 text-xs text-gray-500">
-          {r.res.guestName} · sale {fmtDate(r.res.checkOut).slice(0, 5)}
+        <div className="flex items-center gap-1.5 px-4 pb-1 text-[15px] text-gray-700">
+          <User size={16} className="shrink-0 text-gray-500" aria-hidden />
+          <span className="min-w-0 truncate">
+            {r.res.guestName} · se va el {fmtDate(r.res.checkOut).slice(0, 5)}
+          </span>
         </div>
       )}
 
-      <div className="flex items-center gap-2 text-sm">
-        <span className="w-[60px] shrink-0 text-xs text-gray-500">Tarea</span>
-        {puedeAsignar ? (
-          <Select value={tarea ?? ""} onChange={(e) => asignar(r, e.target.value as HkType | "")} className="h-8" aria-label={`Tarea para la habitación ${r.room.number}`}>
-            <option value="">Sin tarea</option>
-            {TAREAS.map((x) => (
-              <option key={x.valor} value={x.valor}>
-                {x.etiqueta}
-              </option>
-            ))}
-          </Select>
-        ) : (
-          <span className={cls(info ? "font-semibold" : "text-gray-400")} title={info?.ayuda}>
-            {info ? `${TASK_TYPE_ICON[info.valor]} ${info.etiqueta}` : "Sin tarea asignada"}
-          </span>
-        )}
-      </div>
-      <div className="flex items-center gap-2 text-sm">
-        <span className="w-[60px] shrink-0 text-xs text-gray-500">Mucama</span>
-        {puedeAsignar ? (
-          <Select
-            value={r.hk?.assignedTo ?? ""}
-            disabled={!tarea}
-            onChange={(e) => tarea && asignar(r, tarea, e.target.value || undefined)}
-            className="h-8"
-            aria-label={`Mucama para la habitación ${r.room.number}`}
-          >
-            <option value="">Sin asignar</option>
-            {mucamas.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </Select>
-        ) : (
-          <span className={cls(r.hk?.assignedTo ? "font-semibold" : "text-gray-400")}>
-            {r.hk?.assignedTo ? (r.hk.assignedTo === meId ? "Vos" : staffName(r.hk.assignedTo)) : "Sin asignar"}
-          </span>
-        )}
-      </div>
-      {r.res && (
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="w-[60px] shrink-0 text-xs text-gray-500">Sábanas</span>
-          <span className={cls(r.tocaSabanas && "font-semibold text-amber-700")}>{txtSab}</span>
-          {r.tocaSabanas && (
-            <Button
-              size="sm"
-              onClick={async () => {
-                await actions.markSheetsChanged(r.room.id);
-                toast(`Hab. ${r.room.number}: sábanas cambiadas ✔`);
-              }}
-            >
-              Ya las cambié
-            </Button>
+      <div className="space-y-2.5 px-4 py-3">
+        <div className="grid grid-cols-[72px_1fr] items-center gap-2 text-[15px]">
+          <span className="text-[14px] text-gray-600">Tarea</span>
+          {puedeAsignar ? (
+            <Select value={tarea ?? ""} onChange={(e) => asignar(r, e.target.value as HkType | "")} aria-label={`Tarea para la habitación ${r.room.number}`}>
+              <option value="">Sin tarea</option>
+              {TAREAS.map((x) => (
+                <option key={x.valor} value={x.valor}>
+                  {x.etiqueta}
+                </option>
+              ))}
+            </Select>
+          ) : (
+            <span className={cls(info ? "font-semibold" : "text-gray-600")} title={info?.ayuda}>
+              {info ? (
+                <>
+                  <TaskIcon type={info.valor} /> {info.etiqueta}
+                </>
+              ) : (
+                "Sin tarea asignada"
+              )}
+            </span>
           )}
         </div>
-      )}
+        <div className="grid grid-cols-[72px_1fr] items-center gap-2 text-[15px]">
+          <span className="text-[14px] text-gray-600">Mucama</span>
+          {puedeAsignar ? (
+            <Select
+              value={r.hk?.assignedTo ?? ""}
+              disabled={!tarea}
+              onChange={(e) => tarea && asignar(r, tarea, e.target.value || undefined)}
+              aria-label={`Mucama para la habitación ${r.room.number}`}
+            >
+              <option value="">Sin mucama</option>
+              {mucamas.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </Select>
+          ) : (
+            <span className={cls(r.hk?.assignedTo ? "font-semibold" : "text-gray-600")}>
+              {r.hk?.assignedTo ? (r.hk.assignedTo === meId ? "Vos" : staffName(r.hk.assignedTo)) : "Sin mucama"}
+            </span>
+          )}
+        </div>
+        {r.res && (
+          <div className="grid grid-cols-[72px_1fr] items-center gap-2 text-[15px]">
+            <span className="text-[14px] text-gray-600">Sábanas</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={cls(r.tocaSabanas && "font-semibold text-amber-700")}>{txtSab}</span>
+              {r.tocaSabanas && (
+                <Button
+                  onClick={async () => {
+                    await actions.markSheetsChanged(r.room.id);
+                    toast(`Habitación ${r.room.number}: sábanas cambiadas ✔`);
+                  }}
+                >
+                  Ya las cambié
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
 
-      {r.otras.length > 0 && (
-        <ul className="space-y-1 rounded-lg bg-gray-50 px-2.5 py-2 text-xs">
-          {r.otras.slice(0, 4).map((x) => (
-            <li key={x.id}>
-              <button onClick={() => onOpenTask(x.id)} className="flex w-full justify-between gap-2 text-left hover:underline">
-                <span className="truncate">
-                  {TASK_TYPE_ICON[x.type]} {TASK_TYPE_LABEL[x.type]}
-                </span>
-                <span className="shrink-0 text-gray-500">{x.assignedTo ? (x.assignedTo === meId ? "vos" : staffName(x.assignedTo).split(" ")[0]) : "libre"}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+        {r.otras.length > 0 && (
+          <ul className="space-y-0.5 rounded-xl bg-gray-50 px-2 py-1.5 text-[14px]">
+            {r.otras.slice(0, 4).map((x) => (
+              <li key={x.id}>
+                <button onClick={() => onOpenTask(x.id)} className="flex min-h-[40px] w-full items-center justify-between gap-2 rounded-lg px-1 text-left transition-colors duration-150 hover:underline motion-reduce:transition-none">
+                  <span className="truncate">
+                    <TaskIcon type={x.type} /> {TASK_TYPE_LABEL[x.type]}
+                  </span>
+                  <span className="shrink-0 text-gray-600">{x.assignedTo ? (x.assignedTo === meId ? "vos" : staffName(x.assignedTo).split(" ")[0]) : "sin mucama"}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
-      <label className={cls("mt-auto flex items-center gap-2.5 border-t border-dashed border-gray-200 pt-2.5 text-sm", puedeTildar ? "cursor-pointer" : "cursor-not-allowed text-gray-400")}>
+      <label
+        className={cls(
+          "mt-auto flex min-h-[64px] items-center gap-3 border-t px-4 py-3 text-[16px] transition-colors duration-150 motion-reduce:transition-none",
+          r.hecha ? "border-green-200 bg-green-100 font-semibold text-green-700" : "border-gray-200 bg-gray-50",
+          puedeTildar ? "cursor-pointer" : "cursor-not-allowed text-gray-600",
+          puedeTildar && !r.hecha && "hover:bg-gray-100",
+        )}
+      >
         <input
           type="checkbox"
-          className="h-[22px] w-[22px] accent-green-600"
+          className="h-7 w-7 shrink-0 accent-green-600"
           checked={r.hecha}
           disabled={!puedeTildar}
           onChange={() => r.hk && actions.setTaskStatus(r.hk, r.hecha ? "pendiente" : "completada")}
         />
-        <span>
+        <span className="min-w-0 flex-1 leading-snug">
           {r.hecha
-            ? `Hecha${r.hk?.completedBy ? " por " + (r.hk.completedBy === meId ? "vos" : staffName(r.hk.completedBy)) : ""}`
+            ? `Lista${r.hk?.completedBy ? " por " + (r.hk.completedBy === meId ? "vos" : staffName(r.hk.completedBy)) : ""}`
             : puedeTildar
-              ? "Marcar como hecha"
+              ? "Marcar como lista"
               : tarea
                 ? r.hk?.assignedTo
                   ? `Le toca a ${staffName(r.hk.assignedTo)}`
-                  : "Esperando asignación"
-                : "Esperando tarea del encargado"}
+                  : "Todavía no tiene mucama"
+                : "Todavía no tiene tarea"}
         </span>
         {r.hk && (
-          <button type="button" onClick={(e) => { e.preventDefault(); onOpenTask(r.hk!.id); }} className="ml-auto text-xs text-blue-600 hover:underline">
-            checklist
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              onOpenTask(r.hk!.id);
+            }}
+            className="min-h-[44px] shrink-0 px-2 text-[15px] font-medium text-blue-700 hover:underline"
+          >
+            ver pasos
           </button>
         )}
       </label>

@@ -41,7 +41,7 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
     const cfg = automationOf(d.settings[0]);
     if (!cfg.checkoutTasks) return;
     for (const task of checkoutTasks(r, d, by(), cfg)) {
-      task.log = [{ at: nowISO(), by: by(), action: "Tarea creada automáticamente por check-out" }];
+      task.log = [{ at: nowISO(), by: by(), action: "Tarea creada sola porque el huésped se fue" }];
       await db.createIfMissing("tasks", task.id, task);
     }
   }
@@ -59,7 +59,7 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
       const clash = get().reservations.find(
         (x) => x.id !== r.id && x.roomId === r.roomId && isActive(x) && overlaps(x.checkIn, x.checkOut, r.checkIn, r.checkOut),
       );
-      if (clash) return `Se superpone con ${clash.guestName} (${clash.checkIn} → ${clash.checkOut}) en Hab. ${room.number}`;
+      if (clash) return `La habitación ${room.number} ya está ocupada por ${clash.guestName} del ${clash.checkIn.split("-").reverse().join("/")} al ${clash.checkOut.split("-").reverse().join("/")}`;
       return null;
     },
 
@@ -75,12 +75,12 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
       // Si cambió de habitación, las tareas abiertas de la reserva (llegada / pre-salida) la siguen
       if (prev && prev.roomId !== r.roomId) {
         for (const t of get().tasks.filter((t) => t.reservationId === r.id && t.status !== "completada" && t.trigger !== "checkout"))
-          await db.update("tasks", t.id, { roomId: r.roomId, log: taskLog(t, `Movida a Hab. ${roomNum(r.roomId)} (cambio de habitación)`) });
+          await db.update("tasks", t.id, { roomId: r.roomId, log: taskLog(t, `Movida a Habitación ${roomNum(r.roomId)} (cambio de habitación)`) });
       }
-      const detail = `${r.guestName} · Hab. ${roomNum(r.roomId)} · ${r.checkIn} → ${r.checkOut}`;
+      const detail = `${r.guestName} · Habitación ${roomNum(r.roomId)} · ${r.checkIn} → ${r.checkOut}`;
       if (!prev) await log("Creó reserva", `reservations/${r.id}`, detail);
       else if (prev.roomId !== r.roomId || prev.checkIn !== r.checkIn || prev.checkOut !== r.checkOut)
-        await log("Movió reserva", `reservations/${r.id}`, `${detail} (antes Hab. ${roomNum(prev.roomId)} · ${prev.checkIn} → ${prev.checkOut})`);
+        await log("Movió reserva", `reservations/${r.id}`, `${detail} (antes Habitación ${roomNum(prev.roomId)} · ${prev.checkIn} → ${prev.checkOut})`);
       else await log("Editó reserva", `reservations/${r.id}`, detail);
     },
 
@@ -93,9 +93,9 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
           status: "completada",
           completedAt: nowISO(),
           completedBy: by(),
-          log: taskLog(prep, "Cerrada automáticamente al hacer check-in"),
+          log: taskLog(prep, "Cerrada sola porque el huésped ya entró"),
         });
-      await log("Check-in", `reservations/${r.id}`, `${r.guestName} · Hab. ${roomNum(r.roomId)}`);
+      await log("Dio entrada", `reservations/${r.id}`, `${r.guestName} · Habitación ${roomNum(r.roomId)}`);
     },
 
     async checkOut(r: Reservation) {
@@ -108,9 +108,9 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
           status: "completada",
           completedAt: nowISO(),
           completedBy: by(),
-          log: taskLog(pre, "Cerrada al realizar el check-out"),
+          log: taskLog(pre, "Cerrada porque el huésped se fue"),
         });
-      await log("Check-out", `reservations/${r.id}`, `${r.guestName} · Hab. ${roomNum(r.roomId)} · se generaron tareas de limpieza`);
+      await log("Dio salida", `reservations/${r.id}`, `${r.guestName} · Habitación ${roomNum(r.roomId)} · se avisó a limpieza`);
     },
 
     async setReservationStatus(r: Reservation, status: Reservation["status"]) {
@@ -151,7 +151,7 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
     async saveTask(t: Task) {
       const isNew = !get().tasks.some((x) => x.id === t.id);
       await db.set("tasks", t.id, isNew ? t : { ...t, log: taskLog(t, "Editó la tarea") });
-      await log(isNew ? "Creó tarea" : "Editó tarea", `tasks/${t.id}`, `${t.title} · Hab. ${roomNum(t.roomId)}`);
+      await log(isNew ? "Creó tarea" : "Editó tarea", `tasks/${t.id}`, `${t.title} · Habitación ${roomNum(t.roomId)}`);
     },
     async setTaskStatus(t: Task, status: TaskStatus) {
       const patch: Partial<Task> = { status };
@@ -171,7 +171,7 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
         (patch as Record<string, unknown>).completedBy = null;
       }
       await db.update("tasks", t.id, patch);
-      await log(`Tarea → ${status}`, `tasks/${t.id}`, `${t.title} · Hab. ${roomNum(t.roomId)}`);
+      await log(`Tarea → ${status}`, `tasks/${t.id}`, `${t.title} · Habitación ${roomNum(t.roomId)}`);
     },
     async toggleChecklist(t: Task, index: number) {
       const checklist = t.checklist.map((c, i) =>
@@ -281,7 +281,7 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
         t.log.push({ at: nowISO(), by: by(), action: "Registró cambio de sábanas" });
         await db.set("tasks", t.id, t);
       }
-      await log("Cambió sábanas", `rooms/${roomId}`, `Hab. ${roomNum(roomId)}`);
+      await log("Cambió sábanas", `rooms/${roomId}`, `Habitación ${roomNum(roomId)}`);
     },
 
     /** Una mucama/empleado reporta un problema → se crea una reparación para mantenimiento. */
@@ -303,7 +303,7 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
       });
       t.log = [{ at: nowISO(), by: by(), action: "Reportó el problema" }];
       await db.set("tasks", t.id, t);
-      await log("Reportó un problema", `tasks/${t.id}`, `Hab. ${roomNum(roomId)} · ${description}`);
+      await log("Reportó un problema", `tasks/${t.id}`, `Habitación ${roomNum(roomId)} · ${description}`);
       return t;
     },
 
@@ -336,7 +336,7 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
       const settings = d.settings[0];
       const f = folio(r, d);
       const lines = [
-        { description: `Alojamiento Hab. ${roomNum(r.roomId)} (${r.checkIn} → ${r.checkOut})`, qty: nights(r), unit: r.rate, total: f.lodging },
+        { description: `Alojamiento Habitación ${roomNum(r.roomId)} (${r.checkIn} → ${r.checkOut})`, qty: nights(r), unit: r.rate, total: f.lodging },
         ...f.charges.map((c) => ({ description: c.description, qty: 1, unit: c.amount, total: c.amount })),
       ];
       const total = f.total;
@@ -390,7 +390,7 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
         createdBy: by(),
         orderId: id,
       });
-      await log("Nuevo pedido (cargado al folio)", `orders/${id}`, `Hab. ${roomNum(o.roomId)} · $${o.total}`);
+      await log("Nuevo pedido (cargado al folio)", `orders/${id}`, `Habitación ${roomNum(o.roomId)} · $${o.total}`);
     },
     async setOrderStatus(o: Order, status: Order["status"]) {
       const patch: Partial<Order> = { status };
@@ -403,7 +403,7 @@ export function makeActions(db: Adapter, get: () => DataState, me: () => Staff |
         const ch = get().charges.find((c) => c.orderId === o.id);
         if (ch) await db.remove("charges", ch.id);
       }
-      await log(`Pedido → ${status}`, `orders/${o.id}`, `Hab. ${roomNum(o.roomId)}`);
+      await log(`Pedido → ${status}`, `orders/${o.id}`, `Habitación ${roomNum(o.roomId)}`);
     },
 
     // ---------------- WhatsApp ----------------
