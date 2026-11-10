@@ -62,6 +62,14 @@ function greeting() {
   return h < 12 ? "Buen día" : h < 20 ? "Buenas tardes" : "Buenas noches";
 }
 
+/** Rango de días [desde, hasta) en que una habitación está bloqueada (mantenimiento / fuera de servicio) dentro del mes visible. */
+function hatchRange(room: Room, blockingDue: string | undefined, t: string, monthStart: string, monthEnd: string, days: number): [number, number] {
+  if (!blockingDue && !room.outOfService) return [-1, -1];
+  const from = t < monthStart ? monthStart : t;
+  const to = blockingDue ? addDays(blockingDue > t ? blockingDue : t, 1) : monthEnd;
+  return [Math.max(0, diffDays(monthStart, from)), Math.min(days, diffDays(monthStart, to))];
+}
+
 export default function DashboardPage() {
   const { data, idx, me, can, actions } = useApp();
   const t = today();
@@ -185,7 +193,7 @@ export default function DashboardPage() {
         ]);
       }
     const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
-    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `reservas-${year}-${String(month + 1).padStart(2, "0")}.csv`;
@@ -246,15 +254,48 @@ export default function DashboardPage() {
   );
   const onOpenRes = useCallback((id: string) => setOpenRes(id), []);
 
-  const rowH = density === "normal" ? 42 : 30;
+  const rowH = density === "normal" ? 44 : 30;
   const gridCols = `repeat(${days}, minmax(38px, 1fr))`;
 
+  // Habitaciones libres por día (todo el hotel): total - reservas activas - bloqueadas por mantenimiento
+  const totalRooms = data.rooms.length;
+  const libresPorDia = useMemo(() => {
+    const usadas = new Array<number>(days).fill(0);
+    for (const room of data.rooms) {
+      const [a, b] = hatchRange(room, blockingByRoom.get(room.id), t, monthStart, monthEnd, days);
+      for (let i = a; i < b; i++) if (i >= 0) usadas[i]++;
+    }
+    for (const list of monthResByRoom.values())
+      for (const r of list) {
+        const a = Math.max(0, diffDays(monthStart, r.checkIn));
+        const b = Math.min(days, diffDays(monthStart, r.checkOut));
+        for (let i = a; i < b; i++) usadas[i]++;
+      }
+    return usadas.map((u) => Math.max(0, totalRooms - u));
+  }, [data.rooms, blockingByRoom, monthResByRoom, t, monthStart, monthEnd, days, totalRooms]);
+
+  // Al abrir el mes actual, el mapa se centra en el día de hoy
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const i = dayList.indexOf(t);
+    if (i < 0) {
+      el.scrollLeft = 0;
+      return;
+    }
+    const colW = (el.scrollWidth - 72) / days;
+    el.scrollLeft = Math.max(0, 72 + i * colW - el.clientWidth / 2);
+  }, [dayList, t, days]);
+
   return (
-    <div className="space-y-4 p-4 lg:p-6">
+    <>
+      {/* ===== Pantalla principal: el mapa ocupa todo el alto hasta el primer scroll ===== */}
+      <section className="flex h-[calc(100dvh-3.5rem)] min-h-[560px] flex-col gap-3 p-3 lg:p-4">
       {/* ===== Encabezado ===== */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex shrink-0 flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">
+          <h1 className="text-[19px] font-semibold tracking-tight">
             {greeting()}, {me?.name.split(" ")[0]} 👋
           </h1>
           <p className="text-sm text-gray-500">
@@ -273,19 +314,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ===== KPIs ===== */}
-      <div className={cls("grid grid-cols-2 gap-3 md:grid-cols-3", showMoney ? "xl:grid-cols-6" : "xl:grid-cols-4")}>
-        <Stat icon={Percent} tone="indigo" label="Ocupación hoy" value={`${stats.ocupacion}%`} sub={`${stats.ocupadas} ocupadas · ${stats.reservadas} por llegar`} />
-        <Stat icon={LogIn} tone="blue" label="Llegadas" value={`${stats.llegadasHechas}/${stats.llegadas}`} sub="ingresaron / esperadas" href="/recepcion" />
-        <Stat icon={LogOut} tone="red" label="Salidas" value={`${stats.salidasHechas}/${stats.salidas}`} sub="salieron / previstas" href="/recepcion" />
-        <Stat icon={Sparkles} tone="orange" label="Housekeeping" value={`${stats.listas} listas`} sub={`${stats.sucias} por limpiar · ${stats.mant} en mant.`} href="/mantenimiento" />
-        {showMoney && <Stat icon={DollarSign} tone="green" label="Cobrado hoy" value={money(stats.cobradoHoy)} href="/facturacion" />}
-        {showMoney && <Stat icon={BedDouble} tone="purple" label="Tarifa promedio (ADR)" value={money(stats.adr)} sub="habitaciones ocupadas" />}
-      </div>
-
       {/* ===== Calendario ===== */}
-      <Card className="overflow-hidden">
-        <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-3 py-2.5">
+      <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-gray-100 px-3 py-2.5">
           <Button size="sm" onClick={() => shiftMonth(-1)} aria-label="Mes anterior">
             <ChevronLeft size={16} />
           </Button>
@@ -346,34 +377,58 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="max-h-[calc(100vh-150px)] overflow-auto" onMouseLeave={() => showTip(null)}>
-          <div style={{ minWidth: 72 + days * 40 }}>
-            <div className="sticky top-0 z-20 flex border-b border-gray-200 bg-white">
-              <div className="sticky left-0 z-10 flex w-[72px] shrink-0 items-center bg-white px-3 text-[14px] font-semibold">Hab.</div>
-              <div className="grid flex-1" style={{ gridTemplateColumns: gridCols }}>
-                {dayList.map((d) => {
-                  const dt = parseISO(d);
-                  const isToday = d === t;
-                  return (
-                    <div
-                      key={d}
-                      className={cls(
-                        "flex flex-col items-center border-l border-gray-100 py-1",
-                        isToday ? "bg-gray-900 text-white" : dt.getDay() === 0 || dt.getDay() === 6 ? "bg-gray-50" : "",
-                      )}
-                    >
-                      <span className={cls("text-[10px]", isToday ? "text-gray-300" : "text-gray-500")}>{WEEKDAYS_SHORT[dt.getDay()]}</span>
-                      <span className="text-[14px] font-semibold tabular-nums">{dt.getDate()}</span>
-                    </div>
-                  );
-                })}
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto" onMouseLeave={() => showTip(null)}>
+          <div className="flex min-h-full flex-col" style={{ minWidth: 72 + days * 40 }}>
+            <div className="sticky top-0 z-20 shrink-0 border-b border-gray-200 bg-white">
+              <div className="flex">
+                <div className="sticky left-0 z-10 flex w-[72px] shrink-0 items-center bg-white px-3 text-[14px] font-semibold">Hab.</div>
+                <div className="grid flex-1" style={{ gridTemplateColumns: gridCols }}>
+                  {dayList.map((d) => {
+                    const dt = parseISO(d);
+                    const isToday = d === t;
+                    return (
+                      <div
+                        key={d}
+                        className={cls(
+                          "flex flex-col items-center border-l border-gray-100 py-1",
+                          isToday ? "bg-gray-900 text-white" : dt.getDay() === 0 || dt.getDay() === 6 ? "bg-gray-50" : "",
+                        )}
+                      >
+                        <span className={cls("text-[10px]", isToday ? "text-gray-300" : "text-gray-500")}>{WEEKDAYS_SHORT[dt.getDay()]}</span>
+                        <span className="text-[14px] font-semibold tabular-nums">{dt.getDate()}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+              {totalRooms > 0 && (
+                <div className="flex border-t border-gray-100">
+                  <div className="sticky left-0 z-10 flex w-[72px] shrink-0 items-center bg-white px-3 text-[11px] font-medium text-gray-500" title="Habitaciones libres cada día (todo el hotel)">
+                    Libres
+                  </div>
+                  <div className="grid flex-1" style={{ gridTemplateColumns: gridCols }}>
+                    {libresPorDia.map((n, i) => (
+                      <div
+                        key={dayList[i]}
+                        title={`${n} libre${n === 1 ? "" : "s"} de ${totalRooms}`}
+                        className={cls(
+                          "flex items-center justify-center border-l border-gray-100 py-0.5 text-[11px] font-semibold tabular-nums",
+                          n === 0 ? "bg-red-50 text-red-600" : n <= Math.ceil(totalRooms * 0.25) ? "bg-amber-50 text-amber-700" : "text-emerald-700",
+                        )}
+                      >
+                        {n}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
+            <div className="flex flex-1 flex-col">
             {floors
               .filter((f) => visibleRooms.some((r) => r.floor === f))
               .map((f) => (
-                <div key={f}>
+                <div key={f} className="flex flex-col" style={{ flexGrow: collapsed.has(f) ? 0 : visibleRooms.filter((r) => r.floor === f).length }}>
                   <button
                     onClick={() =>
                       setCollapsed((s) => {
@@ -383,7 +438,7 @@ export default function DashboardPage() {
                         return n;
                       })
                     }
-                    className="sticky left-0 flex items-center gap-1.5 px-3 py-2 text-[14px] font-medium text-gray-800"
+                    className="sticky left-0 flex shrink-0 items-center gap-1.5 self-start px-3 py-2 text-[14px] font-medium text-gray-800"
                   >
                     <ChevronDown size={14} className={cls("transition", collapsed.has(f) && "-rotate-90")} /> Piso {f}
                     <span className="text-xs font-normal text-gray-400">({visibleRooms.filter((r) => r.floor === f).length})</span>
@@ -419,13 +474,40 @@ export default function DashboardPage() {
                       ))}
                 </div>
               ))}
-            {visibleRooms.length === 0 && <div className="p-10 text-center text-sm text-gray-500">No hay habitaciones que coincidan con los filtros.</div>}
+            {visibleRooms.length === 0 &&
+              (totalRooms === 0 ? (
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center text-sm text-gray-500">
+                  <BedDouble size={28} className="text-gray-300" />
+                  <p>Todavía no hay habitaciones cargadas en el hotel.</p>
+                  {can("administradores") && (
+                    <Link href="/administradores" className="font-medium text-blue-600 hover:underline">
+                      Cargar habitaciones o datos de demostración
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-1 items-center justify-center p-10 text-center text-sm text-gray-500">No hay habitaciones que coincidan con los filtros.</div>
+              ))}
+            </div>
           </div>
         </div>
-        {canEdit && <div className="border-t border-gray-100 px-4 py-2 text-xs text-gray-400">Clic en un día libre para reservar · arrastrá una reserva para cambiarla de habitación o de fecha</div>}
+        {canEdit && <div className="shrink-0 border-t border-gray-100 px-4 py-2 text-xs text-gray-400">Clic en un día libre para reservar · arrastrá una reserva para cambiarla de habitación o de fecha</div>}
       </Card>
+      </section>
 
       <TooltipLayer />
+
+      {/* ===== Debajo del primer scroll: indicadores y paneles ===== */}
+      <section className="space-y-4 p-4 pt-2 lg:p-6 lg:pt-3">
+      {/* ===== KPIs ===== */}
+      <div className={cls("grid grid-cols-2 gap-3 md:grid-cols-3", showMoney ? "xl:grid-cols-6" : "xl:grid-cols-4")}>
+        <Stat icon={Percent} tone="indigo" label="Ocupación hoy" value={`${stats.ocupacion}%`} sub={`${stats.ocupadas} ocupadas · ${stats.reservadas} por llegar`} />
+        <Stat icon={LogIn} tone="blue" label="Llegadas" value={`${stats.llegadasHechas}/${stats.llegadas}`} sub="ingresaron / esperadas" href="/recepcion" />
+        <Stat icon={LogOut} tone="red" label="Salidas" value={`${stats.salidasHechas}/${stats.salidas}`} sub="salieron / previstas" href="/recepcion" />
+        <Stat icon={Sparkles} tone="orange" label="Housekeeping" value={`${stats.listas} listas`} sub={`${stats.sucias} por limpiar · ${stats.mant} en mant.`} href="/mantenimiento" />
+        {showMoney && <Stat icon={DollarSign} tone="green" label="Cobrado hoy" value={money(stats.cobradoHoy)} href="/facturacion" />}
+        {showMoney && <Stat icon={BedDouble} tone="purple" label="Tarifa promedio (ADR)" value={money(stats.adr)} sub="habitaciones ocupadas" />}
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
         <TodayList kind="llegadas" onOpen={setOpenRes} />
@@ -433,6 +515,7 @@ export default function DashboardPage() {
         <RoomStatesCard />
         <LiveFeed />
       </div>
+      </section>
 
       <ReservationDrawer
         id={openRes}
@@ -443,7 +526,7 @@ export default function DashboardPage() {
         }}
       />
       <ReservationForm open={form.open} initial={form.initial} onClose={() => setForm({ open: false })} />
-    </div>
+    </>
   );
 }
 
@@ -473,12 +556,7 @@ const RoomRow = memo(function RoomRow(p: {
 }) {
   const { room, dayList, monthStart, t } = p;
   const days = dayList.length;
-  const hatch = useMemo(() => {
-    if (!p.blockingDue && !room.outOfService) return [-1, -1];
-    const from = t < monthStart ? monthStart : t;
-    const to = p.blockingDue ? addDays(p.blockingDue > t ? p.blockingDue : t, 1) : p.monthEnd;
-    return [Math.max(0, diffDays(monthStart, from)), Math.min(days, diffDays(monthStart, to))];
-  }, [p.blockingDue, room.outOfService, t, monthStart, p.monthEnd, days]);
+  const hatch = useMemo(() => hatchRange(room, p.blockingDue, t, monthStart, p.monthEnd, days), [room, p.blockingDue, t, monthStart, p.monthEnd, days]);
 
   // Un solo manejador por fila: calcula el día según la posición del mouse
   const dayAt = (e: React.MouseEvent | React.DragEvent) => {
@@ -488,7 +566,7 @@ const RoomRow = memo(function RoomRow(p: {
   };
 
   return (
-    <div className="flex border-b border-gray-100" style={{ height: p.rowH }}>
+    <div className="flex flex-1 border-b border-gray-100" style={{ minHeight: p.rowH }}>
       <Link
         href={`/mantenimiento?hab=${room.id}`}
         title={`${room.type} · ${ROOM_STATE_LABEL[p.state]}`}
