@@ -431,6 +431,29 @@ export default function DashboardPage() {
     return usadas.map((u) => Math.max(0, totalRooms - u));
   }, [data.rooms, blockingByRoom, monthResByRoom, t, monthStart, monthEnd, days, totalRooms]);
 
+  // Pantalla completa real del navegador: el mapa ocupa todo el monitor
+  const toggleFull = useCallback(() => {
+    setFull((f) => {
+      const next = !f;
+      try {
+        if (next && !document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
+        if (!next && document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+      } catch {}
+      return next;
+    });
+  }, []);
+  // Al salir del modo ampliado por cualquier vía (botón, Esc), también se sale de la pantalla completa del navegador
+  useEffect(() => {
+    if (!full && typeof document !== "undefined" && document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  }, [full]);
+  useEffect(() => {
+    const h = () => {
+      if (!document.fullscreenElement) setFull(false);
+    };
+    document.addEventListener("fullscreenchange", h);
+    return () => document.removeEventListener("fullscreenchange", h);
+  }, []);
+
   // Esc sale de pantalla completa (si no hay un panel abierto encima)
   useEffect(() => {
     if (!full) return;
@@ -469,14 +492,14 @@ export default function DashboardPage() {
         )}
       >
         {/* Barra de controles: una sola línea, chica */}
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-gray-100 px-2.5 py-2">
+        <div className="no-scrollbar flex shrink-0 flex-nowrap items-center gap-1 overflow-x-auto border-b border-gray-100 px-2 py-1.5 [&>*]:shrink-0">
           <Button
             size="sm"
-            className="!h-8 !w-8 !px-0"
+            className="!h-7 !w-7 !px-0"
             onClick={() => shiftMonth(-1)}
             aria-label="Mes anterior"
           >
-            <ChevronLeft size={15} />
+            <ChevronLeft size={14} />
           </Button>
           <Select
             value={viewIdx}
@@ -485,7 +508,7 @@ export default function DashboardPage() {
               setYear(Math.floor(v / 12));
               setMonth(v % 12);
             }}
-            className="!h-8 !w-[150px] !px-2 !text-[13px]"
+            className="!h-7 !w-[128px] !px-2 !text-[12px]"
             aria-label="Mes y año"
           >
             {monthOptions.map((o) => (
@@ -496,15 +519,15 @@ export default function DashboardPage() {
           </Select>
           <Button
             size="sm"
-            className="!h-8 !w-8 !px-0"
+            className="!h-7 !w-7 !px-0"
             onClick={() => shiftMonth(1)}
             aria-label="Mes siguiente"
           >
-            <ChevronRight size={15} />
+            <ChevronRight size={14} />
           </Button>
           <Button
             size="sm"
-            className="!h-8 !px-3 !text-[13px]"
+            className="!h-7 !px-3 !text-[12px]"
             onClick={() => {
               setYear(now.getFullYear());
               setMonth(now.getMonth());
@@ -516,12 +539,12 @@ export default function DashboardPage() {
             placeholder="Buscar habitación o nombre"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="!h-8 min-w-[130px] max-w-[230px] flex-1 !px-2.5 !text-[13px]"
+            className="!h-7 !w-[130px] 2xl:!w-[200px] !px-2.5 !text-[12px]"
           />
           <Select
             value={floor}
             onChange={(e) => setFloor(e.target.value)}
-            className="!h-8 !w-[118px] !px-2 !text-[13px]"
+            className="!h-7 !w-[104px] !px-2 !text-[12px]"
             aria-label="Piso"
           >
             <option value="todos">Todos los pisos</option>
@@ -534,7 +557,7 @@ export default function DashboardPage() {
           <Select
             value={status}
             onChange={(e) => setStatus(e.target.value as StatusFilter)}
-            className="!h-8 !w-[160px] !px-2 !text-[13px]"
+            className="!h-7 !w-[138px] !px-2 !text-[12px]"
             aria-label="Estado de las reservas"
           >
             <option value="todos">Todas las reservas</option>
@@ -546,65 +569,73 @@ export default function DashboardPage() {
           </Select>
           <Button
             size="sm"
-            className="!h-8 !w-8 !px-0"
+            className="!h-7 !w-7 !px-0"
             onClick={() =>
               setDensity((d) => (d === "normal" ? "compacto" : "normal"))
             }
             title={density === "normal" ? "Achicar filas" : "Agrandar filas"}
             aria-label="Tamaño de las filas"
           >
-            <Rows3 size={15} />
+            <Rows3 size={14} />
           </Button>
-          <div className="ml-auto flex items-center gap-1.5">
+          <div className="ml-auto flex items-center gap-1 pl-1">
+            <span
+              className="hidden h-7 w-7 cursor-help items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 sm:flex"
+              title={
+                canEdit
+                  ? "Cómo usarlo: tocá un día vacío para hacer una reserva · tocá una barra de color para ver los datos del huésped · arrastrá una barra para cambiarla de habitación o de fecha."
+                  : "Cómo usarlo: tocá una barra de color para ver los datos del huésped."
+              }
+              aria-label="Ayuda"
+            >
+              <Info size={14} />
+            </span>
             <Button
               size="sm"
-              className="!h-8 !w-8 !px-0"
+              className="!h-7 !w-7 !px-0"
               onClick={exportCSV}
               title="Exportar reservas del mes (CSV)"
               aria-label="Exportar"
             >
-              <Download size={15} />
+              <Download size={14} />
             </Button>
             {canEdit && (
               <Button
                 variant="primary"
                 size="sm"
-                className="!h-8 !px-3 !text-[13px]"
+                className="!h-7 !px-3 !text-[12px]"
                 onClick={() => setForm({ open: true, initial: {} })}
               >
-                <Plus size={14} /> Nueva reserva
+                <Plus size={14} />
+                <span className="hidden 2xl:inline">Nueva reserva</span>
+                <span className="2xl:hidden">Reservar</span>
               </Button>
             )}
             <Button
               size="sm"
-              className="!h-8 !w-8 !px-0"
-              onClick={() => setFull((f) => !f)}
-              title={
-                full
-                  ? "Salir de pantalla completa (Esc)"
-                  : "Ampliar el mapa a pantalla completa"
-              }
-              aria-label={
-                full ? "Salir de pantalla completa" : "Pantalla completa"
-              }
+              variant={full ? "secondary" : "primary"}
+              className="!h-7 !px-2.5 !text-[12px]"
+              onClick={toggleFull}
+              title={full ? "Salir de pantalla completa (Esc)" : "Ver el mapa de habitaciones en pantalla completa"}
+              aria-label={full ? "Salir de pantalla completa" : "Ampliar mapa"}
             >
-              {full ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+              {full ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+              <span className="hidden sm:inline">{full ? "Salir" : "Ampliar mapa"}</span>
             </Button>
           </div>
         </div>
 
         {/* Colores */}
-        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-gray-100 px-3 py-1.5 text-[12px] text-gray-700">
-          <b className="font-semibold">Colores:</b>
+        <div className="no-scrollbar flex shrink-0 flex-nowrap items-center gap-x-3 overflow-x-auto whitespace-nowrap border-b border-gray-100 px-3 py-1 text-[11.5px] text-gray-700">
           {(Object.keys(VISUAL_LABEL) as VisualStatus[]).map((v) => (
             <span key={v} className="flex items-center gap-1.5">
-              <span className={cls("h-3 w-3 rounded-sm", VISUAL_DOT[v])} />{" "}
+              <span className={cls("h-2.5 w-2.5 rounded-sm", VISUAL_DOT[v])} />{" "}
               {VISUAL_LABEL[v]}
             </span>
           ))}
           <span className="flex items-center gap-1.5">
-            <span className="hatch h-3 w-3 rounded-sm border border-purple-300" />{" "}
-            En arreglo (no se puede usar)
+            <span className="hatch h-2.5 w-2.5 rounded-sm border border-purple-300" />{" "}
+            En arreglo
           </span>
         </div>
 
@@ -789,17 +820,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-        <div className="shrink-0 border-t border-gray-100 bg-gray-50/60 px-3 py-1.5 text-[12px] leading-snug text-gray-700">
-          <Info
-            size={13}
-            className="mr-1.5 inline-block align-[-2px] text-gray-500"
-            aria-hidden
-          />
-          <b>Cómo usarlo:</b>{" "}
-          {canEdit
-            ? "tocá un día vacío para hacer una reserva · tocá una barra de color para ver los datos del huésped · arrastrá una barra para cambiarla de habitación o de fecha."
-            : "tocá una barra de color para ver los datos del huésped."}
-        </div>
+
       </Card>
       </section>
 

@@ -109,6 +109,32 @@ function LiveClock() {
   );
 }
 
+/** Bienvenida en la barra superior: saludo + fecha + huéspedes alojados hoy. */
+function Greeting() {
+  const { me, data } = useApp();
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const i = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(i);
+  }, []);
+  const huespedes = useMemo(() => data.reservations.reduce((s, r) => (r.status === "checkin" ? s + r.pax : s), 0), [data.reservations]);
+  if (!now || !me) return null;
+  const h = now.getHours();
+  const saludo = h < 12 ? "Buen día" : h < 20 ? "Buenas tardes" : "Buenas noches";
+  const fecha = now.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+  return (
+    <div className="hidden min-w-0 shrink flex-col leading-tight md:flex" aria-live="off">
+      <span className="truncate text-[15px] font-semibold text-fg">
+        {saludo}, <span className="text-accent">{me.name.split(" ")[0]}</span>
+      </span>
+      <span className="truncate text-[12.5px] text-gray-600">
+        {fecha} · {huespedes} {huespedes === 1 ? "huésped alojado" : "huéspedes alojados"} hoy
+      </span>
+    </div>
+  );
+}
+
 export function permForPath(path: string): Perm {
   const n = ALL_NAV.filter((x) => x.href !== "/").find((x) => path === x.href || path.startsWith(x.href + "/"));
   return n?.perm ?? "dashboard";
@@ -362,15 +388,18 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           </button>
           <button
             onClick={() => setSearchOpen(true)}
-            className="flex h-11 min-w-0 max-w-md flex-1 items-center gap-2 rounded-lg border border-gray-300 bg-[rgb(var(--well))] px-3 text-left text-[15px] text-gray-600 transition hover:border-gray-400 sm:h-10"
+            className="flex h-11 min-w-0 max-w-md flex-1 items-center gap-2 rounded-lg border border-gray-300 bg-[rgb(var(--well))] px-3 text-left text-[15px] text-gray-600 transition hover:border-gray-400 sm:h-10 md:max-w-[260px] 2xl:max-w-md"
           >
             <Search size={17} className="shrink-0 text-accent" />
             <span className="truncate">Buscar huésped, habitación o reserva…</span>
-            <span className="ml-auto hidden sm:inline">
+            <span className="ml-auto hidden shrink-0 whitespace-nowrap 2xl:inline">
               <Kbd>Ctrl K</Kbd>
             </span>
           </button>
-          <div className="ml-auto flex items-center gap-1.5">
+          <div className="ml-2 min-w-0 lg:ml-4">
+            <Greeting />
+          </div>
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
             <LiveClock />
             <AccentPicker />
             <ThemeToggle />
