@@ -1,15 +1,83 @@
 "use client";
-import { Suspense, useDeferredValue, useEffect, useMemo, useState } from "react";
+import {
+  Suspense,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useSearchParams } from "next/navigation";
-import { CalendarCheck, Clock, Moon, Plus, SearchX, Wallet } from "lucide-react";
+import {
+  BarChart3,
+  CalendarCheck,
+  Clock,
+  LayoutGrid,
+  Moon,
+  Plus,
+  Search,
+  Table2,
+  Wallet,
+  X,
+} from "lucide-react";
 import { useApp } from "@/components/AppProvider";
-import { ReservationDrawer, ReservationForm } from "@/components/reservation";
-import { Avatar, Badge, Button, Card, Input, PageHeader, Select, Stat, Table } from "@/components/ui";
+import {
+  EmptyArt,
+  GradAvatar,
+  PulseChip,
+  ReservationDrawer,
+  ReservationForm,
+  SourceIcon,
+} from "@/components/reservation";
+import { BarChart } from "@/components/viz";
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  Input,
+  PageHeader,
+  Progress,
+  Select,
+  Table,
+} from "@/components/ui";
 import { addDays, fmtDate, today } from "@/lib/dates";
-import { cls, folio, money, nights, RES_STATUS_BADGE, RES_STATUS_LABEL } from "@/lib/logic";
+import {
+  cls,
+  folio,
+  money,
+  nights,
+  RES_STATUS_BADGE,
+  RES_STATUS_LABEL,
+} from "@/lib/logic";
 import type { Reservation, ReservationStatus } from "@/lib/types";
 
-const SOURCES = ["Directo", "Booking", "Expedia", "Airbnb", "Teléfono", "WhatsApp", "Walk-in"];
+const SOURCES = [
+  "Directo",
+  "Booking",
+  "Expedia",
+  "Airbnb",
+  "Teléfono",
+  "WhatsApp",
+  "Walk-in",
+];
+
+const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const WEEK_MS = 7 * 86400000;
+const WEEKS_SHOWN = 8;
+const VIEW_KEY = "hotel-reservas-vista";
+type View = "tabla" | "tarjetas";
+
+/** Fecha como hoja de calendario: mes arriba, día grande abajo. */
+function DateTile({ iso, label }: { iso: string; label: string }) {
+  return (
+    <div className="min-w-0 flex-1 overflow-hidden rounded-xl border border-gray-200 text-center">
+      <div className="label-mono bg-accent px-2 py-0.5 text-[12.5px] text-accent-fg">
+        {label} · {MONTHS[Number(iso.slice(5, 7)) - 1]}
+      </div>
+      <div className="num py-1.5 text-[30px] leading-none tabular-nums">{iso.slice(8, 10)}</div>
+    </div>
+  );
+}
 
 export default function Page() {
   return (
@@ -24,16 +92,38 @@ function Reservas() {
   const params = useSearchParams();
   const [query, setQuery] = useState("");
   const q = useDeferredValue(query.toLowerCase());
-  const [status, setStatus] = useState<ReservationStatus | "activas" | "">("activas");
+  const [status, setStatus] = useState<ReservationStatus | "activas" | "">(
+    "activas",
+  );
   const [from, setFrom] = useState(addDays(today(), -7));
   const [to, setTo] = useState(addDays(today(), 60));
   const [source, setSource] = useState("");
   const [openRes, setOpenRes] = useState<string | null>(params.get("r"));
-  const [form, setForm] = useState<{ open: boolean; initial?: Partial<Reservation> }>({ open: false });
+  const [form, setForm] = useState<{
+    open: boolean;
+    initial?: Partial<Reservation>;
+  }>({ open: false });
   const [page, setPage] = useState(0);
   const showMoney = can("ver_montos");
   const canEdit = can("editar_reservas");
   const PAGE = 50;
+  const [view, setView] = useState<View>("tabla");
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem(VIEW_KEY);
+      if (v === "tabla" || v === "tarjetas") setView(v);
+    } catch {
+      /* sin almacenamiento: queda la tabla */
+    }
+  }, []);
+  function chooseView(v: View) {
+    setView(v);
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      /* no pasa nada si no se puede guardar */
+    }
+  }
 
   useEffect(() => {
     if (params.get("r")) setOpenRes(params.get("r"));
@@ -45,11 +135,29 @@ function Reservas() {
   const list = useMemo(
     () =>
       data.reservations
-        .filter((r) => (status === "activas" ? r.status !== "cancelada" && r.status !== "no_show" : !status || r.status === status))
-        .filter((r) => (!from || r.checkOut >= from) && (!to || r.checkIn <= to))
+        .filter((r) =>
+          status === "activas"
+            ? r.status !== "cancelada" && r.status !== "no_show"
+            : !status || r.status === status,
+        )
+        .filter(
+          (r) => (!from || r.checkOut >= from) && (!to || r.checkIn <= to),
+        )
         .filter((r) => !source || r.source === source)
-        .filter((r) => !q || r.guestName.toLowerCase().includes(q) || room(r.roomId).includes(q) || r.id.includes(q))
-        .sort((a, b) => a.checkIn.localeCompare(b.checkIn) || room(a.roomId).localeCompare(room(b.roomId), undefined, { numeric: true })),
+        .filter(
+          (r) =>
+            !q ||
+            r.guestName.toLowerCase().includes(q) ||
+            room(r.roomId).includes(q) ||
+            r.id.includes(q),
+        )
+        .sort(
+          (a, b) =>
+            a.checkIn.localeCompare(b.checkIn) ||
+            room(a.roomId).localeCompare(room(b.roomId), undefined, {
+              numeric: true,
+            }),
+        ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [data.reservations, status, from, to, source, q, idx.roomById],
   );
@@ -62,12 +170,26 @@ function Reservas() {
     for (const r of list) {
       const f = folio(r, idx);
       total += f.total;
-      if (r.status !== "confirmada" && r.status !== "pendiente") balance += Math.max(0, f.balance);
+      if (r.status !== "confirmada" && r.status !== "pendiente")
+        balance += Math.max(0, f.balance);
       n += nights(r);
       if (r.status === "pendiente") pend++;
     }
     return { total, balance, nights: n, pend };
   }, [list, idx]);
+
+  const weekly = useMemo(() => {
+    const t0 = today();
+    const dow = (new Date(`${t0}T00:00:00`).getDay() + 6) % 7;
+    const start = addDays(t0, -dow - 14);
+    const counts: number[] = Array.from({ length: WEEKS_SHOWN }, () => 0);
+    for (const r of data.reservations) {
+      if (r.status === "cancelada" || r.status === "no_show") continue;
+      const w = Math.floor((Date.parse(r.checkIn) - Date.parse(start)) / WEEK_MS);
+      if (w >= 0 && w < WEEKS_SHOWN) counts[w]++;
+    }
+    return counts.map((value, i) => ({ label: fmtDate(addDays(start, i * 7)).slice(0, 5), value }));
+  }, [data.reservations]);
 
   const chips: { v: typeof status; label: string }[] = [
     { v: "activas", label: "Vigentes" },
@@ -80,98 +202,292 @@ function Reservas() {
   ];
 
   return (
-    <div className="mx-auto max-w-[1600px] space-y-5 p-4 lg:p-6">
-      <PageHeader
-        title="Reservas"
-        subtitle="Todas las reservas del hotel. Buscá por nombre, por fechas o por dónde llegó la reserva."
-        actions={
-          canEdit && (
-            <Button variant="primary" className="!h-11 !px-5 !text-[15px] max-sm:w-full" onClick={() => setForm({ open: true, initial: {} })}>
-              <Plus size={15} /> Nueva reserva
-            </Button>
-          )
-        }
-      />
-      <div className={cls("grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 sm:gap-4", showMoney ? "lg:grid-cols-4" : "lg:grid-cols-2")}>
-        <Stat icon={CalendarCheck} tone="blue" label="Reservas que ves abajo" value={list.length} />
-        <Stat icon={Moon} tone="indigo" label="Noches reservadas" value={totals.nights} />
-        {showMoney && <Stat icon={Wallet} tone="green" label="Total de esas reservas" value={money(totals.total)} />}
-        {showMoney ? (
-          <Stat icon={Clock} tone="red" label="Falta cobrar (alojados y ya idos)" value={money(totals.balance)} />
-        ) : (
-          <Stat icon={Clock} tone="orange" label="Sin confirmar" value={totals.pend} />
-        )}
+    <div className="mx-auto max-w-[1600px] p-4 lg:p-6">
+      <div className="aurora">
+        <PageHeader
+          eyebrow="Todas las reservas"
+          title={<span className="serif-accent">Reservas</span>}
+          subtitle="Todas las reservas del hotel. Buscá por nombre, por fechas o por dónde llegó la reserva."
+          actions={
+            canEdit && (
+              <Button
+                variant="primary"
+                className="!h-12 !px-6 !text-[15px] max-sm:w-full"
+                onClick={() => setForm({ open: true, initial: {} })}
+              >
+                <Plus size={16} /> Nueva reserva
+              </Button>
+            )
+          }
+        />
+        <div
+          className={cls(
+            "stagger mb-6 grid grid-cols-1 gap-3 min-[560px]:grid-cols-2 sm:gap-4",
+            showMoney ? "xl:grid-cols-4" : "xl:grid-cols-3",
+          )}
+        >
+          <PulseChip
+            icon={CalendarCheck}
+            label="Reservas que ves abajo"
+            value={list.length}
+          />
+          <PulseChip
+            icon={Moon}
+            label="Noches reservadas"
+            value={totals.nights}
+          />
+          {showMoney && (
+            <PulseChip
+              icon={Wallet}
+              label="Total de esas reservas"
+              value={totals.total}
+              format={money}
+            />
+          )}
+          {showMoney ? (
+            <PulseChip
+              hero
+              icon={Clock}
+              label="Falta cobrar (alojados y ya idos)"
+              value={totals.balance}
+              format={money}
+            />
+          ) : (
+            <PulseChip
+              hero
+              icon={Clock}
+              label="Sin confirmar"
+              value={totals.pend}
+            />
+          )}
+        </div>
       </div>
 
+      <Card title="Cuántas reservas llegan cada semana" icon={BarChart3} className="mb-5">
+        <div className="p-4">
+          <BarChart data={weekly} height={56} />
+          <p className="mt-2 text-[14px] text-gray-600">Cada barra es una semana (la fecha es el lunes). Pasá el dedo o el mouse por una barra para ver el número.</p>
+        </div>
+      </Card>
+
       <Card>
-        <div className="space-y-3 border-b border-gray-100 p-3 sm:p-4">
+        <div className="space-y-3 border-b border-gray-200/80 bg-panel-2/30 p-3 sm:p-4">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <Input placeholder="Buscar por nombre o habitación" value={query} onChange={(e) => setQuery(e.target.value)} className="w-full sm:w-[280px]" />
-            <label className="flex items-center gap-2 text-[14px] font-medium text-gray-700">Desde <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-[160px]" /></label>
-            <label className="flex items-center gap-2 text-[14px] font-medium text-gray-700">Hasta <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-[160px]" /></label>
-            <Select value={source} onChange={(e) => setSource(e.target.value)} className="w-full sm:w-[240px]">
+            <div className="relative w-full sm:w-[280px]">
+              <Search size={18} aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <Input
+                placeholder="Buscar por nombre o habitación"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="w-full !pl-10 !pr-11"
+              />
+              {query && (
+                <button
+                  type="button"
+                  aria-label="Borrar la búsqueda"
+                  onClick={() => setQuery("")}
+                  className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-gray-600 hover:text-gray-900 sm:h-10 sm:w-10"
+                >
+                  <X size={18} aria-hidden />
+                </button>
+              )}
+            </div>
+            <label className="label-mono flex items-center gap-2 text-[12.5px] text-gray-600">
+              Desde{" "}
+              <Input
+                type="date"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                className="w-[160px]"
+              />
+            </label>
+            <label className="label-mono flex items-center gap-2 text-[12.5px] text-gray-600">
+              Hasta{" "}
+              <Input
+                type="date"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                className="w-[160px]"
+              />
+            </label>
+            <Select
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              className="w-full sm:w-[240px]"
+            >
               <option value="">Llegó por: todas las vías</option>
               {SOURCES.map((s) => (
                 <option key={s}>{s}</option>
               ))}
             </Select>
+            <div role="group" aria-label="Cómo ver las reservas" className="flex gap-1 rounded-xl border border-gray-200 bg-panel p-1 sm:ml-auto">
+              {([["tabla", "Tabla", Table2], ["tarjetas", "Tarjetas", LayoutGrid]] as const).map(([v, label, Icon]) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => chooseView(v)}
+                  aria-pressed={view === v}
+                  className={cls(
+                    "inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg px-4 text-[14px] font-medium transition-colors duration-150 motion-reduce:transition-none sm:h-9 sm:flex-none",
+                    view === v ? "bg-accent font-semibold text-accent-fg shadow-sm" : "text-gray-700 hover:bg-gray-100",
+                  )}
+                >
+                  <Icon size={16} aria-hidden /> {label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-2">
             {chips.map((c) => (
               <button
                 key={c.label}
                 onClick={() => setStatus(c.v)}
                 aria-pressed={status === c.v}
-                className={cls("min-h-[40px] rounded-full px-4 py-2 text-[14px] font-medium transition-colors duration-150 motion-reduce:transition-none", status === c.v ? "bg-gray-900 text-white shadow-btn" : "bg-gray-100 text-gray-700 hover:bg-gray-200")}
+                className={cls(
+                  "min-h-[44px] rounded-full border px-4 py-2 text-[14px] font-medium transition-colors duration-150 motion-reduce:transition-none",
+                  status === c.v
+                    ? "border-accent bg-accent text-accent-fg font-semibold shadow-sm"
+                    : "border-gray-200 bg-panel text-gray-700 hover:border-gray-300 hover:bg-gray-50",
+                )}
               >
                 {c.label}
               </button>
             ))}
           </div>
         </div>
-        <Table head={["Huésped", "Habitación", "Entrada", "Salida", "Noches", "Personas", "Llegó por", "Estado", ...(showMoney ? ["Total", "Debe"] : [])]}>
+        {view === "tabla" ? (
+        <Table
+          head={[
+            "Huésped",
+            "Habitación",
+            "Entrada",
+            "Salida",
+            "Noches",
+            "Personas",
+            "Llegó por",
+            "Estado",
+            ...(showMoney ? ["Total", "Debe"] : []),
+          ]}
+        >
           {list.slice(page * PAGE, (page + 1) * PAGE).map((r) => {
             const f = showMoney ? folio(r, idx) : null;
             return (
-              <tr key={r.id} className="cursor-pointer transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none" onClick={() => setOpenRes(r.id)}>
-                <td className="px-4 py-3.5">
-                  <div className="flex items-center gap-2">
-                    <Avatar name={r.guestName} size={32} />
-                    <span className="font-semibold">{r.guestName}</span>
+              <tr
+                key={r.id}
+                className="cursor-pointer transition-colors duration-150 hover:bg-accent/5 motion-reduce:transition-none"
+                onClick={() => setOpenRes(r.id)}
+              >
+                <td className="px-4 py-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar name={r.guestName} size={38} />
+                    <span className="text-[15px] font-semibold">
+                      {r.guestName}
+                    </span>
                   </div>
                 </td>
-                <td className="px-4 py-3.5"><span className="inline-flex h-8 min-w-[2.5rem] items-center justify-center rounded-md bg-gray-100 px-2 text-[14px] font-semibold tabular-nums">{room(r.roomId)}</span></td>
-                <td className="px-4 py-3.5 tabular-nums">{fmtDate(r.checkIn)}</td>
-                <td className="px-4 py-3.5 tabular-nums">{fmtDate(r.checkOut)}</td>
-                <td className="px-4 py-3.5 tabular-nums">{nights(r)}</td>
-                <td className="px-4 py-3.5 tabular-nums">{r.pax}</td>
-                <td className="px-4 py-3.5 text-gray-600">{r.source}</td>
-                <td className="px-4 py-3.5">
-                  <Badge className={RES_STATUS_BADGE[r.status]}>{RES_STATUS_LABEL[r.status]}</Badge>
+                <td className="px-4 py-4">
+                  <span className="num inline-flex h-9 min-w-[2.75rem] items-center justify-center rounded-lg border border-gray-200 bg-gray-100 px-2.5 text-[17px] tabular-nums">
+                    {room(r.roomId)}
+                  </span>
                 </td>
-                {f && <td className="px-4 py-3.5 tabular-nums">{money(f.total)}</td>}
-                {f && <td className={`px-4 py-3.5 font-medium tabular-nums ${f.balance > 0 ? "text-red-600" : "text-green-700"}`}>{money(f.balance)}</td>}
+                <td className="px-4 py-4 tabular-nums">{fmtDate(r.checkIn)}</td>
+                <td className="px-4 py-4 tabular-nums">
+                  {fmtDate(r.checkOut)}
+                </td>
+                <td className="px-4 py-4 tabular-nums">{nights(r)}</td>
+                <td className="px-4 py-4 tabular-nums">{r.pax}</td>
+                <td className="px-4 py-4 text-gray-600">{r.source}</td>
+                <td className="px-4 py-4">
+                  <Badge className={RES_STATUS_BADGE[r.status]}>
+                    {RES_STATUS_LABEL[r.status]}
+                  </Badge>
+                </td>
+                {f && (
+                  <td className="px-4 py-4 tabular-nums">{money(f.total)}</td>
+                )}
+                {f && (
+                  <td
+                    className={`px-4 py-4 font-semibold tabular-nums ${f.balance > 0 ? "text-red-600" : "text-green-700"}`}
+                  >
+                    {money(f.balance)}
+                  </td>
+                )}
               </tr>
             );
           })}
         </Table>
+        ) : (
+          <ul className="stagger grid gap-3 p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-3">
+            {list.slice(page * PAGE, (page + 1) * PAGE).map((r) => {
+              const f = showMoney ? folio(r, idx) : null;
+              const paid = f && f.total > 0 ? Math.min(100, Math.max(0, (f.paid / f.total) * 100)) : 100;
+              return (
+                <li key={r.id}>
+                  <button
+                    onClick={() => setOpenRes(r.id)}
+                    className="lift flex h-full w-full flex-col gap-3.5 rounded-2xl border border-gray-200/80 bg-panel p-4 text-left shadow-card"
+                  >
+                    <span className="flex items-center gap-3">
+                      <GradAvatar name={r.guestName} size={44} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[17px] font-semibold leading-snug">{r.guestName}</span>
+                        <span className="text-[14px] text-gray-600">Habitación <b>{room(r.roomId)}</b> · {r.pax} {r.pax === 1 ? "persona" : "personas"}</span>
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <DateTile iso={r.checkIn} label="Entra" />
+                      <span className="flex shrink-0 flex-col items-center text-[14px] font-semibold text-gray-700">
+                        <Moon size={15} aria-hidden />
+                        {nights(r)}
+                        <span className="sr-only">{nights(r) === 1 ? "noche" : "noches"}</span>
+                      </span>
+                      <DateTile iso={r.checkOut} label="Sale" />
+                    </span>
+                    <span className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1.5 text-[14px] text-gray-700">
+                        <SourceIcon source={r.source} /> {r.source}
+                      </span>
+                      <Badge className={RES_STATUS_BADGE[r.status]}>{RES_STATUS_LABEL[r.status]}</Badge>
+                    </span>
+                    {f && (
+                      <span className="block">
+                        <Progress value={paid} tone={paid >= 100 ? "bg-green-500" : "bg-amber-500"} />
+                        <span className="mt-1.5 flex justify-between text-[14px] tabular-nums">
+                          <span className="text-gray-700">{money(f.total)}</span>
+                          <span className={f.balance > 0 ? "font-semibold text-red-600" : "font-semibold text-green-700"}>
+                            {f.balance > 0 ? `Debe ${money(f.balance)}` : "Pagado"}
+                          </span>
+                        </span>
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
         {list.length === 0 && (
-          <div className="flex flex-col items-center gap-2 p-10 text-center text-[15px] text-gray-600">
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-              <SearchX size={20} aria-hidden />
-            </span>
-            No encontramos reservas. Probá cambiar las fechas o el botón de arriba.
-          </div>
+          <EmptyArt text="No encontramos reservas. Probá cambiar las fechas o el botón de arriba." />
         )}
         {list.length > PAGE && (
-          <div className="flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 p-3 text-[14px] text-gray-700">
-            <Button size="sm" className="!px-4" disabled={page === 0} onClick={() => setPage(page - 1)}>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200/80 bg-panel-2/30 p-3 text-[14px] text-gray-700 sm:px-4">
+            <Button
+              size="sm"
+              className="!px-4"
+              disabled={page === 0}
+              onClick={() => setPage(page - 1)}
+            >
               ← Anterior
             </Button>
-            <span>
+            <span className="label-mono text-[12.5px]">
               Página {page + 1} de {Math.ceil(list.length / PAGE)}
             </span>
-            <Button size="sm" className="!px-4" disabled={(page + 1) * PAGE >= list.length} onClick={() => setPage(page + 1)}>
+            <Button
+              size="sm"
+              className="!px-4"
+              disabled={(page + 1) * PAGE >= list.length}
+              onClick={() => setPage(page + 1)}
+            >
               Siguiente →
             </Button>
           </div>
@@ -186,7 +502,11 @@ function Reservas() {
           setForm({ open: true, initial: r });
         }}
       />
-      <ReservationForm open={form.open} initial={form.initial} onClose={() => setForm({ open: false })} />
+      <ReservationForm
+        open={form.open}
+        initial={form.initial}
+        onClose={() => setForm({ open: false })}
+      />
     </div>
   );
 }

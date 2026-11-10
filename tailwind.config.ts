@@ -74,8 +74,7 @@ export default {
       },
       fontFamily: {
         sans: [
-          "var(--font-inter)",
-          "Inter",
+          "var(--font-archivo)",
           "ui-sans-serif",
           "Segoe UI",
           "Roboto",
@@ -84,6 +83,7 @@ export default {
           "system-ui",
           "sans-serif",
         ],
+        mono: ["var(--font-chivo-mono)", "ui-monospace", "monospace"],
         serif: ["var(--font-serif)", "Georgia", "serif"],
       },
     },

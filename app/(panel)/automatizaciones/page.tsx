@@ -20,6 +20,7 @@ import {
   Play,
   Receipt,
   Repeat,
+  Settings,
   Shirt,
   Sparkles,
   UserCheck,
@@ -31,9 +32,10 @@ import {
   Zap,
 } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
-import { Button, Card, PageHeader, Select, Stat, toast } from "@/components/ui";
+import { Button, Card, PageHeader, Select, toast } from "@/components/ui";
+import { CountUp, Ring } from "@/components/viz";
 import { planAutomations, planSize } from "@/lib/automation";
-import { fmtDateTime, today } from "@/lib/dates";
+import { fmtDateTime, fmtTimeAgo, today } from "@/lib/dates";
 import {
   automationOf,
   CHECKOUT_SEQUENCE,
@@ -43,6 +45,16 @@ import {
 import { DEFAULT_SETTINGS } from "@/lib/seed";
 import type { AutomationConfig } from "@/lib/types";
 import { TaskIcon } from "@/components/TaskIcon";
+
+const STYLES = `
+@media (prefers-reduced-motion: no-preference){
+  @keyframes au-x{0%{left:0;opacity:0}15%{opacity:1}85%{opacity:1}100%{left:calc(100% - 8px);opacity:0}}
+  @keyframes au-y{0%{top:0;opacity:0}15%{opacity:1}85%{opacity:1}100%{top:calc(100% - 8px);opacity:0}}
+  .au-dot-x{animation:au-x 1.8s linear infinite}
+  .au-dot-y{animation:au-y 1.8s linear infinite}
+}
+@media (prefers-reduced-motion: reduce){.au-dot-x,.au-dot-y{display:none}}
+`;
 
 export default function AutomatizacionesPage() {
   const { data, actions, staffName } = useApp();
@@ -76,10 +88,15 @@ export default function AutomatizacionesPage() {
     )
     .slice(0, 30);
 
+  const onTimePct = doneAuto.length ? Math.round((onTime / doneAuto.length) * 100) : 100;
+  const activeRules = [cfg.preSalida, cfg.checkoutTasks, cfg.llegada, cfg.cerrarAlCheckin, cfg.sabanasAuto, cfg.repasoDiario, cfg.autoAsignar, cfg.escalarVencidas, cfg.reporteBloquea, cfg.noShowAuto, cfg.avisosEnVivo];
+  const rulesOn = activeRules.filter(Boolean).length;
   return (
-    <div className="space-y-5 p-4 lg:p-6">
+    <div className="mx-auto max-w-[1400px] space-y-5 p-4 lg:p-6">
+      <style>{STYLES}</style>
+      <div className="aurora">
       <PageHeader
-        title="Automatizaciones"
+        title={<span className="serif-accent">Automatizaciones</span>}
         subtitle="Tareas que el sistema hace solo, sin que nadie se las pida. Cada tarjeta dice: cuando pasa algo, el sistema hace otra cosa."
         actions={
           <Button
@@ -98,45 +115,64 @@ export default function AutomatizacionesPage() {
           </Button>
         }
       />
-      <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3.5 text-[15px] leading-relaxed text-blue-900">
-        <Info size={20} className="mt-0.5 shrink-0" aria-hidden />
+      <div className="flex items-start gap-3 rounded-xl border border-accent/30 bg-accent/5 px-4 py-3.5 text-[15px] leading-relaxed text-gray-800">
+        <Info size={20} className="mt-0.5 shrink-0 text-accent" aria-hidden />
         <p>
-          <b>Cómo usarlo:</b> cada tarjeta es una tarea automática. Tocá el
+          <b className="label-mono text-[12.5px] text-accent">Cómo usarlo:</b> cada tarjeta es una tarea automática. Tocá el
           interruptor para dejarla <b>Prendida</b> (el sistema la hace solo) o{" "}
           <b>Apagada</b> (no hace nada). Los cambios se guardan al instante.
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4">
-        <Stat
-          icon={Zap}
-          tone="indigo"
-          label="Tareas hechas por el sistema hoy"
-          value={createdToday}
-        />
-        <Stat
-          icon={ClipboardList}
-          tone="blue"
-          label="Tareas del sistema en total"
-          value={autoTasks.length}
-          sub={`${autoTasks.filter((x) => x.status !== "completada").length} sin terminar`}
-        />
-        <Stat
-          icon={UserCheck}
-          tone="green"
-          label="Terminadas a tiempo"
-          value={`${doneAuto.length ? Math.round((onTime / doneAuto.length) * 100) : 100}%`}
-        />
-        <Stat
-          icon={Sparkles}
-          tone={pending ? "orange" : "gray"}
-          label="Cosas por hacer ahora"
-          value={pending}
-          sub={
-            pending
-              ? "el sistema las hace en unos segundos"
-              : "no hay nada pendiente"
-          }
-        />
+      <div className="stagger grid grid-cols-1 gap-4 min-[560px]:grid-cols-2 lg:grid-cols-4">
+        <div className="hero-card flex items-center justify-between gap-3 rounded-2xl p-5">
+          <div>
+            <div className="flex items-center gap-2 text-[15px] font-medium opacity-90">
+              <Zap size={18} aria-hidden /> Tareas hechas por el sistema hoy
+            </div>
+            <div className="num mt-2 text-[48px] leading-none">
+              <CountUp value={createdToday} />
+            </div>
+          </div>
+          <span className="pulse-dot h-3 w-3 shrink-0 rounded-full bg-white" aria-hidden />
+        </div>
+        <div className="lift rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent ring-1 ring-accent/20">
+            <ClipboardList size={20} aria-hidden />
+          </span>
+          <div className="label-mono mt-3 text-[12.5px] text-gray-600">Tareas del sistema en total</div>
+          <div className="num mt-1 text-[30px] leading-none text-gray-900">
+            <CountUp value={autoTasks.length} />
+          </div>
+          <div className="mt-2 text-[14px] text-gray-600">{autoTasks.filter((x) => x.status !== "completada").length} sin terminar</div>
+        </div>
+        <div className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
+          <Ring value={onTimePct} size={76} stroke={8} tone="green" label={`${onTimePct}% terminadas a tiempo`}>
+            <span className="num text-[20px]">{onTimePct}%</span>
+          </Ring>
+          <div>
+            <div className="label-mono flex items-center gap-1.5 text-[12.5px] text-gray-600"><UserCheck size={14} aria-hidden /> Terminadas a tiempo</div>
+            <div className="mt-1 text-[14px] text-gray-700">de las tareas del sistema</div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
+          <span className={cls("flex h-10 w-10 items-center justify-center rounded-xl ring-1", pending ? "bg-amber-50 text-amber-700 ring-amber-200" : "bg-gray-100 text-gray-600 ring-gray-200")}>
+            <Sparkles size={20} aria-hidden />
+          </span>
+          <div className="label-mono mt-3 text-[12.5px] text-gray-600">Cosas por hacer ahora</div>
+          <div className="num mt-1 text-[30px] leading-none text-gray-900">
+            <CountUp value={pending} />
+          </div>
+          <div className="mt-2 text-[14px] text-gray-600">
+            {pending ? "el sistema las hace en unos segundos" : "no hay nada pendiente"}
+          </div>
+          <div className="mt-1 text-[13.5px] text-gray-600">{rulesOn} automáticas prendidas</div>
+          <div className="mt-2 flex gap-1" role="img" aria-label={`${rulesOn} de ${activeRules.length} automáticas prendidas`}>
+            {activeRules.map((on, i) => (
+              <span key={i} aria-hidden className={cls("h-2 flex-1 rounded-full transition-colors duration-300 motion-reduce:transition-none", on ? "bg-green-600" : "bg-gray-300")} />
+            ))}
+          </div>
+        </div>
+      </div>
       </div>
 
       <Section icon={BedDouble} title="Reservas, limpieza y arreglos">
@@ -183,8 +219,8 @@ export default function AutomatizacionesPage() {
                   className={cls(
                     "min-h-[44px] rounded-full px-3.5 py-1.5 text-[14px] font-medium ring-1 transition duration-150 motion-reduce:transition-none sm:min-h-[36px]",
                     on
-                      ? "bg-gray-900 text-white ring-gray-900"
-                      : "bg-white text-gray-700 ring-gray-300 hover:bg-gray-50",
+                      ? "bg-accent/10 font-semibold text-gray-900 ring-accent"
+                      : "bg-white text-gray-700 ring-gray-300 hover:ring-gray-400",
                   )}
                 >
                   <TaskIcon type={tp} /> {TASK_TYPE_LABEL[tp]}
@@ -357,25 +393,29 @@ export default function AutomatizacionesPage() {
             </span>
           }
         >
-          <ul className="max-h-80 divide-y divide-gray-100 overflow-y-auto text-[15px]">
-            {log.map((a) => (
-              <li
-                key={a.id}
-                className="flex flex-col gap-0.5 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3"
-              >
-                <span className="min-w-0 break-words">
-                  {a.action}{" "}
-                  <span className="text-gray-600">· {staffName(a.by)}</span>
-                </span>
-                <span className="shrink-0 text-[14px] tabular-nums text-gray-600">
-                  {fmtDateTime(a.at)}
-                </span>
-              </li>
-            ))}
+          <ul className="relative max-h-80 overflow-y-auto px-4 py-2 text-[15px]">
+            {log.length > 0 && <span aria-hidden className="absolute bottom-4 left-[31px] top-4 w-px bg-gray-200" />}
+            {log.map((a) => {
+              const isCfg = a.action === "Actualizó configuración";
+              const LIcon = isCfg ? Settings : Zap;
+              return (
+                <li key={a.id} className="relative flex items-start gap-3 py-2.5">
+                  <span className={cls("relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-4 ring-white", isCfg ? "bg-gray-100 text-gray-600" : "bg-accent/10 text-accent")}>
+                    <LIcon size={15} aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1 break-words pt-0.5">
+                    {a.action} <span className="text-gray-600">· {staffName(a.by)}</span>
+                    <span className="mt-0.5 block text-[14px] tabular-nums text-gray-600" title={fmtDateTime(a.at)}>
+                      {fmtTimeAgo(a.at)} · {fmtDateTime(a.at)}
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
             {!log.length && (
               <li className="flex flex-col items-center gap-3 px-4 py-10 text-center text-[15px] text-gray-600">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-                  <History size={22} aria-hidden />
+                <span aria-hidden className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-gray-300 bg-gray-50 text-gray-400">
+                  <History size={26} />
                 </span>
                 <span className="max-w-xs">
                   Todavía no hay nada para mostrar. Cuando el sistema haga algo
@@ -399,7 +439,7 @@ function Always({
 }) {
   return (
     <li className="flex items-start gap-3 px-4 py-3">
-      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-600">
         <Icon size={17} aria-hidden />
       </span>
       <span className="min-w-0 pt-1">{children}</span>
@@ -428,7 +468,7 @@ function Section({
         </span>
       }
     >
-      <div className="divide-y divide-gray-100">{children}</div>
+      <div className="stagger divide-y divide-gray-100">{children}</div>
     </Card>
   );
 }
@@ -451,11 +491,11 @@ function Rule({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="relative px-4 py-4 sm:px-5">
+    <div className="relative px-4 py-5 sm:px-5">
       <span
         aria-hidden
         className={cls(
-          "absolute inset-y-3 left-0 w-1 rounded-r-full transition-opacity duration-200 motion-reduce:transition-none",
+          "absolute inset-y-3 left-0 w-1.5 rounded-r-full transition-opacity duration-200 motion-reduce:transition-none",
           color,
           !on && "opacity-30",
         )}
@@ -463,39 +503,53 @@ function Rule({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
         <div
           className={cls(
-            "grid flex-1 gap-2 transition-opacity duration-200 motion-reduce:transition-none lg:grid-cols-[1fr_auto_1fr] lg:items-stretch",
-            !on && "opacity-60",
+            "grid flex-1 gap-1 transition duration-300 motion-reduce:transition-none lg:grid-cols-[1fr_auto_1fr] lg:items-stretch",
+            !on && "opacity-70 grayscale",
           )}
         >
-          <div className="rounded-xl bg-gray-50 px-4 py-3">
-            <div className="mb-1.5 flex items-center gap-2 text-[13.5px] font-semibold uppercase tracking-wide text-gray-600">
-              <Icon size={16} aria-hidden /> Cuando pasa esto
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3.5">
+            <div className="label-mono mb-2 flex items-center gap-2 text-[12.5px] font-semibold text-gray-600">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white ring-1 ring-gray-200"><Icon size={15} aria-hidden /></span> Cuando pasa esto
             </div>
             <div className="text-[15px] font-medium leading-snug text-gray-900">
               {when}
             </div>
           </div>
-          <div
-            className="flex items-center justify-center text-gray-500"
-            aria-hidden
-          >
-            <ArrowDown size={20} className="lg:hidden" />
-            <ArrowRight size={20} className="hidden lg:block" />
+          <div className="flex items-center justify-center py-1 lg:px-1 lg:py-0" aria-hidden>
+            <div className="relative h-9 w-1 rounded-full bg-gray-300 lg:hidden">
+              {on && <span className="au-dot-y absolute left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-accent" />}
+              {on && <span className="au-dot-y absolute left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-accent [animation-delay:.9s]" />}
+              <ArrowDown size={18} className={cls("absolute -bottom-3 left-1/2 -translate-x-1/2", on ? "text-accent" : "text-gray-400")} />
+            </div>
+            <div className="relative hidden h-1 w-20 rounded-full bg-gray-300 lg:block">
+              {on && <span className="au-dot-x absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-accent" />}
+              {on && <span className="au-dot-x absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-accent [animation-delay:.9s]" />}
+              <ArrowRight size={18} className={cls("absolute -right-2 top-1/2 -translate-y-1/2", on ? "text-accent" : "text-gray-400")} />
+            </div>
           </div>
-          <div className="rounded-xl border border-accent/30 bg-accent/5 px-4 py-3">
-            <div className="mb-1.5 flex items-center gap-2 text-[13.5px] font-semibold uppercase tracking-wide text-accent">
-              <Zap size={16} aria-hidden /> El sistema hace esto
+          <div className="rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/10 to-accent/[0.03] px-4 py-3.5">
+            <div className="label-mono mb-2 flex items-center gap-2 text-[12.5px] font-semibold text-accent">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/15"><Zap size={15} aria-hidden /></span> El sistema hace esto
             </div>
             <div className="text-[15px] leading-snug text-gray-800">{then}</div>
           </div>
         </div>
-        <div className="flex items-center justify-between gap-3 lg:w-[120px] lg:flex-col lg:justify-center">
+        <div className="flex items-center justify-between gap-3 lg:w-[130px] lg:flex-col lg:justify-center">
           <span
             className={cls(
-              "text-[15px] font-semibold",
-              on ? "text-green-700" : "text-gray-600",
+              "inline-flex items-center gap-2 rounded-full px-3 py-1 text-[14px] font-semibold ring-1 ring-inset",
+              on
+                ? "bg-green-50 text-green-700 ring-green-200"
+                : "bg-gray-100 text-gray-600 ring-gray-200",
             )}
           >
+            <span
+              aria-hidden
+              className={cls(
+                "h-2 w-2 rounded-full",
+                on ? "bg-green-600" : "bg-gray-400",
+              )}
+            />
             {on ? "Prendido" : "Apagado"}
           </span>
           <button
@@ -506,14 +560,14 @@ function Rule({
               on ? "Prendido. Tocá para apagar" : "Apagado. Tocá para prender"
             }
             className={cls(
-              "relative h-8 w-14 shrink-0 rounded-full outline-none transition-colors duration-200 focus-visible:ring-[3px] focus-visible:ring-accent/40 motion-reduce:transition-none",
+              "relative h-11 w-[76px] shrink-0 rounded-full shadow-inner outline-none transition-colors duration-200 focus-visible:ring-[3px] focus-visible:ring-accent/40 motion-reduce:transition-none",
               on ? "bg-green-600" : "bg-gray-400",
             )}
           >
             <span
               className={cls(
-                "absolute left-1 top-1 h-6 w-6 rounded-full bg-[#fff] shadow transition-transform duration-200 motion-reduce:transition-none",
-                on ? "translate-x-6" : "translate-x-0",
+                "absolute left-1 top-1 h-9 w-9 rounded-full bg-[#fff] shadow-md transition-transform duration-300 ease-[cubic-bezier(.34,1.56,.64,1)] motion-reduce:transition-none",
+                on ? "translate-x-8" : "translate-x-0",
               )}
             />
           </button>

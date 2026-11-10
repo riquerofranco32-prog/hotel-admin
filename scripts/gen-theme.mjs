@@ -20,12 +20,16 @@ const ROOTS = ["app", "components", "lib"];
 
 /* ── paleta ─────────────────────────────────────────────────────────────── */
 export const NEUTRAL_SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800];
-// Gris oscuro con un dejo de azul mar (el hotel es "Al Mare").
-const DARK_GRAY = {
-  50: "#101820", 100: "#151e28", 200: "#1e2a37", 300: "#2c3b4b", 400: "#6a7a8e",
-  500: "#8c9aac", 600: "#a6b2c1", 700: "#c2ccd8", 800: "#dde4ed",
+// Grises del panel de Se7en: neutros y cálidos (papel en claro, negro en oscuro).
+const LIGHT_GRAY = {
+  50: "#f6f3ec", 100: "#efeadf", 200: "#e3ddd0", 300: "#d0c9ba", 400: "#8f8f97",
+  500: "#62626b", 600: "#4a4a52", 700: "#34343a", 800: "#1f1f25",
 };
-const DARK_PANEL = "#0e151c"; // color de las tarjetas, para mezclar los tintes
+const DARK_GRAY = {
+  50: "#111113", 100: "#151518", 200: "#202024", 300: "#2e2e33", 400: "#707076",
+  500: "#8a8a8e", 600: "#a9a9ad", 700: "#c8c8cb", 800: "#e3e3e5",
+};
+const DARK_PANEL = "#0c0c0e"; // color de las tarjetas, para mezclar los tintes
 export const FAMILIES = ["red", "green", "amber", "blue", "indigo", "purple", "teal", "emerald", "orange", "yellow", "sky", "rose", "violet", "fuchsia", "slate"];
 const TINT_SHADES = { 50: 0.1, 100: 0.17, 200: 0.28, 300: 0.42 }; // fondos y bordes: tinte sobre la tarjeta
 // Texto de estado: en oscuro se usa un tono más claro de la misma familia.
@@ -38,7 +42,7 @@ const trip = (rgb) => rgb.join(" ");
 const light = [];
 const dark = [];
 for (const s of NEUTRAL_SHADES) {
-  light.push(`--gray-${s}: ${trip(hex(colors.gray[s]))};`);
+  light.push(`--gray-${s}: ${trip(hex(LIGHT_GRAY[s]))};`);
   dark.push(`--gray-${s}: ${trip(hex(DARK_GRAY[s]))};`);
 }
 for (const f of FAMILIES) {

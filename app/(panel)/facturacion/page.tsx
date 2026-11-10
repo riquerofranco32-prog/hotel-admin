@@ -1,9 +1,10 @@
 "use client";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, FileText, Printer, Receipt, Trash2, Users } from "lucide-react";
+import { Banknote, BedDouble, CheckCircle2, CreditCard, FileText, HandCoins, Landmark, Printer, Receipt, ShoppingBag, Smartphone, Trash2, Users, Wallet } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
-import { Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Stat, Table, Tabs, toast } from "@/components/ui";
+import { CountUp, Ring, Sparkline } from "@/components/viz";
+import { Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Table, Tabs, toast } from "@/components/ui";
 import { fmtDate, fmtDateTime, today } from "@/lib/dates";
 import { cls, CHARGE_LABEL, folio, isActive, money, nights, RES_STATUS_BADGE, RES_STATUS_LABEL } from "@/lib/logic";
 import type { ChargeCategory, Invoice, PaymentMethod } from "@/lib/types";
@@ -14,6 +15,144 @@ function balanceText(balance: number, cur: string) {
   if (balance > 0) return `Debe ${money(balance, cur)}`;
   if (balance < 0) return `A favor ${money(-balance, cur)}`;
   return "Está al día";
+}
+
+/** Pasa a true un instante después de aparecer: dispara las animaciones de entrada. */
+function useEntered() {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setOn(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return on;
+}
+
+const clampPct = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+
+const AVATAR_GRADS = [
+  "from-rose-500 to-amber-500",
+  "from-sky-500 to-indigo-600",
+  "from-emerald-500 to-teal-600",
+  "from-violet-500 to-fuchsia-600",
+  "from-amber-500 to-orange-600",
+  "from-teal-500 to-sky-600",
+];
+
+/** Avatar con las iniciales sobre un degradé (el color depende del nombre). */
+function GradAvatar({ name, size = 40 }: { name: string; size?: number }) {
+  let h = 0;
+  for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const ini = name.split(" ").filter(Boolean).slice(0, 2).map((x) => x[0]?.toUpperCase()).join("");
+  return (
+    <span
+      aria-hidden
+      className={cls("flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br font-semibold text-white shadow-sm", AVATAR_GRADS[h % AVATAR_GRADS.length])}
+      style={{ width: size, height: size, fontSize: size * 0.38 }}
+    >
+      {ini}
+    </span>
+  );
+}
+
+/** Ilustración simple para los estados vacíos: círculo con puntitos y un ícono. */
+function Illus({ icon: Icon }: { icon: React.ElementType }) {
+  return (
+    <span className="relative flex h-24 w-24 items-center justify-center" aria-hidden>
+      <span className="absolute inset-0 rounded-full bg-gradient-to-br from-accent/20 to-transparent" />
+      <span className="absolute inset-2 rounded-full border-2 border-dashed border-accent/30 motion-safe:animate-[spin_30s_linear_infinite]" />
+      <span className="absolute -right-1 top-3 h-3 w-3 rounded-full bg-accent/40" />
+      <span className="absolute -left-1 bottom-4 h-2 w-2 rounded-full bg-accent/30" />
+      <span className="relative flex h-14 w-14 -rotate-6 items-center justify-center rounded-2xl bg-white text-accent shadow-card ring-1 ring-accent/20">
+        <Icon size={26} />
+      </span>
+    </span>
+  );
+}
+
+function MethodIcon({ method, size = 16 }: { method: PaymentMethod; size?: number }) {
+  const Icon = method === "Efectivo" ? Banknote : method === "Transferencia" ? Landmark : method === "Mercado Pago" ? Smartphone : CreditCard;
+  return <Icon size={size} aria-hidden />;
+}
+
+/** Embudo: vendido, cobrado y falta cobrar, con porcentajes. */
+function Funnel({ sold, paid, due, cur }: { sold: number; paid: number; due: number; cur: string }) {
+  const on = useEntered();
+  const rows = [
+    { label: "Vendido", sub: "todo lo anotado en las cuentas", value: sold, pct: sold > 0 ? 100 : 0, bar: "from-accent/50 to-accent" },
+    { label: "Cobrado", sub: "plata que ya entró", value: paid, pct: sold > 0 ? (paid / sold) * 100 : 0, bar: "from-green-400 to-green-600" },
+    { label: "Falta cobrar", sub: "lo que todavía deben", value: due, pct: sold > 0 ? (due / sold) * 100 : 0, bar: "from-red-400 to-red-600" },
+  ];
+  return (
+    <ul className="space-y-4 p-4">
+      {rows.map((r, i) => (
+        <li key={r.label} aria-label={`${r.label}: ${money(r.value, cur)}, ${clampPct(r.pct)}% de lo vendido`}>
+          <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3 text-[15px]">
+            <span className="font-medium text-gray-800">
+              {r.label} <span className="text-[13.5px] font-normal text-gray-600">· {r.sub}</span>
+            </span>
+            <span className="tabular-nums">
+              <b className="num text-[18px] text-gray-900">{money(r.value, cur)}</b>{" "}
+              <span className="text-[13.5px] text-gray-600">{clampPct(r.pct)}%</span>
+            </span>
+          </div>
+          <div className="h-4 overflow-hidden rounded-full bg-gray-100">
+            <div
+              className={cls("h-full rounded-full bg-gradient-to-r transition-[width] duration-700 ease-out motion-reduce:transition-none", r.bar)}
+              style={{ width: on ? `${r.pct}%` : 0, transitionDelay: `${i * 120}ms` }}
+            />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+interface TimelineEvent {
+  key: string;
+  date: string;
+  kind: "hospedaje" | "gasto" | "pago";
+  label: string;
+  note?: string;
+  amount: number;
+  balance: number;
+}
+
+/** Línea de tiempo vertical de la cuenta: gastos y pagos por fecha, con el saldo después de cada uno. */
+function Timeline({ events, cur }: { events: TimelineEvent[]; cur: string }) {
+  return (
+    <ol className="relative ml-4 space-y-5 border-l-2 border-gray-200">
+      {events.map((e) => {
+        const pay = e.kind === "pago";
+        const Icon = pay ? CheckCircle2 : e.kind === "hospedaje" ? BedDouble : ShoppingBag;
+        return (
+          <li key={e.key} className="relative pl-7">
+            <span
+              className={cls("absolute -left-[17px] top-0 flex h-8 w-8 items-center justify-center rounded-full ring-4 ring-panel", pay ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700")}
+              aria-hidden
+            >
+              <Icon size={16} />
+            </span>
+            <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-0.5">
+              <div className="min-w-0">
+                <div className="text-[15px] font-medium text-gray-900">{e.label}</div>
+                <div className="text-[13.5px] text-gray-600">
+                  {fmtDate(e.date)}
+                  {e.note ? ` · ${e.note}` : ""}
+                </div>
+              </div>
+              <div className="text-right">
+                <b className={cls("num text-[18px] tabular-nums", pay ? "text-green-700" : "text-gray-900")}>
+                  {pay ? "+ " : ""}
+                  {money(e.amount, cur)}
+                </b>
+                <div className="text-[13.5px] tabular-nums text-gray-600">Saldo: {balanceText(e.balance, cur)}</div>
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
 }
 
 export default function Page() {
@@ -59,18 +198,58 @@ function Facturacion() {
   const monthKey = t.slice(0, 7);
   const payMonth = data.payments.filter((p) => p.date.slice(0, 7) === monthKey);
   const payToday = data.payments.filter((p) => p.date === t);
+  const monthTotal = payMonth.reduce((s, p) => s + p.amount, 0);
+  const todayTotal = payToday.reduce((s, p) => s + p.amount, 0);
+  const invoiceCount = data.invoices.filter((i) => !i.voided).length;
+  const monthSeries = useMemo(() => {
+    const byDay = new Map<string, number>();
+    for (const p of data.payments) if (p.date.slice(0, 7) === monthKey) byDay.set(p.date, (byDay.get(p.date) ?? 0) + p.amount);
+    return [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0])).map((x) => x[1]);
+  }, [data.payments, monthKey]);
   const pendingTotal = data.reservations
     .filter((r) => r.status === "checkin" || r.status === "checkout")
     .reduce((s, r) => s + Math.max(0, folio(r, idx).balance), 0);
 
+  const soldTotal = data.reservations
+    .filter((r) => r.status === "checkin" || r.status === "checkout")
+    .reduce((s, r) => s + folio(r, idx).total, 0);
+  const paidTotal = Math.max(0, soldTotal - pendingTotal);
+
   return (
     <div className="mx-auto max-w-[1400px] p-4 lg:p-6">
-      <PageHeader title="Cobros y facturas" subtitle="Acá ves cuánta plata debe cada huésped, anotás sus pagos y gastos, y hacés la factura." />
-      <div className="mb-6 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Se cobró hoy" value={money(payToday.reduce((s, p) => s + p.amount, 0), cur)} tone="green" />
-        <Stat label="Se cobró este mes" value={money(payMonth.reduce((s, p) => s + p.amount, 0), cur)} tone="blue" />
-        <Stat label="Falta cobrar (huéspedes que están o ya se fueron)" value={money(pendingTotal, cur)} tone="red" />
-        <Stat label="Facturas hechas" value={data.invoices.filter((i) => !i.voided).length} tone="gray" />
+      <div className="aurora mb-6">
+        <PageHeader title={<>Cobros y <span className="serif-accent">facturas</span></>} subtitle="Acá ves cuánta plata debe cada huésped, anotás sus pagos y gastos, y hacés la factura." />
+        <div className="stagger grid grid-cols-1 gap-4 min-[560px]:grid-cols-2 lg:grid-cols-4">
+          <div className="hero-card flex flex-col justify-between gap-3 rounded-2xl p-5 lg:col-span-2">
+            <div className="flex items-center gap-2 text-[15px] font-medium opacity-90">
+              <Wallet size={18} aria-hidden /> Se cobró este mes
+            </div>
+            <div className="flex items-end justify-between gap-3">
+              <div className="num text-[44px] leading-none sm:text-[52px]">
+                <CountUp value={monthTotal} format={(n) => money(n, cur)} />
+              </div>
+              {monthSeries.length > 1 && <div className="rounded-xl bg-white/90 px-2 py-1.5"><Sparkline data={monthSeries} width={130} height={44} /></div>}
+            </div>
+            <div className="text-[14px] opacity-90">
+              Hoy entraron <b className="tabular-nums">{money(todayTotal, cur)}</b>
+            </div>
+          </div>
+          <div className="lift rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-700 ring-1 ring-red-200"><HandCoins size={20} aria-hidden /></span>
+            <div className="label-mono mt-3 text-[12.5px] text-gray-600">Falta cobrar</div>
+            <div className="num mt-1 text-[30px] leading-none text-red-700"><CountUp value={pendingTotal} format={(n) => money(n, cur)} /></div>
+            <div className="mt-2 text-[14px] text-gray-600">de huéspedes que están o ya se fueron</div>
+          </div>
+          <div className="lift rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent ring-1 ring-accent/20"><FileText size={20} aria-hidden /></span>
+            <div className="label-mono mt-3 text-[12.5px] text-gray-600">Facturas hechas</div>
+            <div className="num mt-1 text-[30px] leading-none text-gray-900"><CountUp value={invoiceCount} /></div>
+            <div className="mt-2 text-[14px] text-gray-600">sin contar las anuladas</div>
+          </div>
+        </div>
+        <Card className="mt-4" icon={Wallet} title="De todo lo vendido, cuánto ya se cobró">
+          <Funnel sold={soldTotal} paid={paidTotal} due={pendingTotal} cur={cur} />
+        </Card>
       </div>
       <div className="mb-5 max-w-full overflow-x-auto">
         <Tabs
@@ -105,25 +284,29 @@ function Facturacion() {
               {folios.slice(0, 200).map(({ r, f }) => (
                 <li key={r.id}>
                   <button onClick={() => setSel(r.id)} className={cls("flex min-h-[64px] w-full items-center justify-between gap-3 border-l-4 px-4 py-3 text-left transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none", sel === r.id ? "border-l-accent bg-accent/10" : "border-l-transparent")}>
-                    <span className="min-w-0">
+                    <GradAvatar name={r.guestName} size={40} />
+                    <span className="min-w-0 flex-1">
                       <span className="block truncate text-[16px] font-semibold text-gray-900">{r.guestName}</span>
                       <span className="block text-[14px] text-gray-600">
                         Habitación {room(r.roomId)} · {fmtDate(r.checkIn).slice(0, 5)} → {fmtDate(r.checkOut).slice(0, 5)}
                       </span>
+                      <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-gray-100" role="img" aria-label={`Pagó el ${f.total > 0 ? clampPct((f.paid / f.total) * 100) : 0}% de la cuenta`}>
+                        <span className={cls("block h-full rounded-full transition-[width] duration-700 motion-reduce:transition-none", f.balance > 0 ? "bg-accent" : "bg-green-600")} style={{ width: `${f.total > 0 ? clampPct((f.paid / f.total) * 100) : 0}%` }} />
+                      </span>
                     </span>
-                    <span className={cls("shrink-0 rounded-lg px-2.5 py-1 text-[15px] font-semibold tabular-nums", f.balance > 0 ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700")}>{balanceText(f.balance, cur)}</span>
+                    <span className={cls("shrink-0 rounded-full px-3 py-1 text-[15px] font-semibold tabular-nums ring-1 ring-inset", f.balance > 0 ? "bg-red-50 text-red-700 ring-red-200" : "bg-green-50 text-green-700 ring-green-200")}>{balanceText(f.balance, cur)}</span>
                   </button>
                 </li>
               ))}
               {folios.length === 0 && (
-                <li className="flex flex-col items-center gap-2 px-4 py-10 text-center text-[15px] text-gray-600">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-500"><Users size={22} aria-hidden /></span>
+                <li className="flex flex-col items-center gap-3 px-4 py-10 text-center text-[15px] text-gray-600">
+                  <Illus icon={Users} />
                   No hay cuentas para mostrar. Probá con otra pestaña o cambiá lo que buscaste.
                 </li>
               )}
             </ul>
           </Card>
-          {sel ? <Folio key={sel} id={sel} onInvoice={setInvoice} /> : <Card><div className="flex flex-col items-center gap-2 p-10 text-center text-[15px] text-gray-600"><span className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-500"><Receipt size={22} aria-hidden /></span>Tocá un huésped de la lista para ver su cuenta.</div></Card>}
+          {sel ? <Folio key={sel} id={sel} onInvoice={setInvoice} /> : <Card><div className="flex flex-col items-center gap-3 p-10 text-center text-[15px] text-gray-600"><Illus icon={Receipt} />Tocá un huésped de la lista para ver su cuenta.</div></Card>}
         </div>
       )}
 
@@ -135,11 +318,11 @@ function Facturacion() {
               .sort((a, b) => b.number - a.number)
               .map((inv) => (
                 <tr key={inv.id} className={cls("transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none", inv.voided && "text-gray-600 line-through")}>
-                  <td className="px-4 py-2.5 text-[15px] font-medium">{String(inv.number).padStart(6, "0")}</td>
+                  <td className="label-mono px-4 py-2.5 text-[13px] font-semibold">{String(inv.number).padStart(6, "0")}</td>
                   <td className="px-4 py-2.5 text-[15px]">{fmtDateTime(inv.issuedAt)}</td>
                   <td className="px-4 py-2.5 text-[15px]">{inv.guestName}</td>
                   <td className="px-4 py-2.5 text-[15px]">{inv.roomNumber}</td>
-                  <td className="px-4 py-2.5 text-[15px] font-semibold tabular-nums">{money(inv.total, cur)}</td>
+                  <td className="px-4 py-2.5 num text-[17px] tabular-nums">{money(inv.total, cur)}</td>
                   <td className="px-4 py-2.5 text-[15px]">{staffName(inv.issuedBy)}</td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-right text-[15px]">
                     <Button variant="ghost" onClick={() => setInvoice(inv)}>Ver factura</Button>
@@ -160,8 +343,8 @@ function Facturacion() {
               ))}
           </Table>
           {data.invoices.length === 0 && (
-            <div className="flex flex-col items-center gap-2 p-10 text-center text-[15px] text-gray-600">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-500"><FileText size={22} aria-hidden /></span>
+            <div className="flex flex-col items-center gap-3 p-10 text-center text-[15px] text-gray-600">
+              <Illus icon={FileText} />
               Todavía no hiciste ninguna factura. Para hacer una, entrá a «Cuentas de huéspedes», elegí un huésped y tocá «Hacer factura».
             </div>
           )}
@@ -190,10 +373,10 @@ function Facturacion() {
               <li key={m}>
                 <div className="flex justify-between text-[15px]">
                   <span>{m}</span>
-                  <b className="tabular-nums">{money(total, cur)}</b>
+                  <b className="num text-[18px] tabular-nums">{money(total, cur)}</b>
                 </div>
                 <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-gray-100">
-                  <div className="h-full rounded-full bg-accent transition-all duration-200 motion-reduce:transition-none" style={{ width: `${(total / max) * 100}%` }} />
+                  <div className="h-full rounded-full bg-gradient-to-r from-accent/55 to-accent transition-all duration-700 motion-reduce:transition-none" style={{ width: `${(total / max) * 100}%` }} />
                 </div>
               </li>
             ))}
@@ -203,12 +386,12 @@ function Facturacion() {
           <ul className="divide-y divide-gray-100 text-[15px]">
             <li className="flex justify-between gap-3 px-4 py-3">
               <span>Hospedaje ({monthRes.length} reservas)</span>
-              <b className="tabular-nums">{money(lodging, cur)}</b>
+              <b className="num text-[18px] tabular-nums">{money(lodging, cur)}</b>
             </li>
             {cats.map(({ c, total }) => (
               <li key={c} className="flex justify-between gap-3 px-4 py-3">
                 <span>{CHARGE_LABEL[c]}</span>
-                <b className="tabular-nums">{money(total, cur)}</b>
+                <b className="num text-[18px] tabular-nums">{money(total, cur)}</b>
               </li>
             ))}
           </ul>
@@ -234,6 +417,21 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
   const f = folio(r, idx);
   const canPay = can("registrar_pagos");
   const invoices = data.invoices.filter((i) => i.reservationId === r.id && !i.voided);
+  const pctPaid = f.total > 0 ? clampPct((f.paid / f.total) * 100) : 0;
+  const byMethod = METHODS.map((m) => ({ m, total: f.payments.filter((p) => p.method === m).reduce((s, p) => s + p.amount, 0) })).filter((x) => x.total > 0);
+  const rawEvents: Omit<TimelineEvent, "balance">[] = [
+    { key: "hospedaje", date: r.checkIn, kind: "hospedaje", label: `Hospedaje · ${nights(r)} noches × ${money(r.rate, cur)}`, amount: f.lodging },
+    ...f.charges.map((c) => ({ key: c.id, date: c.date, kind: "gasto" as const, label: c.description, note: CHARGE_LABEL[c.category], amount: c.amount })),
+    ...f.payments.map((p) => ({ key: p.id, date: p.date, kind: "pago" as const, label: `Pago · ${p.method}`, note: p.reference, amount: p.amount })),
+  ];
+  const KIND_ORDER = { hospedaje: 0, gasto: 1, pago: 2 };
+  const events = rawEvents
+    .slice()
+    .sort((a, b) => a.date.localeCompare(b.date) || KIND_ORDER[a.kind] - KIND_ORDER[b.kind])
+    .reduce<TimelineEvent[]>((acc, e) => {
+      const prev = acc.length ? acc[acc.length - 1].balance : 0;
+      return [...acc, { ...e, balance: prev + (e.kind === "pago" ? -e.amount : e.amount) }];
+    }, []);
 
   return (
     <Card
@@ -258,22 +456,50 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
       }
     >
       <div className="space-y-6 p-4">
-        <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-3">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-            <div className="text-[14px] font-medium text-gray-600">Total de la cuenta</div>
-            <div className="mt-0.5 text-[24px] font-semibold tabular-nums tracking-tight text-gray-900">{money(f.total, cur)}</div>
+        <div className="stagger grid grid-cols-1 gap-3 min-[480px]:grid-cols-3">
+          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-card">
+            <div className="label-mono text-[12.5px] text-gray-600">Total de la cuenta</div>
+            <div className="num mt-1 text-[30px] tabular-nums leading-none text-gray-900"><CountUp value={f.total} format={(n) => money(n, cur)} /></div>
           </div>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-            <div className="text-[14px] font-medium text-gray-600">Pagó</div>
-            <div className="mt-0.5 text-[24px] font-semibold tabular-nums tracking-tight text-gray-900">{money(f.paid, cur)}</div>
+          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-card">
+            <div className="label-mono text-[12.5px] text-gray-600">Pagó</div>
+            <div className="num mt-1 text-[30px] tabular-nums leading-none text-gray-900"><CountUp value={f.paid} format={(n) => money(n, cur)} /></div>
           </div>
-          <div className={cls("rounded-xl border px-4 py-3", f.balance > 0 ? "border-red-200 bg-red-50 text-red-700" : "border-green-200 bg-green-50 text-green-700")}>
-            <div className="flex items-center gap-1.5 text-[14px] font-semibold">
+          <div className={cls("rounded-2xl border bg-gradient-to-br px-4 py-4 shadow-card", f.balance > 0 ? "border-red-200 from-red-50 to-red-100 text-red-700" : "border-green-200 from-green-50 to-green-100 text-green-700")}>
+            <div className="label-mono flex items-center gap-1.5 text-[12.5px] font-semibold">
               {f.balance <= 0 && <CheckCircle2 size={16} aria-hidden />}
               {f.balance > 0 ? "Debe" : f.balance < 0 ? "A favor del huésped" : "Está al día"}
             </div>
-            <div className="mt-0.5 text-[28px] font-bold tabular-nums leading-tight tracking-tight">{money(Math.abs(f.balance), cur)}</div>
+            <div className="num mt-1 text-[36px] tabular-nums leading-none"><CountUp value={Math.abs(f.balance)} format={(n) => money(n, cur)} /></div>
           </div>
+        </div>
+        {f.total > 0 && (
+          <div className="flex flex-wrap items-center gap-5 rounded-2xl border border-gray-200 bg-white p-4 shadow-card">
+            <Ring value={pctPaid} size={156} stroke={12} tone={f.balance > 0 ? "accent" : "green"} label={`Pagó el ${pctPaid}% de la cuenta. ${balanceText(f.balance, cur)}`}>
+              <span className="label-mono text-[12.5px] text-gray-600">{f.balance > 0 ? "Debe" : f.balance < 0 ? "A favor" : "Al día"}</span>
+              <span className="num text-[22px] leading-tight text-gray-900">{money(Math.abs(f.balance), cur)}</span>
+              <span className="text-[13.5px] text-gray-600">pagó el {pctPaid}%</span>
+            </Ring>
+            <div className="min-w-0 flex-1 basis-[220px]">
+              <div className="label-mono mb-2 text-[12.5px] text-gray-600">Con qué pagó</div>
+              {byMethod.length ? (
+                <ul className="flex flex-wrap gap-2">
+                  {byMethod.map(({ m, total }) => (
+                    <li key={m} className="inline-flex min-h-[40px] items-center gap-2 rounded-full bg-accent/10 px-3.5 py-1.5 text-[14.5px] font-medium text-gray-900 ring-1 ring-accent/20">
+                      <span className="text-accent"><MethodIcon method={m} /></span>
+                      {m} · <b className="tabular-nums">{money(total, cur)}</b>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[15px] text-gray-600">Todavía no pagó nada.</p>
+              )}
+            </div>
+          </div>
+        )}
+        <div>
+          <h4 className="label-mono mb-3 text-[12.5px] font-semibold text-gray-700">Qué pasó en la cuenta, día por día</h4>
+          <Timeline events={events} cur={cur} />
         </div>
         <div className="overflow-hidden rounded-xl border border-gray-200">
         <Table head={["Fecha", "Qué es", "Tipo", "Monto", ""]}>
@@ -332,7 +558,7 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
         </form>}
 
         <div>
-          <h4 className="mb-2 text-[15px] font-semibold text-gray-800">Pagos que hizo el huésped</h4>
+          <h4 className="label-mono mb-2 text-[12.5px] font-semibold text-gray-700">Pagos que hizo el huésped</h4>
           <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 text-[15px]">
             {f.payments.map((p) => (
               <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
@@ -341,7 +567,7 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
                   <span className="block text-[13.5px] text-gray-600">lo anotó {staffName(p.createdBy)}</span>
                 </span>
                 <span className="flex items-center gap-2">
-                  <b className="text-[17px] tabular-nums text-green-700">{money(p.amount, cur)}</b>
+                  <b className="num text-[20px] tabular-nums text-green-700">{money(p.amount, cur)}</b>
                   <button
                     className="inline-flex min-h-[44px] items-center gap-1 rounded-lg px-2.5 text-[14px] font-medium text-red-700 transition-colors duration-150 hover:bg-red-50 motion-reduce:transition-none sm:min-h-[40px]"
                     onClick={() =>
@@ -396,10 +622,12 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
 }
 
 function InvoiceModal({ invoice, onClose }: { invoice: Invoice | null; onClose: () => void }) {
-  const { data, staffName } = useApp();
+  const { data, idx, staffName } = useApp();
   const settings = data.settings[0];
   const cur = settings?.currency ?? "$";
   if (!invoice) return null;
+  const invRes = data.reservations.find((x) => x.id === invoice.reservationId);
+  const isPaid = !invoice.voided && !!invRes && folio(invRes, idx).balance <= 0;
   return (
     <Modal
       open
@@ -413,6 +641,15 @@ function InvoiceModal({ invoice, onClose }: { invoice: Invoice | null; onClose: 
         </>
       }
     >
+      <div className="rounded-md bg-white p-4 shadow-[0_10px_30px_rgba(0,0,0,0.18)] ring-1 ring-gray-200 sm:p-8">
+      <div className="no-print flex h-0 justify-end" aria-hidden>
+        <span className="-mr-4 -mt-4 block h-8 w-8 shrink-0 sm:-mr-8 sm:-mt-8" style={{ background: "linear-gradient(225deg, rgb(var(--panel)) 50%, rgb(var(--gray-300)) 50%)", boxShadow: "-2px 2px 4px rgba(0,0,0,0.15)" }} />
+      </div>
+      {isPaid && (
+        <div className="no-print pointer-events-none flex h-0 justify-end pr-4 sm:pr-10">
+          <span className="num relative z-10 mt-24 -rotate-12 rounded-md border-4 border-green-600 px-4 py-1 text-[34px] uppercase leading-none tracking-wider text-green-700 opacity-80">Pagado</span>
+        </div>
+      )}
       <div className="print-area text-[15px]">
         <div className="flex justify-between border-b border-gray-200 pb-4">
           <div>
@@ -451,6 +688,7 @@ function InvoiceModal({ invoice, onClose }: { invoice: Invoice | null; onClose: 
           <div className="flex justify-between border-t pt-1 text-base font-bold"><span>Total</span><span className="tabular-nums">{money(invoice.total, cur)}</span></div>
         </div>
         <p className="mt-6 text-[13.5px] text-gray-600">Hecha por {staffName(invoice.issuedBy)}. Este papel no vale como factura oficial (factura electrónica).</p>
+      </div>
       </div>
     </Modal>
   );

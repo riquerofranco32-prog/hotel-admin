@@ -5,16 +5,21 @@ import {
   BedDouble,
   Building2,
   Check,
+  Clock,
   Database,
+  FileText,
   History,
   Pencil,
+  Phone,
   Plus,
   RotateCcw,
   ShieldCheck,
   Trash2,
+  UserCheck,
   Users as UsersIcon,
 } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
+import { CountUp, Ring } from "@/components/viz";
 import {
   Avatar,
   Badge,
@@ -49,6 +54,11 @@ import { DEFAULT_SETTINGS } from "@/lib/seed";
 import type { Perm, Role, Room, RoomType, Settings, Staff } from "@/lib/types";
 
 const TOUCH = "min-h-[44px] sm:min-h-0";
+const STYLES = `
+@media (prefers-reduced-motion: no-preference){
+  @keyframes ad-tick{0%{transform:scale(0) rotate(-20deg)}60%{transform:scale(1.25) rotate(4deg)}100%{transform:scale(1) rotate(0)}}
+  .ad-tick{animation:ad-tick .3s cubic-bezier(.34,1.56,.64,1) both}
+}`;
 const TH = "whitespace-nowrap px-4 py-2.5";
 
 function TabLabel({
@@ -74,8 +84,11 @@ function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center gap-3 px-4 py-10 text-center text-[15px] text-gray-700">
-      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-        <Icon size={22} aria-hidden />
+      <span aria-hidden className="relative flex h-20 w-20 items-center justify-center">
+        <span className="absolute inset-0 rounded-full border-2 border-dashed border-gray-300 bg-gray-50" />
+        <span className="absolute -right-1 top-1 h-3 w-3 rounded-full bg-accent/30" />
+        <span className="absolute -left-1 bottom-2 h-2 w-2 rounded-full bg-gray-300" />
+        <Icon size={30} className="relative text-gray-500" />
       </span>
       <p className="max-w-md">{children}</p>
     </div>
@@ -83,15 +96,56 @@ function EmptyState({
 }
 
 export default function AdminPage() {
+  const { data } = useApp();
   const [tab, setTab] = useState<
     "usuarios" | "permisos" | "habitaciones" | "config" | "auditoria" | "datos"
   >("usuarios");
+  const activeStaff = data.staff.filter((s) => s.active).length;
+  const onlineStaff = data.staff.filter(
+    (s) => s.active && !!s.lastSeen && Date.now() - new Date(s.lastSeen).getTime() < 4 * 60_000,
+  ).length;
+  const onlinePct = activeStaff ? (onlineStaff / activeStaff) * 100 : 0;
   return (
-    <div className="space-y-5 p-4 lg:p-6">
-      <PageHeader
-        title="Administradores"
-        subtitle="Acá manejás a las personas que trabajan en el hotel, qué puede ver cada una, las habitaciones y los datos del hotel."
-      />
+    <div className="mx-auto max-w-[1400px] space-y-5 p-4 lg:p-6">
+      <style>{STYLES}</style>
+      <div className="aurora">
+        <PageHeader
+          title={<span className="serif-accent">Administradores</span>}
+          subtitle="Acá manejás a las personas que trabajan en el hotel, qué puede ver cada una, las habitaciones y los datos del hotel."
+        />
+        <div className="stagger grid grid-cols-1 gap-4 min-[560px]:grid-cols-3">
+          <div className="hero-card flex items-center justify-between gap-3 rounded-2xl p-5">
+            <div>
+              <div className="flex items-center gap-2 text-[15px] font-medium opacity-90">
+                <UsersIcon size={18} aria-hidden /> Personas activas
+              </div>
+              <div className="num mt-2 text-[48px] leading-none">
+                <CountUp value={activeStaff} />
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
+            <Ring value={onlinePct} size={72} stroke={8} tone="green" label={`${onlineStaff} conectadas ahora`}>
+              <span className="num text-[20px]">{onlineStaff}</span>
+            </Ring>
+            <div>
+              <div className="label-mono flex items-center gap-2 text-[12.5px] text-gray-600">
+                <span className={cls("h-2.5 w-2.5 rounded-full bg-green-500", onlineStaff > 0 && "pulse-dot")} aria-hidden /> Conectadas ahora
+              </div>
+              <div className="mt-1 text-[14px] text-gray-700">de {activeStaff} personas activas</div>
+            </div>
+          </div>
+          <div className="lift rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent ring-1 ring-accent/20">
+              <BedDouble size={20} aria-hidden />
+            </span>
+            <div className="label-mono mt-3 text-[12.5px] text-gray-600">Habitaciones</div>
+            <div className="num mt-1 text-[30px] leading-none text-gray-900">
+              <CountUp value={data.rooms.length} />
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="-mx-4 overflow-x-auto px-4 pb-1 lg:mx-0 lg:px-0">
         <Tabs
           value={tab}
@@ -186,7 +240,7 @@ function Users() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="stagger grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {ALL_ROLES.map((r) => {
           const selected = roleFilter === r;
           return (
@@ -195,17 +249,17 @@ function Users() {
               onClick={() => setRoleFilter(selected ? "" : r)}
               aria-pressed={selected}
               className={cls(
-                "flex min-h-[72px] items-center justify-between gap-3 rounded-xl border bg-white px-4 py-3 text-left shadow-card outline-none transition duration-150 focus-visible:ring-[3px] focus-visible:ring-accent/30 motion-reduce:transition-none",
+                "lift flex min-h-[80px] items-center justify-between gap-3 rounded-2xl border bg-white px-4 py-3.5 text-left shadow-card outline-none focus-visible:ring-[3px] focus-visible:ring-accent/30",
                 selected
-                  ? "border-accent ring-1 ring-accent"
-                  : "border-gray-200 hover:border-gray-300",
+                  ? "border-accent bg-accent/5 ring-1 ring-accent"
+                  : "border-gray-200",
               )}
             >
               <span className="min-w-0">
-                <span className="block text-[14px] font-medium leading-snug text-gray-700">
+                <span className="label-mono block text-[12px] leading-snug text-gray-600">
                   {ROLE_LABEL[r]}
                 </span>
-                <span className="block text-2xl font-semibold tabular-nums leading-tight">
+                <span className="num mt-1 block text-[32px] tabular-nums leading-none">
                   {data.staff.filter((s) => s.role === r && s.active).length}
                 </span>
               </span>
@@ -229,94 +283,66 @@ function Users() {
           </Button>
         }
       >
-        <Table
-          head={[
-            "Persona",
-            "Cargo",
-            "Teléfono",
-            "Tareas sin terminar",
-            "Tareas hechas",
-            "Última vez que entró",
-            "Estado",
-            "",
-          ]}
-        >
-          {list.map((s) => (
-            <tr
-              key={s.id}
-              className="transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none"
-            >
-              <td className="px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <span className="relative shrink-0">
-                    <Avatar name={s.name} size={36} />
-                    {isOnline(s) && (
-                      <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
-                    )}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="whitespace-nowrap font-medium">
-                      {s.name}{" "}
-                      {s.id === me?.id && (
-                        <span className="text-[14px] font-normal text-gray-600">
-                          (vos)
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[14px] text-gray-600">{s.email}</div>
-                  </div>
-                </div>
-              </td>
-              <td className="px-4 py-3">
-                <Badge
-                  className={cls(ROLE_COLOR[s.role], "px-2.5 py-1 text-[13.5px]")}
-                >
-                  {ROLE_LABEL[s.role]}
-                </Badge>
-              </td>
-              <td className="whitespace-nowrap px-4 py-3">{s.phone ?? "—"}</td>
-              <td className="px-4 py-3 tabular-nums">{open.get(s.id) ?? 0}</td>
-              <td className="px-4 py-3 tabular-nums">{done.get(s.id) ?? 0}</td>
-              <td className="whitespace-nowrap px-4 py-3 text-[14px] text-gray-700">
-                {isOnline(s) ? (
-                  <span className="font-medium text-green-700">
-                    Conectado ahora
-                  </span>
-                ) : s.lastSeen ? (
-                  fmtTimeAgo(s.lastSeen)
-                ) : (
-                  "Nunca"
-                )}
-              </td>
-              <td className="px-4 py-3">
-                <span
-                  className={cls(
-                    "inline-flex items-center gap-2 whitespace-nowrap text-[14px] font-medium",
-                    s.active ? "text-green-700" : "text-gray-700",
-                  )}
-                >
-                  <span
-                    className={cls(
-                      "h-2.5 w-2.5 rounded-full",
-                      s.active ? "bg-green-500" : "bg-gray-400",
-                    )}
-                    aria-hidden
-                  />
-                  {s.active ? "Activo" : "Dado de baja"}
-                </span>
-              </td>
-              <td className="px-4 py-3 text-right">
-                <Button
-                  variant="ghost"
-                  className={TOUCH}
-                  onClick={() => setEdit(s)}
-                >
-                  <Pencil size={15} aria-hidden /> Editar datos
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </Table>
+        <div className="space-y-6 p-3 sm:p-4">
+          {ALL_ROLES.map((role) => {
+            const group = list.filter((x) => x.role === role);
+            if (!group.length) return null;
+            return (
+              <section key={role} aria-label={ROLE_LABEL[role]}>
+                <h3 className="mb-3 flex items-center gap-2.5">
+                  <Badge className={cls(ROLE_COLOR[role], "px-3 py-1 text-[14px]")}>{ROLE_LABEL[role]}</Badge>
+                  <span className="num text-[18px] tabular-nums text-gray-700">{group.length}</span>
+                  <span aria-hidden className="h-px flex-1 bg-gray-200" />
+                </h3>
+                <ul className="stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {group.map((s) => {
+                    const online = isOnline(s);
+                    return (
+                      <li key={s.id} className={cls("lift flex flex-col rounded-2xl border border-gray-200 bg-white p-4 shadow-card", !s.active && "opacity-70 grayscale")}>
+                        <div className="flex items-center gap-4">
+                          <span className="relative shrink-0" title={online ? "Conectado ahora" : undefined}>
+                            <span className={cls("block rounded-full p-1 ring-[3px]", online ? "ring-green-500" : "ring-gray-300")}>
+                              <Avatar name={s.name} size={64} />
+                            </span>
+                            {online && <span aria-hidden className="pulse-dot absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-white bg-green-500" />}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="break-words text-[17px] font-semibold leading-snug text-gray-900">
+                              {s.name}{" "}
+                              {s.id === me?.id && <span className="text-[14px] font-normal text-gray-600">(vos)</span>}
+                            </div>
+                            <Badge className={cls(ROLE_COLOR[s.role], "mt-1 px-2.5 py-0.5 text-[13px]")}>{ROLE_LABEL[s.role]}</Badge>
+                          </div>
+                        </div>
+                        <dl className="mt-3.5 space-y-1.5 text-[14.5px] text-gray-700">
+                          <div className="flex items-center gap-2"><Phone size={15} className="shrink-0 text-gray-500" aria-hidden /><dt className="sr-only">Teléfono</dt><dd className="min-w-0 break-all">{s.phone ?? "Sin teléfono"}</dd></div>
+                          <div className="flex items-center gap-2">
+                            <Clock size={15} className="shrink-0 text-gray-500" aria-hidden />
+                            <dt className="sr-only">Última vez que entró</dt>
+                            <dd className={online ? "font-medium text-green-700" : undefined}>{online ? "Conectado ahora" : s.lastSeen ? `Entró ${fmtTimeAgo(s.lastSeen)}` : "Nunca entró"}</dd>
+                          </div>
+                        </dl>
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+                          <div className="rounded-xl bg-gray-50 px-2 py-2 ring-1 ring-gray-200"><div className="num text-[22px] leading-none tabular-nums">{open.get(s.id) ?? 0}</div><div className="mt-1 text-[13px] text-gray-600">sin terminar</div></div>
+                          <div className="rounded-xl bg-gray-50 px-2 py-2 ring-1 ring-gray-200"><div className="num text-[22px] leading-none tabular-nums">{done.get(s.id) ?? 0}</div><div className="mt-1 text-[13px] text-gray-600">hechas</div></div>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between gap-2">
+                          <span className={cls("inline-flex items-center gap-2 text-[14px] font-medium", s.active ? "text-green-700" : "text-gray-700")}>
+                            <span className={cls("h-2.5 w-2.5 rounded-full", s.active ? "bg-green-500" : "bg-gray-400")} aria-hidden />
+                            {s.active ? "Activo" : "Dado de baja"}
+                          </span>
+                          <Button variant="ghost" className={TOUCH} onClick={() => setEdit(s)}>
+                            <Pencil size={15} aria-hidden /> Editar datos
+                          </Button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
         {list.length === 0 && (
           <EmptyState icon={UsersIcon}>
             No hay personas con ese cargo. Tocá el mismo cargo de arriba otra
@@ -448,6 +474,7 @@ function Permissions() {
   const settings = data.settings[0] ?? DEFAULT_SETTINGS;
   const roles = ALL_ROLES.filter((r) => r !== "admin");
   const perms = Object.keys(PERM_INFO) as Perm[];
+  const [hovCol, setHovCol] = useState<Role | null>(null);
 
   async function toggle(role: Role, p: Perm) {
     const cur = permsFor(role, settings);
@@ -472,10 +499,10 @@ function Permissions() {
 
   return (
     <Card title="Qué puede ver y hacer cada cargo" className="overflow-hidden">
-      <div className="m-4 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3.5 text-[15px] leading-relaxed text-blue-900">
-        <ShieldCheck size={20} className="mt-0.5 shrink-0" aria-hidden />
+      <div className="m-4 flex items-start gap-3 rounded-xl border border-accent/30 bg-accent/5 px-4 py-3.5 text-[15px] leading-relaxed text-gray-800">
+        <ShieldCheck size={20} className="mt-0.5 shrink-0 text-accent" aria-hidden />
         <p>
-          <b>Cómo usarlo:</b> cada columna es un cargo. Tocá una casilla para{" "}
+          <b className="label-mono text-[12.5px] text-accent">Cómo usarlo:</b> cada columna es un cargo. Tocá una casilla para{" "}
           <b>darle</b> (tildada) o <b>sacarle</b> (sin tilde) ese permiso a
           todos los que tienen ese cargo. El cambio vale al instante. Si algo
           sale mal, tocá “Volver a lo de siempre” abajo del nombre del cargo.
@@ -484,7 +511,7 @@ function Permissions() {
       <div className="max-h-[70vh] overflow-auto border-t border-gray-100">
         <table className="w-full border-separate border-spacing-0 text-[15px]">
           <thead>
-            <tr className="text-[14px] text-gray-800">
+            <tr className="label-mono text-[12.5px] text-gray-700">
               <th className="sticky left-0 top-0 z-30 min-w-[180px] border-b border-gray-200 bg-gray-50 px-4 py-3 text-left font-semibold">
                 Qué puede hacer
               </th>
@@ -494,13 +521,15 @@ function Permissions() {
               {roles.map((r) => (
                 <th
                   key={r}
-                  className="sticky top-0 z-20 min-w-[116px] border-b border-gray-200 bg-gray-50 px-3 py-3 text-center font-semibold"
+                  onMouseEnter={() => setHovCol(r)}
+                  onMouseLeave={() => setHovCol(null)}
+                  className={cls("sticky top-0 z-20 min-w-[136px] border-b border-gray-200 px-3 py-3 text-center font-semibold transition-colors motion-reduce:transition-none", hovCol === r ? "bg-accent/10 text-accent" : "bg-gray-50")}
                 >
                   <div>{ROLE_LABEL[r]}</div>
                   {settings.permissions?.[r] && (
                     <button
                       onClick={() => reset(r)}
-                      className="mx-auto mt-1 inline-flex min-h-[32px] items-center gap-1 rounded-md px-1.5 text-[13.5px] font-normal leading-tight text-blue-700 hover:bg-blue-50 hover:underline"
+                      className="mx-auto mt-1 inline-flex min-h-[44px] items-center gap-1 rounded-md px-1.5 text-[13.5px] font-normal normal-case leading-tight tracking-normal text-blue-700 hover:bg-blue-50 hover:underline"
                     >
                       <RotateCcw size={12} className="shrink-0" /> Volver a lo
                       de siempre
@@ -518,7 +547,7 @@ function Permissions() {
                     colSpan={roles.length + 2}
                     className="border-b border-gray-200 bg-gray-100 p-0"
                   >
-                    <div className="sticky left-0 w-fit px-4 py-2 text-[14px] font-semibold text-gray-800">
+                    <div className="label-mono sticky left-0 w-fit px-4 py-2 text-[12.5px] font-semibold text-gray-700">
                       {g === "Secciones"
                         ? "Pantallas que puede ver"
                         : "Cosas que puede hacer"}
@@ -543,8 +572,11 @@ function Permissions() {
                         return (
                           <td
                             key={r}
+                            onMouseEnter={() => setHovCol(r)}
+                            onMouseLeave={() => setHovCol(null)}
                             className={cls(
-                              "border-b border-gray-100 p-0 text-center transition-colors group-hover:bg-gray-50",
+                              "border-b border-gray-100 p-0 text-center transition-colors motion-reduce:transition-none group-hover:bg-gray-50",
+                              hovCol === r && "bg-accent/5",
                               changed && "bg-amber-50",
                             )}
                           >
@@ -555,13 +587,21 @@ function Permissions() {
                                   checked={on}
                                   onChange={() => toggle(r, p)}
                                   aria-label={`${ROLE_LABEL[r]}: ${PERM_INFO[p].label}`}
-                                  className={cls(
-                                    "h-6 w-6 cursor-pointer",
-                                    changed
-                                      ? "accent-amber-500"
-                                      : "accent-green-600",
-                                  )}
+                                  className="peer sr-only"
                                 />
+                                <span
+                                  aria-hidden
+                                  className={cls(
+                                    "flex h-7 w-7 items-center justify-center rounded-lg border-2 transition-colors duration-150 peer-focus-visible:ring-[3px] peer-focus-visible:ring-accent/40 motion-reduce:transition-none",
+                                    on
+                                      ? changed
+                                        ? "border-amber-500 bg-amber-500 text-white"
+                                        : "border-green-600 bg-green-600 text-white"
+                                      : "border-gray-400 bg-white",
+                                  )}
+                                >
+                                  {on && <Check key={String(on)} size={18} strokeWidth={3} className="ad-tick" />}
+                                </span>
                               </label>
                             ) : (
                               <span
@@ -654,7 +694,7 @@ function Rooms() {
                 className="transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none"
               >
                 <td className="px-4 py-2.5">
-                  <span className="inline-flex min-w-[48px] items-center justify-center rounded-lg bg-gray-100 px-2.5 py-1 text-[15px] font-semibold tabular-nums">
+                  <span className="num inline-flex min-w-[48px] items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-[16px] tabular-nums">
                     {r.number}
                   </span>
                 </td>
@@ -995,7 +1035,32 @@ function DataTab() {
       setBusy(false);
     }
   }
+  const health: [string, number, React.ElementType][] = [
+    ["habitaciones", data.rooms.length, BedDouble],
+    ["reservas", data.reservations.length, FileText],
+    ["huéspedes", data.guests.length, UserCheck],
+  ];
   return (
+    <div className="space-y-4">
+    <div
+      className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-card sm:flex-row sm:items-center"
+      role="group"
+      aria-label={`Datos guardados: ${health.map(([k, v]) => `${v} ${k}`).join(", ")}`}
+    >
+      <div className="flex items-center gap-2.5 sm:w-[180px]">
+        <span aria-hidden className={cls("h-3 w-3 rounded-full", data.rooms.length ? "pulse-dot bg-green-500" : "bg-amber-500")} />
+        <span className="text-[15px] font-semibold text-gray-900">{data.rooms.length ? "Datos cargados" : "Faltan cargar datos"}</span>
+      </div>
+      <ul className="grid flex-1 grid-cols-3 gap-2">
+        {health.map(([k, v, HIcon]) => (
+          <li key={k} className="rounded-xl bg-gray-50 px-3 py-2.5 ring-1 ring-gray-200">
+            <HIcon size={16} className="text-accent" aria-hidden />
+            <div className="num mt-1 text-[28px] leading-none tabular-nums"><CountUp value={v} /></div>
+            <div className="mt-1 text-[13.5px] text-gray-600">{k}</div>
+          </li>
+        ))}
+      </ul>
+    </div>
     <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
       <Card
         title={
@@ -1038,16 +1103,16 @@ function DataTab() {
               explicado en el README).
             </p>
           )}
-          <ul className="grid grid-cols-2 gap-2">
+          <ul className="stagger grid grid-cols-2 gap-2">
             {counts.map(([k, v]) => (
               <li
                 key={k}
-                className="flex flex-col rounded-xl bg-gray-50 px-3 py-2.5"
+                className="flex flex-col gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3"
               >
-                <b className="text-xl font-semibold tabular-nums leading-tight">
-                  {v}
+                <b className="num text-[26px] tabular-nums leading-none">
+                  <CountUp value={v} />
                 </b>
-                <span className="text-[14px] leading-snug text-gray-700">
+                <span className="label-mono text-[12px] leading-snug text-gray-600">
                   {k}
                 </span>
               </li>
@@ -1079,11 +1144,25 @@ function DataTab() {
                 mensajes de ejemplo. Sirve para probar el sistema.
               </p>
             </div>
-            <div className="rounded-xl border-2 border-red-200 bg-red-50 p-4">
-              <Button
+          </div>
+        </Card>
+      <div
+        className="rounded-2xl p-[3px]"
+        style={{ backgroundImage: "repeating-linear-gradient(-45deg, #dc2626 0 12px, #fca5a5 12px 24px)" }}
+      >
+      <div className="rounded-[13px] bg-gradient-to-br from-red-50 to-red-100 p-4 sm:p-5">
+        <div className="label-mono mb-3 flex items-center gap-2 text-[12.5px] font-semibold text-red-700">
+          <AlertTriangle size={16} aria-hidden /> Zona peligrosa
+        </div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <p className="min-w-0 flex-1 text-[14px] leading-relaxed text-gray-800">
+                Borra habitaciones, reservas, tareas, etc. Después cargá tus
+                habitaciones reales en la pestaña “Habitaciones”.
+              </p>
+        <Button
                 variant="danger"
                 disabled={busy}
-                className={cn(TOUCH, "w-full sm:w-auto")}
+                className={cn(TOUCH, "w-full shrink-0 sm:w-auto")}
                 onClick={() =>
                   prompt(
                     "Esto borra TODO: habitaciones, reservas, tareas, cobros y demás (las personas se quedan). No se puede deshacer. Si estás seguro, escribí BORRAR (con mayúsculas):",
@@ -1097,14 +1176,11 @@ function DataTab() {
                 <AlertTriangle size={16} aria-hidden /> Borrar todo y empezar de
                 cero
               </Button>
-              <p className="mt-2 text-[14px] leading-relaxed text-gray-700">
-                Borra habitaciones, reservas, tareas, etc. Después cargá tus
-                habitaciones reales en la pestaña “Habitaciones”.
-              </p>
-            </div>
-          </div>
-        </Card>
+        </div>
       </div>
+      </div>
+      </div>
+    </div>
     </div>
   );
 }
