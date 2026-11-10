@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -28,7 +29,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { useApp } from "./AppProvider";
-import { AccentPicker, Avatar, Empty, HotelLoader, Kbd, ThemeToggle, toast } from "./ui";
+import { Avatar, Empty, HotelLoader, Kbd, ThemeToggle, toast } from "./ui";
 import { alerts, planAutomations, planSize } from "@/lib/automation";
 import { fmtDate, today } from "@/lib/dates";
 import { automationOf, cls, ROLE_LABEL } from "@/lib/logic";
@@ -282,11 +283,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     <div className="flex h-full flex-col border-r border-gray-200/80 bg-panel">
       <div className="flex h-16 shrink-0 items-center justify-between gap-2 px-4">
         {!collapsed && (
-          <Link href={home} className="flex min-w-0 items-center gap-2">
-            <span className="logo-grad flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-accent-fg">
-              <BedDouble size={18} />
-            </span>
-            <span className="display line-clamp-2 text-[12.5px] leading-[1.05] text-fg" style={{ fontVariationSettings: '"wdth" 100' }}>{hotelName}</span>
+          <Link href={home} className="flex min-w-0 items-center" aria-label={hotelName}>
+            <Image src="/logo-al-mare.png" alt={hotelName} width={373} height={128} priority className="h-12 w-auto" />
           </Link>
         )}
         <button
@@ -401,7 +399,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
             <LiveClock />
-            <AccentPicker />
             <ThemeToggle />
             <span
               className="hidden items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-[13px] font-semibold text-green-700 md:flex"
