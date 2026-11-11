@@ -136,6 +136,21 @@ function Greeting() {
   );
 }
 
+/** Logo del hotel (public/logo-al-mare.png). Si el archivo no está, muestra ícono + nombre. */
+function HotelLogo({ name }: { name: string }) {
+  const [ok, setOk] = useState(true);
+  if (ok)
+    return <Image src="/logo-al-mare.png" alt={name} width={373} height={128} priority className="h-12 w-auto" onError={() => setOk(false)} unoptimized />;
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <span className="logo-grad flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-accent-fg">
+        <BedDouble size={18} />
+      </span>
+      <span className="display line-clamp-2 text-[12.5px] leading-[1.05] text-fg">{name}</span>
+    </span>
+  );
+}
+
 export function permForPath(path: string): Perm {
   const n = ALL_NAV.filter((x) => x.href !== "/").find((x) => path === x.href || path.startsWith(x.href + "/"));
   return n?.perm ?? "dashboard";
@@ -284,7 +299,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       <div className="flex h-16 shrink-0 items-center justify-between gap-2 px-4">
         {!collapsed && (
           <Link href={home} className="flex min-w-0 items-center" aria-label={hotelName}>
-            <Image src="/logo-al-mare.png" alt={hotelName} width={373} height={128} priority className="h-12 w-auto" />
+            <HotelLogo name={hotelName} />
           </Link>
         )}
         <button

@@ -146,7 +146,7 @@ export default function LoginPage() {
 
       {/* Formulario */}
       <div className="relative flex items-center justify-center px-4 py-8 sm:p-8 lg:border-l lg:border-gray-200/60 lg:bg-panel/40 lg:backdrop-blur-[2px]">
-        <div className="ui-pop relative w-full max-w-md overflow-hidden rounded-2xl border border-gray-200/80 bg-panel p-6 shadow-pop before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-accent before:to-transparent sm:p-8">
+        <div className="ui-pop relative w-full max-w-lg overflow-hidden rounded-2xl border border-gray-200/80 bg-panel p-6 shadow-pop before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-accent before:to-transparent sm:p-8">
           <div className="mb-6 flex items-center gap-2.5 border-b border-gray-200/70 pb-5 lg:hidden">
             <span className="logo-grad flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-accent-fg">
               <BedDouble size={20} aria-hidden />
