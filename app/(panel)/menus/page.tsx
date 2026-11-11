@@ -272,7 +272,7 @@ export default function MenusPage() {
             </div>
             {active > 0 && (
               <span
-                className="pulse-dot h-3 w-3 rounded-full bg-white"
+                className="pulse-dot h-3 w-3 shrink-0 rounded-full bg-accent-fg"
                 aria-hidden
               />
             )}
@@ -691,7 +691,7 @@ function Orders() {
           </div>
         </div>
         {live && (
-          <div className="mt-3 grid grid-cols-1 gap-2">
+          <div className="mt-3 grid grid-cols-1 gap-2 border-t border-gray-200/70 pt-3">
             {o.status === "pendiente" && (
               <Button
                 className={TOUCH_BTN}
@@ -709,7 +709,7 @@ function Orders() {
             </Button>
             <Button
               variant="ghost"
-              className={TOUCH_BTN}
+              className="text-red-700 hover:bg-red-50 hover:text-red-700"
               onClick={() =>
                 confirm(
                   "¿Cancelar este pedido? Se saca el cobro de la cuenta del huésped.",
@@ -976,7 +976,7 @@ function Orders() {
           <span className="text-[15px] font-semibold">
             {itemCount} {itemCount === 1 ? "producto" : "productos"}
           </span>
-          <span className="num whitespace-nowrap border-l border-current/30 pl-3 text-[20px] tabular-nums">
+          <span className="num whitespace-nowrap border-l border-accent-fg/30 pl-3 text-[20px] tabular-nums">
             {money(total, cur)}
           </span>
         </button>
