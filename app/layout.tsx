@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 // Aplica el tema guardado (o el del sistema) antes de pintar, así no hay parpadeo.
-const THEME_SCRIPT = `try{var t=localStorage.getItem("hotel-theme");if(t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("dark");var a=localStorage.getItem("hotel-accent");if(a&&/^[a-z]+$/.test(a))document.documentElement.dataset.accent=a}catch(e){}`;
+const THEME_SCRIPT = `try{var t=localStorage.getItem("hotel-theme");if(t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("dark");localStorage.removeItem("hotel-accent")}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
