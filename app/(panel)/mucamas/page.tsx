@@ -1,16 +1,16 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { BedDouble, BellRing, CheckCircle2, DoorOpen, LayoutGrid, List, ListChecks, Sparkles, User, Wand2 } from "lucide-react";
+import { BedDouble, BellRing, ChevronRight, DoorOpen, LayoutGrid, List, ListChecks, LogIn, Sparkles, User, Wand2 } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { TaskDrawer } from "@/components/tasks";
-import { Avatar, Badge, Button, Modal, Select, toast } from "@/components/ui";
+import { Avatar, Badge, Button, Card, Empty, Modal, Select, toast } from "@/components/ui";
 import { CountUp, Ring } from "@/components/viz";
 import { sheetsInfo } from "@/lib/automation";
 import { fmtDate, today } from "@/lib/dates";
 import { automationOf, cls, ROOM_STATE_DOT, ROOM_STATE_LABEL, TASK_TYPE_LABEL } from "@/lib/logic";
 import type { Reservation, Room, Task } from "@/lib/types";
-import { ConfettiLayer, EmptyArt, fireConfetti, TaskIcon, vibrate } from "@/components/TaskIcon";
+import { ConfettiLayer, fireConfetti, TaskIcon, vibrate } from "@/components/TaskIcon";
 
 type HkType = "servicio" | "fondo" | "repaso";
 const TAREAS: { valor: HkType; etiqueta: string; ayuda: string }[] = [
@@ -225,15 +225,15 @@ export default function MucamasPage() {
               {`${new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })} · quién limpia cada habitación hoy`}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             {permiso === "default" && (
-              <Button onClick={activarAvisos}>
+              <Button className="w-full sm:w-auto" onClick={activarAvisos}>
                 <BellRing size={16} /> Activar avisos en este aparato
               </Button>
             )}
-            {permiso === "denied" && <span className="text-[14px] text-gray-600">Los avisos están bloqueados. Se activan desde la configuración del navegador.</span>}
+            {permiso === "denied" && <span className="max-w-xs text-[14px] leading-snug text-gray-600">Los avisos están bloqueados. Se activan desde la configuración del navegador.</span>}
             {puedeAsignar && (
-              <Button variant="primary" onClick={planAutomatico}>
+              <Button variant="primary" className="w-full sm:w-auto" onClick={planAutomatico}>
                 <Wand2 size={16} /> Repartir el día automáticamente
               </Button>
             )}
@@ -248,28 +248,30 @@ export default function MucamasPage() {
               <ListChecks size={22} className="text-green-700" aria-hidden />
             </Ring>
             <div className="min-w-0">
-              <div className="num text-[30px] leading-none">
-                <CountUp value={resumen.hechas} /> de {resumen.conTarea}
+              <div className="num whitespace-nowrap text-[30px] leading-none tabular-nums text-fg">
+                <CountUp value={resumen.hechas} /> <span className="text-[20px] text-gray-600">de {resumen.conTarea}</span>
               </div>
-              <div className="label-mono mt-1.5 text-[12.5px] text-gray-600">Limpiezas hechas hoy</div>
+              <div className="label-mono mt-1.5 text-[12.5px] leading-snug text-gray-600">Limpiezas hechas hoy</div>
             </div>
           </div>
           <Pulse icon={Sparkles} label="Sábanas por cambiar" value={resumen.sabanas.length} sub={`cada ${cfg.sabanasCadaDias} días en habitaciones con gente`} />
-          <Pulse icon={CheckCircle2} label="Llegan hoy" value={resumen.llegan} />
+          <Pulse icon={LogIn} label="Llegan hoy" value={resumen.llegan} />
         </div>
       </header>
 
       {resumen.sabanas.length > 0 && (
-        <div className="flex gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3.5 text-[15px] text-amber-900" role="status">
-          <Sparkles size={20} className="mt-0.5 shrink-0" aria-hidden />
-          <div>
-            <b>Cambio de sábanas hoy:</b> {resumen.sabanas.map((r) => r.room.number).join(", ")}{" "}
+        <div className="flex gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3.5 text-[15px] leading-relaxed text-amber-900 shadow-card" role="status">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-700">
+            <Sparkles size={20} aria-hidden />
+          </span>
+          <div className="min-w-0 self-center">
+            <b className="font-semibold">Cambio de sábanas hoy:</b> <span className="font-semibold tabular-nums">{resumen.sabanas.map((r) => r.room.number).join(", ")}</span>{" "}
             <span className="opacity-90">
               (se cambian cada {cfg.sabanasCadaDias} días en habitaciones con gente
               {can("automatizaciones") && (
                 <>
                   {" · "}
-                  <Link href="/automatizaciones" className="font-medium underline">
+                  <Link href="/automatizaciones" className="rounded font-medium underline underline-offset-2 hover:no-underline">
                     cambiar cada cuánto
                   </Link>
                 </>
@@ -282,20 +284,20 @@ export default function MucamasPage() {
 
       {puedeAsignar && (
         <>
-          <div className="stagger grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3">
             {resumen.equipo.map((m) => (
               <div key={m.id} className="lift flex items-center gap-3 rounded-2xl border border-gray-200/80 bg-panel p-3.5 shadow-card">
                 <Ring value={m.total ? (m.hechas / m.total) * 100 : 0} size={62} stroke={6} tone={m.total && m.hechas === m.total ? "green" : "accent"} label={`${m.name}: ${m.hechas} de ${m.total} hechas`}>
                   <Avatar name={m.name} size={38} />
                 </Ring>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[15px] font-semibold">{m.name}</div>
-                  <div className="mb-1.5 text-[14px] text-gray-600">
+                  <div className="truncate text-[15px] font-semibold text-fg" title={m.name}>{m.name}</div>
+                  <div className="mb-2 truncate text-[14px] tabular-nums text-gray-600">
                     {m.hechas} de {m.total} hechas{m.otras ? ` · y ${m.otras} tareas más` : ""}
                   </div>
                   <div className="flex items-center gap-2" title={`Carga: ${m.total + m.otras} tareas`}>
-                    <span className="label-mono text-[12.5px] text-gray-600">Carga</span>
-                    <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-gray-100">
+                    <span className="label-mono text-[12px] text-gray-600">Carga</span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200/70">
                       <div
                         className={cls("h-full rounded-full transition-all duration-500 motion-reduce:transition-none", m.total + m.otras >= cargaMax && cargaMax > 0 ? "bg-amber-500" : "bg-accent")}
                         style={{ width: `${cargaMax ? ((m.total + m.otras) / cargaMax) * 100 : 0}%` }}
@@ -305,20 +307,20 @@ export default function MucamasPage() {
                 </div>
               </div>
             ))}
-            {!mucamas.length && <p className="text-[15px] text-gray-600">No hay mucamas cargadas. Agregalas en Administradores.</p>}
+            {!mucamas.length && <p className="col-span-full rounded-2xl border border-dashed border-gray-300 px-4 py-5 text-center text-[15px] text-gray-600">No hay mucamas cargadas. Agregalas en Administradores.</p>}
           </div>
-          <div className={cls("glass sticky top-[4.5rem] z-10 rounded-2xl border p-4 shadow-pop transition-colors duration-200 motion-reduce:transition-none", sel.length ? "border-accent/50" : "border-accent/30")}>
-            <div className="mb-3 flex items-start gap-2.5 text-[15px] font-semibold">
+          <div className={cls("glass top-[4.5rem] z-10 rounded-2xl border p-3.5 transition-colors duration-200 motion-reduce:transition-none sm:p-4", sel.length ? "sticky border-accent/60 shadow-pop" : "border-gray-200/80 shadow-card lg:sticky")}>
+            <div className={cls("mb-3 flex items-start gap-2.5 text-[15px] leading-snug", sel.length ? "font-semibold text-fg" : "text-gray-700")}>
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
                 <ListChecks size={20} aria-hidden />
               </span>
-              <span className="pt-1.5">{sel.length === 0 ? "Tildá las habitaciones de abajo, elegí la tarea y la mucama, y tocá Asignar." : sel.length === 1 ? "Elegiste 1 habitación" : `Elegiste ${sel.length} habitaciones`}</span>
+              <span className="min-w-0 self-center">{sel.length === 0 ? "Tildá las habitaciones de abajo, elegí la tarea y la mucama, y tocá Asignar." : sel.length === 1 ? "Elegiste 1 habitación" : `Elegiste ${sel.length} habitaciones`}</span>
             </div>
             {vistaPrevia.length > 0 && (
-              <p className="mb-3 flex flex-wrap items-center gap-x-1 gap-y-1.5 text-[15px] text-gray-700">
-                <span className="font-medium">Así quedaría el reparto:</span>
+              <p className="mb-3 flex flex-wrap items-center gap-1.5 text-[14px] text-gray-700">
+                <span className="mr-0.5 font-medium">Así quedaría el reparto:</span>
                 {vistaPrevia.map((v) => (
-                  <span key={v.id} className={cls("rounded-full px-2.5 py-0.5 font-semibold tabular-nums", v.id === bulkMucama ? "bg-accent text-accent-fg" : "bg-gray-100 text-gray-800")}>
+                  <span key={v.id} className={cls("rounded-full px-2.5 py-0.5 font-semibold tabular-nums ring-1 ring-inset", v.id === bulkMucama ? "bg-accent text-accent-fg ring-transparent" : "bg-gray-100 text-gray-800 ring-gray-200")}>
                     {v.nombre} {v.n}
                   </span>
                 ))}
@@ -353,7 +355,7 @@ export default function MucamasPage() {
         </>
       )}
 
-      <div role="group" aria-label="Cómo ver las habitaciones" className="grid w-full grid-cols-2 gap-1 rounded-2xl border border-gray-200 bg-[rgb(var(--well))] p-1 sm:inline-grid sm:w-auto">
+      <div role="group" aria-label="Cómo ver las habitaciones" className="grid w-full grid-cols-2 gap-1 rounded-xl border border-gray-200 bg-[rgb(var(--well))] p-1 sm:inline-grid sm:w-auto">
         {(
           [
             { v: "lista", t: "Lista", Icon: List },
@@ -365,8 +367,8 @@ export default function MucamasPage() {
             aria-pressed={vista === v}
             onClick={() => elegirVista(v)}
             className={cls(
-              "flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-4 text-[15px] font-semibold transition-all duration-200 motion-reduce:transition-none",
-              vista === v ? "bg-accent text-accent-fg shadow-card" : "text-gray-700 hover:bg-panel/70",
+              "flex min-h-[44px] items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 text-[15px] transition-all duration-200 motion-reduce:transition-none sm:min-h-10",
+              vista === v ? "bg-panel font-semibold text-accent shadow-card ring-1 ring-inset ring-accent/30" : "font-medium text-gray-600 hover:bg-panel/60 hover:text-fg",
             )}
           >
             <Icon size={18} aria-hidden /> {txt}
@@ -374,15 +376,15 @@ export default function MucamasPage() {
         ))}
       </div>
 
-      <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0" aria-label="Filtrar habitaciones">
+      <nav className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0" aria-label="Filtrar habitaciones">
         {filtros.map((f) => (
           <button
             key={f.valor}
             aria-pressed={filtro === f.valor}
             onClick={() => setFiltro(f.valor)}
             className={cls(
-              "min-h-[44px] shrink-0 whitespace-nowrap rounded-full border px-4 text-[15px] font-medium transition-colors duration-150 motion-reduce:transition-none",
-              filtro === f.valor ? "border-accent bg-accent text-accent-fg font-semibold shadow-card" : "border-gray-200 bg-panel text-gray-700 hover:border-gray-300 hover:bg-gray-50",
+              "min-h-[44px] shrink-0 whitespace-nowrap rounded-full border px-4 text-[15px] tabular-nums transition-colors duration-150 motion-reduce:transition-none sm:min-h-10",
+              filtro === f.valor ? "border-accent bg-accent font-semibold text-accent-fg shadow-card" : "border-gray-200 bg-panel font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-100 hover:text-fg",
             )}
           >
             {f.etiqueta}
@@ -391,10 +393,9 @@ export default function MucamasPage() {
       </nav>
 
       {visibles.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-14 text-center">
-          <EmptyArt kind="escoba" />
-          <p className="text-[15px] text-gray-600">No hay habitaciones en este grupo.</p>
-        </div>
+        <Card>
+          <Empty icon={BedDouble}>No hay habitaciones en este grupo.</Empty>
+        </Card>
       ) : vista === "plano" ? (
         <FloorPlan rows={visibles} sel={sel} onOpen={setPlanoRoom} />
       ) : (
@@ -462,26 +463,27 @@ function FloorPlan({ rows, sel, onOpen }: { rows: HkRow[]; sel: string[]; onOpen
   const pisos = useMemo(() => Array.from(new Set(rows.map((r) => r.room.floor))).sort((a, b) => a - b), [rows]);
   return (
     <div className="space-y-4">
-      <ul className="flex flex-wrap gap-x-4 gap-y-2 rounded-xl border border-gray-200/80 bg-panel px-4 py-3 text-[15px] shadow-card" aria-label="Qué significa cada color">
+      <ul className="flex flex-wrap gap-x-4 gap-y-2 rounded-xl border border-gray-200/80 bg-panel px-4 py-3 text-[14px] text-gray-700 shadow-card" aria-label="Qué significa cada color">
         {(Object.keys(TILE) as TileKind[]).map((k) => (
           <li key={k} className="flex items-center gap-2">
-            <span className={cls("h-4 w-4 rounded-md ring-1", TILE[k].box)} aria-hidden /> {TILE[k].label}
+            <span className={cls("h-4 w-4 shrink-0 rounded-[5px] ring-1", TILE[k].box)} aria-hidden /> {TILE[k].label}
           </li>
         ))}
         <li className="flex items-center gap-2">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-900 text-[12.5px] font-bold text-white" aria-hidden>
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gray-900 text-[12px] font-bold leading-none text-white" aria-hidden>
             A
           </span>
           Inicial de la mucama
         </li>
       </ul>
       {pisos.map((f) => (
-        <section key={f} className="rounded-2xl border border-gray-200/80 bg-panel p-3.5 shadow-card">
-          <h3 className="label-mono mb-3 flex items-center gap-2 text-[13px] font-bold text-gray-900">
+        <section key={f} className="rounded-2xl border border-gray-200/80 bg-panel p-3.5 shadow-card sm:p-4">
+          <h3 className="label-mono mb-2 flex items-center gap-2 text-[13px] font-bold text-fg">
             <span className="h-px w-6 bg-accent" aria-hidden />
             Piso {f}
+            <span className="ml-auto font-normal tabular-nums text-gray-600">{rows.filter((r) => r.room.floor === f).length}</span>
           </h3>
-          <ul className="flex gap-2.5 overflow-x-auto px-1.5 pb-2 pt-2 no-scrollbar sm:flex-wrap sm:overflow-visible">
+          <ul className="no-scrollbar -mx-3.5 flex gap-2.5 overflow-x-auto px-5 pb-2 pt-2.5 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-1.5">
             {rows
               .filter((r) => r.room.floor === f)
               .map((r) => {
@@ -493,7 +495,7 @@ function FloorPlan({ rows, sel, onOpen }: { rows: HkRow[]; sel: string[]; onOpen
                       onClick={() => onOpen(r.room.id)}
                       aria-label={`Habitación ${r.room.number}: ${TILE[k].label}${quien ? `, mucama ${quien}` : ""}`}
                       className={cls(
-                        "lift relative flex min-h-[68px] w-[92px] flex-col items-center justify-center rounded-xl px-1.5 py-2 ring-1 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent/50",
+                        "lift relative flex min-h-[72px] w-[96px] flex-col items-center justify-center rounded-xl px-1.5 py-2 ring-1 ring-inset focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent/60",
                         TILE[k].box,
                         sel.includes(r.room.id) && "!ring-[3px] !ring-accent",
                       )}
@@ -501,7 +503,7 @@ function FloorPlan({ rows, sel, onOpen }: { rows: HkRow[]; sel: string[]; onOpen
                       <span className="num text-[26px] leading-none tabular-nums">{r.room.number}</span>
                       <span className="mt-1 text-center text-[12.5px] font-medium leading-tight">{TILE[k].label}</span>
                       {quien && (
-                        <span className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-gray-900 text-[13px] font-bold leading-none text-white ring-2 ring-white/80" aria-hidden>
+                        <span className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-gray-900 text-[13px] font-bold leading-none text-white ring-2 ring-panel" aria-hidden>
                           {quien.charAt(0).toUpperCase()}
                         </span>
                       )}
@@ -523,11 +525,11 @@ function Pulse({ icon: Icon, label, value, sub }: { icon: React.ElementType; lab
         <Icon size={22} aria-hidden />
       </span>
       <div className="min-w-0">
-        <div className="num text-[30px] leading-none">
+        <div className="num text-[30px] leading-none tabular-nums text-fg">
           <CountUp value={value} />
         </div>
-        <div className="label-mono mt-1.5 text-[12.5px] text-gray-600">{label}</div>
-        {sub && <div className="mt-1 text-[13px] leading-snug text-gray-600">{sub}</div>}
+        <div className="label-mono mt-1.5 text-[12.5px] leading-snug text-gray-600">{label}</div>
+        {sub && <div className="mt-1 line-clamp-2 text-[13px] leading-snug text-gray-600" title={sub}>{sub}</div>}
       </div>
     </div>
   );
@@ -560,46 +562,53 @@ function RoomCard({
   const d = r.sheets?.days;
   const txtSab = d === undefined ? "Sin dato" : r.tocaSabanas ? `Hay que cambiarlas (hace ${d} día${d === 1 ? "" : "s"})` : d === 0 ? "Cambiadas hoy" : `Hace ${d} día${d === 1 ? "" : "s"}`;
   const asignar = onAsignar;
-  const rowGrid = "grid grid-cols-[88px_1fr] items-center gap-2 text-[15px]";
+  const rowGrid = "grid grid-cols-[76px_minmax(0,1fr)] items-center gap-2.5 text-[15px]";
+  const rowLabel = "label-mono text-[12px] text-gray-600";
 
   return (
     <li
       className={cls(
-        "flex flex-col overflow-hidden rounded-2xl border border-l-[6px] bg-white shadow-card transition-shadow duration-150 motion-reduce:transition-none",
-        r.hecha ? "border-green-200 border-l-green-600 bg-green-50" : r.res ? "border-gray-200/80 border-l-accent" : "border-gray-200/80 border-l-gray-300",
+        "flex flex-col overflow-hidden rounded-2xl border border-l-[6px] shadow-card transition-shadow duration-150 motion-reduce:transition-none",
+        r.hecha ? "border-green-200 border-l-green-600 bg-green-50" : cls("border-gray-200/80 bg-panel", r.res ? "border-l-accent" : "border-l-gray-300"),
         selected && "ring-2 ring-accent",
       )}
     >
-      <div className="flex items-start justify-between gap-3 px-4 pb-2 pt-4">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between gap-3 px-4 pt-3.5">
+        <div className="flex items-center gap-2.5">
           {puedeAsignar && (
-            <label className="-m-2 flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center p-2">
+            <label className="-m-2 flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-lg p-2 transition-colors hover:bg-accent/10">
               <input type="checkbox" className="h-6 w-6 accent-accent" checked={selected} onChange={onSelect} aria-label={`Seleccionar habitación ${r.room.number}`} />
             </label>
           )}
-          <span className="num text-[56px] leading-none tabular-nums">{r.room.number}</span>
+          <span className="num text-[52px] leading-none tabular-nums text-fg">{r.room.number}</span>
         </div>
-        <div className="flex flex-col items-end gap-1.5">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-[13px] font-semibold text-gray-700 ring-1 ring-inset ring-black/5" title={ROOM_STATE_LABEL[r.state]}>
-            <span className={cls("h-2.5 w-2.5 rounded-full ring-2 ring-white/70", ROOM_STATE_DOT[r.state])} />
-            {ROOM_STATE_LABEL[r.state]}
-          </span>
-          {r.arriving && <Badge className="bg-blue-700 text-white">Llega hoy</Badge>}
+        <div className="flex min-w-0 flex-col items-end gap-1.5 pt-0.5">
+          <Badge dot={false} className="max-w-full gap-1.5 bg-gray-100 text-gray-700">
+            <span className={cls("h-2.5 w-2.5 shrink-0 rounded-full", ROOM_STATE_DOT[r.state])} aria-hidden />
+            <span className="truncate" title={ROOM_STATE_LABEL[r.state]}>
+              {ROOM_STATE_LABEL[r.state]}
+            </span>
+          </Badge>
+          {r.arriving && (
+            <Badge dot={false} className="bg-blue-700 text-white">
+              <LogIn size={13} className="shrink-0" aria-hidden /> Llega hoy
+            </Badge>
+          )}
           <Badge className={r.res ? "bg-accent/10 text-gray-900" : "bg-gray-100 text-gray-700"}>{r.res ? "Con huéspedes" : "Libre"}</Badge>
         </div>
       </div>
       {r.res && (
-        <div className="flex items-center gap-1.5 px-4 pb-1 text-[15px] text-gray-700">
+        <div className="flex items-center gap-1.5 px-4 pt-2 text-[15px] text-gray-700">
           <User size={16} className="shrink-0 text-gray-500" aria-hidden />
-          <span className="min-w-0 truncate">
-            {r.res.guestName} · se va el {fmtDate(r.res.checkOut).slice(0, 5)}
+          <span className="min-w-0 truncate" title={r.res.guestName}>
+            <span className="font-medium text-fg">{r.res.guestName}</span> · se va el <span className="tabular-nums">{fmtDate(r.res.checkOut).slice(0, 5)}</span>
           </span>
         </div>
       )}
 
-      <div className="space-y-2.5 px-4 py-3">
+      <div className="space-y-2.5 px-4 pb-3.5 pt-3">
         <div className={rowGrid}>
-          <span className="label-mono text-[12.5px] text-gray-600">Tarea</span>
+          <span className={rowLabel}>Tarea</span>
           {puedeAsignar ? (
             <Select value={tarea ?? ""} onChange={(e) => asignar(r, e.target.value as HkType | "")} aria-label={`Tarea para la habitación ${r.room.number}`}>
               <option value="">Sin tarea</option>
@@ -610,10 +619,10 @@ function RoomCard({
               ))}
             </Select>
           ) : (
-            <span className={cls(info ? "font-semibold" : "text-gray-600")} title={info?.ayuda}>
+            <span className={cls("min-w-0 leading-snug", info ? "font-semibold text-fg" : "text-gray-600")} title={info?.ayuda}>
               {info ? (
                 <>
-                  <TaskIcon type={info.valor} /> {info.etiqueta}
+                  <TaskIcon type={info.valor} className="text-accent" /> {info.etiqueta}
                 </>
               ) : (
                 "Sin tarea asignada"
@@ -622,7 +631,7 @@ function RoomCard({
           )}
         </div>
         <div className={rowGrid}>
-          <span className="label-mono text-[12.5px] text-gray-600">Mucama</span>
+          <span className={rowLabel}>Mucama</span>
           {puedeAsignar ? (
             <Select
               value={r.hk?.assignedTo ?? ""}
@@ -638,17 +647,17 @@ function RoomCard({
               ))}
             </Select>
           ) : (
-            <span className={cls("flex items-center gap-2", r.hk?.assignedTo ? "font-semibold" : "text-gray-600")}>
+            <span className={cls("flex min-w-0 items-center gap-2", r.hk?.assignedTo ? "font-semibold text-fg" : "text-gray-600")}>
               {r.hk?.assignedTo && <Avatar name={staffName(r.hk.assignedTo)} size={26} />}
-              {r.hk?.assignedTo ? (r.hk.assignedTo === meId ? "Vos" : staffName(r.hk.assignedTo)) : "Sin mucama"}
+              <span className="min-w-0 truncate">{r.hk?.assignedTo ? (r.hk.assignedTo === meId ? "Vos" : staffName(r.hk.assignedTo)) : "Sin mucama"}</span>
             </span>
           )}
         </div>
         {r.res && (
-          <div className={rowGrid}>
-            <span className="label-mono text-[12.5px] text-gray-600">Sábanas</span>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={cls(r.tocaSabanas && "font-semibold text-amber-700")}>{txtSab}</span>
+          <div className={cls(rowGrid, r.tocaSabanas && "items-start")}>
+            <span className={cls(rowLabel, r.tocaSabanas && "pt-1")}>Sábanas</span>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <span className={cls("leading-snug", r.tocaSabanas ? "font-semibold text-amber-700" : "tabular-nums text-gray-700")}>{txtSab}</span>
               {r.tocaSabanas && (
                 <Button
                   onClick={async () => {
@@ -664,14 +673,15 @@ function RoomCard({
         )}
 
         {r.otras.length > 0 && (
-          <ul className="space-y-0.5 rounded-xl border border-gray-200/80 bg-gray-50 px-2 py-1.5 text-[14px]">
+          <ul className="divide-y divide-gray-200/70 overflow-hidden rounded-xl border border-gray-200/80 bg-gray-50 text-[14px]">
             {r.otras.slice(0, 4).map((x) => (
               <li key={x.id}>
-                <button onClick={() => onOpenTask(x.id)} className="flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg px-1 text-left transition-colors duration-150 hover:underline motion-reduce:transition-none">
-                  <span className="truncate">
-                    <TaskIcon type={x.type} /> {TASK_TYPE_LABEL[x.type]}
+                <button onClick={() => onOpenTask(x.id)} className="flex min-h-[44px] w-full items-center gap-2 px-3 text-left transition-colors duration-150 hover:bg-gray-100 active:bg-gray-200 motion-reduce:transition-none">
+                  <span className="min-w-0 flex-1 truncate font-medium text-gray-800">
+                    <TaskIcon type={x.type} className="text-gray-500" /> {TASK_TYPE_LABEL[x.type]}
                   </span>
                   <span className="shrink-0 text-gray-600">{x.assignedTo ? (x.assignedTo === meId ? "vos" : staffName(x.assignedTo).split(" ")[0]) : "sin mucama"}</span>
+                  <ChevronRight size={16} className="-mr-1 shrink-0 text-gray-400" aria-hidden />
                 </button>
               </li>
             ))}
@@ -681,14 +691,18 @@ function RoomCard({
 
       <label
         className={cls(
-          "mt-auto flex min-h-[68px] items-center gap-3 border-t px-4 py-3 text-[17px] transition-colors duration-200 motion-reduce:transition-none",
-          r.hecha ? "border-green-700 bg-green-700 font-semibold text-white" : puedeTildar ? "border-accent/40 bg-accent/10 font-bold text-gray-900 hover:bg-accent/15" : "border-gray-200 bg-gray-50",
-          puedeTildar ? "cursor-pointer" : "cursor-not-allowed text-gray-600",
+          "mt-auto flex min-h-[64px] items-center gap-3 border-t py-2.5 pl-4 pr-2 transition-colors duration-200 motion-reduce:transition-none",
+          r.hecha
+            ? "border-green-700 bg-green-700 text-[16px] font-semibold text-white"
+            : puedeTildar
+              ? "border-accent/30 bg-accent/10 text-[17px] font-semibold text-gray-900 hover:bg-accent/15"
+              : "border-gray-200/80 bg-gray-50 text-[15px] text-gray-600",
+          puedeTildar ? "cursor-pointer" : "cursor-not-allowed",
         )}
       >
         <input
           type="checkbox"
-          className={cls("h-8 w-8 shrink-0", r.hecha ? "accent-white" : "accent-green-600")}
+          className={cls("h-7 w-7 shrink-0", r.hecha ? "accent-white" : "accent-green-600", !puedeTildar && "opacity-60")}
           checked={r.hecha}
           disabled={!puedeTildar}
           onChange={() => {
@@ -700,7 +714,7 @@ function RoomCard({
             actions.setTaskStatus(r.hk, r.hecha ? "pendiente" : "completada");
           }}
         />
-        <span className="min-w-0 flex-1 leading-snug">
+        <span className="min-w-0 flex-1 py-1 leading-snug">
           {r.hecha
             ? `Lista${r.hk?.completedBy ? " por " + (r.hk.completedBy === meId ? "vos" : staffName(r.hk.completedBy)) : ""}`
             : puedeTildar
@@ -718,9 +732,13 @@ function RoomCard({
               e.preventDefault();
               onOpenTask(r.hk!.id);
             }}
-            className={cls("min-h-[44px] shrink-0 px-2 text-[15px] font-medium hover:underline", r.hecha ? "text-white" : "text-accent")}
+            className={cls(
+              "inline-flex min-h-[44px] shrink-0 items-center gap-0.5 whitespace-nowrap rounded-lg pl-2.5 pr-1.5 text-[15px] font-medium transition-colors",
+              r.hecha ? "text-white hover:bg-white/15" : "text-accent hover:bg-accent/10",
+            )}
           >
             ver pasos
+            <ChevronRight size={16} aria-hidden />
           </button>
         )}
       </label>

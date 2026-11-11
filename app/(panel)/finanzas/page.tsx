@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
   BarChart3,
   BedDouble,
   CalendarDays,
@@ -25,6 +27,7 @@ import {
   Avatar,
   Button,
   Card,
+  Empty,
   PageHeader,
   Select,
   Table,
@@ -59,14 +62,7 @@ function EmptyChart({
   icon: React.ElementType;
   children: React.ReactNode;
 }) {
-  return (
-    <div className="flex flex-col items-center gap-2 py-8 text-center text-[15px] text-gray-600">
-      <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-500">
-        <Icon size={20} aria-hidden />
-      </span>
-      {children}
-    </div>
-  );
+  return <Empty icon={Icon}>{children}</Empty>;
 }
 
 /** Barras verticales con degradé de acento, esquinas redondeadas y tooltip. */
@@ -95,10 +91,10 @@ function Bars({
           {[0.5, 1].map((g) => (
             <div
               key={g}
-              className="pointer-events-none absolute inset-x-0 border-t border-dashed border-gray-200"
+              className="pointer-events-none absolute inset-x-0 border-t border-dashed border-gray-300/80"
               style={{ bottom: height * g }}
             >
-              <span className="absolute -top-6 left-0 text-[13.5px] font-medium tabular-nums text-gray-600">
+              <span className="label-mono absolute -top-5 left-0 text-[12px] tabular-nums text-gray-600">
                 {format(max * g)}
               </span>
             </div>
@@ -122,7 +118,7 @@ function Bars({
               </div>
               {d === peak && d.value > 0 && (
                 <span
-                  className="num absolute text-[15px] tabular-nums text-gray-900"
+                  className="num pointer-events-none absolute whitespace-nowrap text-[15px] tabular-nums text-fg"
                   style={{ bottom: `calc(${(d.value / max) * 100}% + 4px)` }}
                 >
                   {format(d.value)}
@@ -135,7 +131,7 @@ function Bars({
           {data.map((d) => (
             <div
               key={d.label}
-              className="flex-1 text-center text-[13.5px] font-medium tabular-nums text-gray-700"
+              className="min-w-0 flex-1 truncate text-center text-[13px] font-medium tabular-nums text-gray-600"
             >
               {d.label}
             </div>
@@ -187,10 +183,10 @@ function AreaChart({
           {[0.5, 1].map((g) => (
             <div
               key={g}
-              className="pointer-events-none absolute inset-x-0 border-t border-dashed border-gray-200"
+              className="pointer-events-none absolute inset-x-0 border-t border-dashed border-gray-300/80"
               style={{ bottom: (height - 12) * g + 6 }}
             >
-              <span className="absolute -top-6 left-0 text-[13.5px] font-medium tabular-nums text-gray-600">
+              <span className="label-mono absolute -top-5 left-0 text-[12px] tabular-nums text-gray-600">
                 {format(max * g)}
               </span>
             </div>
@@ -247,7 +243,7 @@ function AreaChart({
                 >
                   <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-px bg-accent/40 group-hover:block group-focus:block" />
                   <span
-                    className={`pointer-events-none absolute left-1/2 h-3 w-3 -translate-x-1/2 translate-y-1/2 rounded-full border-2 border-white bg-accent shadow ${i === data.length - 1 ? "block" : "hidden group-hover:block group-focus:block"}`}
+                    className={`pointer-events-none absolute left-1/2 h-3 w-3 -translate-x-1/2 translate-y-1/2 rounded-full border-2 border-panel bg-accent shadow ${i === data.length - 1 ? "block" : "hidden group-hover:block group-focus:block"}`}
                     style={{ bottom: `${height - pts[i][1]}px` }}
                   />
                   <div
@@ -264,7 +260,7 @@ function AreaChart({
           {Array.from({ length: totalDays }, (_, i) => (
             <div
               key={i}
-              className="flex-1 text-center text-[13.5px] font-medium tabular-nums text-gray-700"
+              className="min-w-0 flex-1 truncate text-center text-[13px] font-medium tabular-nums text-gray-600"
             >
               {i % 3 === 0 ? i + 1 : ""}
             </div>
@@ -295,8 +291,8 @@ function Heatmap({
   const shade = (pct: number) =>
     `rgb(var(--accent) / ${(0.07 + 0.93 * (pct / 100)).toFixed(2)})`;
   return (
-    <div className="p-4">
-      <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+    <div className="p-4 sm:p-5">
+      <div className="mx-auto grid max-w-[560px] grid-cols-7 gap-1.5 sm:gap-2">
         {["L", "M", "M", "J", "V", "S", "D"].map((w, i) => (
           <div
             key={i}
@@ -314,7 +310,7 @@ function Heatmap({
               key={c.day}
               tabIndex={0}
               aria-label={`Día ${c.day}: ${c.pct}% ocupado`}
-              className={`group relative flex aspect-square min-h-[40px] items-center justify-center rounded-lg text-[14px] font-semibold tabular-nums outline-none transition-transform duration-150 hover:scale-105 focus-visible:ring-2 focus-visible:ring-accent motion-reduce:transition-none ${c.pct > 55 ? "text-accent-fg" : "text-gray-900"} ${c.day === todayDay ? "ring-2 ring-gray-900" : ""}`}
+              className={`group relative flex aspect-square min-h-[36px] items-center justify-center rounded-lg text-[14px] font-semibold tabular-nums outline-none transition-transform duration-150 hover:scale-105 focus-visible:ring-2 focus-visible:ring-accent motion-reduce:transition-none ${c.pct > 55 ? "text-accent-fg" : "text-fg"} ${c.day === todayDay ? "ring-2 ring-fg ring-offset-2 ring-offset-panel" : ""}`}
               style={{ backgroundColor: shade(c.pct) }}
             >
               {c.day}
@@ -325,20 +321,20 @@ function Heatmap({
           ),
         )}
       </div>
-      <div className="mt-4 flex flex-wrap items-center gap-2 text-[13.5px] text-gray-700">
+      <div className="mx-auto mt-4 flex max-w-[560px] flex-wrap items-center gap-2 text-[13.5px] text-gray-600">
         <span>Vacío</span>
         <span className="flex gap-1" aria-hidden>
           {[0, 25, 50, 75, 100].map((p) => (
             <span
               key={p}
-              className="h-4 w-7 rounded-md"
+              className="h-3.5 w-6 rounded"
               style={{ backgroundColor: shade(p) }}
             />
           ))}
         </span>
         <span>Lleno</span>
         {todayDay !== undefined && (
-          <span className="ml-auto">El cuadrado con borde oscuro es hoy</span>
+          <span className="ml-auto">El cuadrado con borde es hoy</span>
         )}
       </div>
     </div>
@@ -357,19 +353,19 @@ function HBars({
   const max = Math.max(1, ...rows.map((r) => r.value));
   const total = rows.reduce((s, r) => s + r.value, 0) || 1;
   return (
-    <ul className="stagger space-y-4 p-4">
+    <ul className="stagger space-y-4 p-4 sm:p-5">
       {rows.map((r, i) => (
         <li key={r.label} className="group">
           <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3 text-[15px]">
-            <span className="font-medium text-gray-800">{r.label}</span>
-            <span className="tabular-nums text-gray-900">
-              <b className="num text-[18px]">{format(r.value)}</b>{" "}
-              <span className="text-[13.5px] text-gray-600">
+            <span className="min-w-0 font-medium text-fg">{r.label}</span>
+            <span className="ml-auto flex items-baseline gap-2 whitespace-nowrap tabular-nums text-fg">
+              <b className="num text-[18px]">{format(r.value)}</b>
+              <span className="w-10 text-right text-[13.5px] text-gray-600">
                 {Math.round((r.value / total) * 100)}%
               </span>
             </span>
           </div>
-          <div className="h-3 overflow-hidden rounded-full bg-gray-100">
+          <div className="h-3 overflow-hidden rounded-full bg-gray-200/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.12)]">
             <div
               className="h-full rounded-full bg-gradient-to-r from-accent/50 to-accent transition-[width] duration-700 ease-out motion-reduce:transition-none"
               style={{
@@ -471,7 +467,7 @@ function Donut({
           <span className="label-mono max-w-full truncate text-[12.5px] text-gray-600">
             {shown ? shown.label : "Total"}
           </span>
-          <span className="num text-[22px] leading-tight text-gray-900">
+          <span className="num text-[21px] leading-tight tabular-nums text-fg">
             {format(shown ? shown.value : total)}
           </span>
           {shown && (
@@ -490,21 +486,21 @@ function Donut({
             onMouseLeave={() => setAct(null)}
             onFocus={() => setAct(i)}
             onBlur={() => setAct(null)}
-            className={`flex min-h-[44px] items-center gap-3 rounded-lg px-2 text-[15px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent/50 motion-reduce:transition-none ${act === i ? "bg-accent/10" : ""}`}
+            className={`flex min-h-[40px] items-center gap-3 rounded-lg px-2 text-[15px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent/50 motion-reduce:transition-none ${act === i ? "bg-accent/10" : ""}`}
           >
             <span
-              className="h-4 w-4 shrink-0 rounded-md bg-accent"
+              className="h-3 w-3 shrink-0 rounded-sm bg-accent"
               style={{ opacity: DONUT_TONES[i % DONUT_TONES.length] }}
               aria-hidden
             />
-            <span className="min-w-0 flex-1 font-medium text-gray-800">
+            <span className="min-w-0 flex-1 truncate font-medium text-fg">
               {row.label}
             </span>
-            <span className="text-right tabular-nums">
-              <b className="num text-[17px] text-gray-900">
+            <span className="flex items-baseline whitespace-nowrap text-right tabular-nums">
+              <b className="num text-[17px] text-fg">
                 {format(row.value)}
               </b>
-              <span className="ml-1.5 text-[13.5px] text-gray-600">
+              <span className="w-10 text-[13.5px] text-gray-600">
                 {Math.round((row.value / sum) * 100)}%
               </span>
             </span>
@@ -521,12 +517,18 @@ function Delta({ cur, prev }: { cur: number; prev: number }) {
   const p = Math.round(((cur - prev) / prev) * 100);
   const up = p >= 0;
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[13.5px] font-semibold tabular-nums ring-1 ring-inset ${up ? "bg-green-50 text-green-700 ring-green-200" : "bg-red-50 text-red-700 ring-red-200"}`}
-    >
-      <span aria-hidden>{up ? "▲" : "▼"}</span>
-      {Math.abs(p)}%
-      <span className="font-normal">
+    <span className="inline-flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[13px] leading-5">
+      <span
+        className={`inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-2 py-0.5 font-semibold tabular-nums ring-1 ring-inset ${up ? "bg-green-50 text-green-700 ring-green-200" : "bg-red-50 text-red-700 ring-red-200"}`}
+      >
+        {up ? (
+          <ArrowUp size={14} strokeWidth={2.5} aria-hidden />
+        ) : (
+          <ArrowDown size={14} strokeWidth={2.5} aria-hidden />
+        )}
+        {Math.abs(p)}%
+      </span>
+      <span className="opacity-80">
         {up ? "más" : "menos"} que el mes anterior
       </span>
     </span>
@@ -569,11 +571,11 @@ function Podium({
               <Avatar name={g.name} size={i === 0 ? 56 : 46} />
               <Link
                 href={`/huespedes?g=${id}`}
-                className="mt-1.5 line-clamp-2 w-full text-[15px] font-semibold leading-tight hover:underline"
+                className="mt-1.5 line-clamp-2 w-full break-words text-[15px] font-semibold leading-tight underline-offset-4 hover:text-accent hover:underline"
               >
                 {g.name}
               </Link>
-              <b className="num text-[17px] tabular-nums text-gray-900">
+              <b className="num mt-0.5 text-[17px] tabular-nums text-fg">
                 {format(g.value)}
               </b>
               <span className="mb-2 text-[13.5px] text-gray-600">
@@ -595,26 +597,26 @@ function Podium({
         })}
       </div>
       {rest.length > 0 && (
-        <ul className="mt-4 divide-y divide-gray-100 border-t border-gray-200">
+        <ul className="mt-4 divide-y divide-gray-200/60 border-t border-gray-200/80">
           {rest.map(([id, g], k) => (
             <li
               key={id}
               className="flex min-h-[48px] items-center gap-3 py-2 text-[15px]"
             >
-              <span className="num w-7 text-center text-[17px] text-gray-600">
+              <span className="num w-7 shrink-0 text-center text-[17px] tabular-nums text-gray-600">
                 {k + 4}°
               </span>
               <Avatar name={g.name} size={34} />
               <Link
                 href={`/huespedes?g=${id}`}
-                className="min-w-0 flex-1 truncate font-medium hover:underline"
+                className="min-w-0 flex-1 truncate font-medium underline-offset-4 hover:text-accent hover:underline"
               >
                 {g.name}
               </Link>
-              <span className="text-[13.5px] text-gray-600">
+              <span className="hidden whitespace-nowrap text-[13.5px] text-gray-600 min-[420px]:inline">
                 {g.stays} {g.stays === 1 ? "vez" : "veces"}
               </span>
-              <b className="num text-[17px] tabular-nums">{format(g.value)}</b>
+              <b className="num min-w-[84px] whitespace-nowrap text-right text-[17px] tabular-nums">{format(g.value)}</b>
             </li>
           ))}
         </ul>
@@ -636,13 +638,13 @@ function Highlight({
   sub: string;
 }) {
   return (
-    <div className="lift flex min-w-[250px] items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-card">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent ring-1 ring-accent/20">
+    <div className="flex min-w-[250px] items-center gap-3 rounded-2xl border border-gray-200/80 bg-panel p-4 shadow-card">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/20">
         <Icon size={22} aria-hidden />
       </span>
       <div className="min-w-0">
         <div className="label-mono text-[12.5px] text-gray-600">{label}</div>
-        <div className="num truncate text-[22px] leading-tight text-gray-900">
+        <div className="num truncate text-[22px] leading-tight tabular-nums text-fg">
           {value}
         </div>
         <div className="truncate text-[14px] text-gray-600">{sub}</div>
@@ -668,24 +670,24 @@ function Tile({
   children: React.ReactNode;
 }) {
   return (
-    <div className="lift rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
+    <div className="rounded-2xl border border-gray-200/80 bg-panel p-5 shadow-card">
       <span
         className={
           tone === "red"
-            ? "flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-700 ring-1 ring-red-200"
-            : "flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent ring-1 ring-accent/20"
+            ? "flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-700 ring-1 ring-inset ring-red-200"
+            : "flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/20"
         }
       >
         <Icon size={20} aria-hidden />
       </span>
       <div className="label-mono mt-3 text-[12.5px] text-gray-600">{label}</div>
       <div
-        className={`num mt-1 text-[30px] leading-none ${tone === "red" ? "text-red-700" : "text-gray-900"}`}
+        className={`num mt-1.5 text-[30px] leading-none tabular-nums ${tone === "red" ? "text-red-700" : "text-fg"}`}
       >
         {children}
       </div>
       <div className="mt-2 text-[14px] leading-snug text-gray-600">{sub}</div>
-      {delta && <div className="mt-2">{delta}</div>}
+      {delta && <div className="mt-2.5">{delta}</div>}
     </div>
   );
 }
@@ -939,7 +941,7 @@ export default function FinanzasPage() {
   }
 
   const arrowCls =
-    "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-800 shadow-card transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:opacity-40 sm:h-10 sm:w-10";
+    "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-panel/60 text-fg transition hover:border-gray-400 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-10";
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-5 p-4 lg:p-6">
@@ -987,15 +989,15 @@ export default function FinanzasPage() {
                   <ChevronRight size={20} aria-hidden />
                 </button>
               </div>
-              <Button className="h-11 sm:h-10" onClick={exportCSV}>
-                <Download size={15} /> Bajar planilla (Excel)
+              <Button className="w-full sm:w-auto" onClick={exportCSV}>
+                <Download size={15} aria-hidden /> Bajar planilla (Excel)
               </Button>
             </>
           }
         />
-        <div className="mb-3 flex items-center gap-2 text-[15px] font-medium text-gray-700">
+        <div className="mb-4 flex items-center gap-2 text-[15px] font-medium text-gray-700">
           <CalendarDays size={18} className="text-accent" aria-hidden />
-          <span className="num text-[20px] uppercase tracking-wide text-gray-900">
+          <span className="num text-[20px] uppercase leading-none tracking-wide text-fg">
             {MONTHS[month]} {year}
           </span>
           {isThisMonth && (
@@ -1015,10 +1017,10 @@ export default function FinanzasPage() {
               <TrendingUp size={18} aria-hidden /> Vendido en el mes
             </div>
             <div className="flex flex-wrap items-end justify-between gap-3">
-              <div className="num text-[44px] leading-none sm:text-[56px]">
+              <div className="num min-w-0 text-[40px] leading-none tabular-nums sm:text-[56px]">
                 <CountUp value={sold} format={fm} />
               </div>
-              <div className="rounded-xl bg-white/90 px-2 py-1.5">
+              <div className="shrink-0 rounded-xl bg-white/90 px-2 py-1.5">
                 <Sparkline data={m.daily} width={150} height={44} />
               </div>
             </div>
@@ -1035,14 +1037,14 @@ export default function FinanzasPage() {
           >
             <CountUp value={m.cobrado} format={fm} />
           </Tile>
-          <div className="lift flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
+          <div className="flex items-center gap-4 rounded-2xl border border-gray-200/80 bg-panel p-5 shadow-card">
             <Ring
               value={m.occPct}
               size={84}
               stroke={9}
               label={`${m.occPct.toFixed(1)}% de habitaciones ocupadas`}
             >
-              <span className="num text-[20px]">{Math.round(m.occPct)}%</span>
+              <span className="num text-[20px] tabular-nums">{Math.round(m.occPct)}%</span>
             </Ring>
             <div className="min-w-0">
               <div className="label-mono flex items-center gap-1.5 text-[12.5px] text-gray-600">
@@ -1051,7 +1053,7 @@ export default function FinanzasPage() {
               <div className="mt-1 text-[14px] leading-snug text-gray-600">
                 promedio del mes sobre todas las habitaciones
               </div>
-              <div className="mt-2">
+              <div className="mt-2.5">
                 <Delta cur={m.occPct} prev={prev.occPct} />
               </div>
             </div>
@@ -1131,16 +1133,16 @@ export default function FinanzasPage() {
             )}
           </Card>
           <Card icon={Percent} title="Cómo viene el mes">
-            <div className="grid grid-cols-1 gap-6 p-4 min-[420px]:grid-cols-2 xl:grid-cols-1">
+            <div className="grid grid-cols-1 place-content-center gap-6 p-4 min-[420px]:grid-cols-2 sm:p-5 xl:grid-cols-1">
               <div className="flex flex-col items-center gap-2">
                 <Gauge
                   value={m.occPct}
                   size={170}
                   label={`${m.occPct.toFixed(1)}% de habitaciones ocupadas`}
                 >
-                  <span className="num text-[28px] leading-none">{Math.round(m.occPct)}%</span>
+                  <span className="num text-[28px] leading-none tabular-nums">{Math.round(m.occPct)}%</span>
                 </Gauge>
-                <span className="text-center text-[14.5px] font-medium text-gray-700">Habitaciones ocupadas</span>
+                <span className="label-mono text-center text-[12.5px] text-gray-600">Habitaciones ocupadas</span>
               </div>
               <div className="flex flex-col items-center gap-2">
                 <Gauge
@@ -1149,9 +1151,9 @@ export default function FinanzasPage() {
                   tone="green"
                   label={`Se cobró el ${Math.round(paidPct)}% de lo vendido`}
                 >
-                  <span className="num text-[28px] leading-none">{Math.round(paidPct)}%</span>
+                  <span className="num text-[28px] leading-none tabular-nums">{Math.round(paidPct)}%</span>
                 </Gauge>
-                <span className="text-center text-[14.5px] font-medium text-gray-700">Cobrado de lo vendido</span>
+                <span className="label-mono text-center text-[12.5px] text-gray-600">Cobrado de lo vendido</span>
               </div>
             </div>
           </Card>
@@ -1178,7 +1180,7 @@ export default function FinanzasPage() {
           </Card>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-3">
+        <div className="grid items-start gap-5 md:grid-cols-2 xl:grid-cols-3">
           <Card icon={PieChart} title="Ventas de hospedaje, según por dónde llegó la reserva">
             <Donut
               rows={m.bySource}
@@ -1187,7 +1189,7 @@ export default function FinanzasPage() {
               empty="Todavía no hay datos en este mes."
             />
           </Card>
-          <Card title="Ventas, según el tipo">
+          <Card icon={BarChart3} title="Ventas, según el tipo">
             <HBars rows={m.byCat} format={fm} />
           </Card>
           <Card icon={PieChart} title="Lo que se cobró, según cómo pagaron">
@@ -1200,68 +1202,63 @@ export default function FinanzasPage() {
           </Card>
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-2">
+        <div className="grid items-start gap-5 xl:grid-cols-2">
           <Card
             icon={HandCoins}
             title={`Plata que falta cobrar (${receivables.length})`}
           >
-            <Table head={["Huésped", "Habitación", "Salida", "Debe"]}>
-              {receivables.slice(0, 15).map(({ r, f }) => (
-                <tr
-                  key={r.id}
-                  className="transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none"
-                >
-                  <td className="px-4 py-3 text-[15px]">
-                    <span className="flex items-center gap-3">
-                      <Avatar name={r.guestName} size={36} />
-                      <span>
-                        <Link
-                          href={`/facturacion?r=${r.id}`}
-                          className="font-medium hover:underline"
-                        >
-                          {r.guestName}
-                        </Link>
-                        {r.status === "checkin" && (
-                          <span className="ml-1 text-[13.5px] text-green-700">
-                            está en el hotel
-                          </span>
-                        )}
+            {receivables.length > 0 ? (
+              <Table
+                head={[
+                  "Huésped",
+                  "Habitación",
+                  "Salida",
+                  <span key="d" className="block text-right">
+                    Debe
+                  </span>,
+                ]}
+              >
+                {receivables.slice(0, 15).map(({ r, f }) => (
+                  <tr key={r.id}>
+                    <td className="px-4 py-2.5 text-[15px]">
+                      <span className="flex min-w-[170px] items-center gap-3">
+                        <Avatar name={r.guestName} size={32} />
+                        <span className="min-w-0">
+                          <Link
+                            href={`/facturacion?r=${r.id}`}
+                            className="font-medium underline-offset-4 hover:text-accent hover:underline"
+                          >
+                            {r.guestName}
+                          </Link>
+                          {r.status === "checkin" && (
+                            <span className="block text-[13px] leading-tight text-green-700">
+                              está en el hotel
+                            </span>
+                          )}
+                        </span>
                       </span>
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-[15px]">
-                    {idx.roomById.get(r.roomId)?.number}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-[15px]">
-                    {fmtDate(r.checkOut)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3">
-                    <span className="num rounded-full bg-red-50 px-3 py-1 text-[19px] tabular-nums text-red-700 ring-1 ring-inset ring-red-200">
+                    </td>
+                    <td className="px-4 py-2.5 text-[15px] tabular-nums">
+                      {idx.roomById.get(r.roomId)?.number}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-[14.5px] tabular-nums text-gray-700">
+                      {fmtDate(r.checkOut)}
+                    </td>
+                    <td className="num whitespace-nowrap px-4 py-2.5 text-right text-[18px] tabular-nums text-red-700">
                       {fm(f.balance)}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </Table>
-            {receivables.length === 0 && (
-              <div className="flex flex-col items-center gap-2 p-8 text-center text-[15px] text-gray-600">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-green-200 bg-green-50 text-green-700">
-                  <CheckCircle2 size={20} aria-hidden />
-                </span>
-                Nadie debe plata por ahora.
-              </div>
+                    </td>
+                  </tr>
+                ))}
+              </Table>
+            ) : (
+              <Empty icon={CheckCircle2}>Nadie debe plata por ahora.</Empty>
             )}
           </Card>
           <Card icon={Users} title="Huéspedes que más gastaron (en total)">
             {topGuests.length > 0 ? (
               <Podium top={topGuests} format={fm} />
             ) : (
-              <div className="flex flex-col items-center gap-2 p-8 text-center text-[15px] text-gray-600">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-500">
-                  <Users size={20} aria-hidden />
-                </span>
-                Todavía no hay huéspedes con estadías.
-              </div>
+              <Empty icon={Users}>Todavía no hay huéspedes con estadías.</Empty>
             )}
           </Card>
         </div>

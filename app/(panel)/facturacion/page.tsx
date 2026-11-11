@@ -1,10 +1,10 @@
 "use client";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Banknote, BedDouble, CheckCircle2, CreditCard, FileText, HandCoins, Landmark, Printer, Receipt, ShoppingBag, Smartphone, Trash2, Users, Wallet } from "lucide-react";
+import { Banknote, BedDouble, CheckCircle2, CreditCard, FileText, HandCoins, Landmark, Plus, Printer, Receipt, Search, ShoppingBag, Smartphone, Trash2, Users, Wallet } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { CountUp, Ring, Sparkline } from "@/components/viz";
-import { Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Table, Tabs, toast } from "@/components/ui";
+import { Badge, Button, Card, Empty, Field, Input, Modal, PageHeader, Select, Table, Tabs, toast } from "@/components/ui";
 import { fmtDate, fmtDateTime, today } from "@/lib/dates";
 import { cls, CHARGE_LABEL, folio, isActive, money, nights, RES_STATUS_BADGE, RES_STATUS_LABEL } from "@/lib/logic";
 import type { ChargeCategory, Invoice, PaymentMethod } from "@/lib/types";
@@ -54,21 +54,6 @@ function GradAvatar({ name, size = 40 }: { name: string; size?: number }) {
   );
 }
 
-/** Ilustración simple para los estados vacíos: círculo con puntitos y un ícono. */
-function Illus({ icon: Icon }: { icon: React.ElementType }) {
-  return (
-    <span className="relative flex h-24 w-24 items-center justify-center" aria-hidden>
-      <span className="absolute inset-0 rounded-full bg-gradient-to-br from-accent/20 to-transparent" />
-      <span className="absolute inset-2 rounded-full border-2 border-dashed border-accent/30 motion-safe:animate-[spin_30s_linear_infinite]" />
-      <span className="absolute -right-1 top-3 h-3 w-3 rounded-full bg-accent/40" />
-      <span className="absolute -left-1 bottom-4 h-2 w-2 rounded-full bg-accent/30" />
-      <span className="relative flex h-14 w-14 -rotate-6 items-center justify-center rounded-2xl bg-white text-accent shadow-card ring-1 ring-accent/20">
-        <Icon size={26} />
-      </span>
-    </span>
-  );
-}
-
 function MethodIcon({ method, size = 16 }: { method: PaymentMethod; size?: number }) {
   const Icon = method === "Efectivo" ? Banknote : method === "Transferencia" ? Landmark : method === "Mercado Pago" ? Smartphone : CreditCard;
   return <Icon size={size} aria-hidden />;
@@ -83,19 +68,19 @@ function Funnel({ sold, paid, due, cur }: { sold: number; paid: number; due: num
     { label: "Falta cobrar", sub: "lo que todavía deben", value: due, pct: sold > 0 ? (due / sold) * 100 : 0, bar: "from-red-400 to-red-600" },
   ];
   return (
-    <ul className="space-y-4 p-4">
+    <ul className="space-y-4 p-4 sm:p-5">
       {rows.map((r, i) => (
         <li key={r.label} aria-label={`${r.label}: ${money(r.value, cur)}, ${clampPct(r.pct)}% de lo vendido`}>
           <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3 text-[15px]">
-            <span className="font-medium text-gray-800">
+            <span className="min-w-0 font-medium text-fg">
               {r.label} <span className="text-[13.5px] font-normal text-gray-600">· {r.sub}</span>
             </span>
-            <span className="tabular-nums">
-              <b className="num text-[18px] text-gray-900">{money(r.value, cur)}</b>{" "}
-              <span className="text-[13.5px] text-gray-600">{clampPct(r.pct)}%</span>
+            <span className="ml-auto flex items-baseline gap-2 whitespace-nowrap tabular-nums">
+              <b className="num text-[18px] text-fg">{money(r.value, cur)}</b>
+              <span className="w-10 text-right text-[13.5px] text-gray-600">{clampPct(r.pct)}%</span>
             </span>
           </div>
-          <div className="h-4 overflow-hidden rounded-full bg-gray-100">
+          <div className="h-3 overflow-hidden rounded-full bg-gray-200/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.12)]">
             <div
               className={cls("h-full rounded-full bg-gradient-to-r transition-[width] duration-700 ease-out motion-reduce:transition-none", r.bar)}
               style={{ width: on ? `${r.pct}%` : 0, transitionDelay: `${i * 120}ms` }}
@@ -120,28 +105,28 @@ interface TimelineEvent {
 /** Línea de tiempo vertical de la cuenta: gastos y pagos por fecha, con el saldo después de cada uno. */
 function Timeline({ events, cur }: { events: TimelineEvent[]; cur: string }) {
   return (
-    <ol className="relative ml-4 space-y-5 border-l-2 border-gray-200">
+    <ol className="relative ml-4 space-y-5 border-l-2 border-gray-200/80">
       {events.map((e) => {
         const pay = e.kind === "pago";
         const Icon = pay ? CheckCircle2 : e.kind === "hospedaje" ? BedDouble : ShoppingBag;
         return (
           <li key={e.key} className="relative pl-7">
             <span
-              className={cls("absolute -left-[17px] top-0 flex h-8 w-8 items-center justify-center rounded-full ring-4 ring-panel", pay ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700")}
+              className={cls("absolute -left-[17px] top-0 flex h-8 w-8 items-center justify-center rounded-full ring-4 ring-panel", pay ? "bg-green-100 text-green-700" : e.kind === "hospedaje" ? "bg-accent/15 text-accent" : "bg-gray-100 text-gray-700")}
               aria-hidden
             >
               <Icon size={16} />
             </span>
-            <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-0.5">
-              <div className="min-w-0">
-                <div className="text-[15px] font-medium text-gray-900">{e.label}</div>
+            <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-0.5">
+              <div className="min-w-0 flex-1 basis-[180px]">
+                <div className="break-words text-[15px] font-medium leading-snug text-fg">{e.label}</div>
                 <div className="text-[13.5px] text-gray-600">
                   {fmtDate(e.date)}
                   {e.note ? ` · ${e.note}` : ""}
                 </div>
               </div>
-              <div className="text-right">
-                <b className={cls("num text-[18px] tabular-nums", pay ? "text-green-700" : "text-gray-900")}>
+              <div className="ml-auto whitespace-nowrap text-right">
+                <b className={cls("num text-[18px] tabular-nums leading-snug", pay ? "text-green-700" : "text-fg")}>
                   {pay ? "+ " : ""}
                   {money(e.amount, cur)}
                 </b>
@@ -225,25 +210,25 @@ function Facturacion() {
               <Wallet size={18} aria-hidden /> Se cobró este mes
             </div>
             <div className="flex items-end justify-between gap-3">
-              <div className="num text-[44px] leading-none sm:text-[52px]">
+              <div className="num min-w-0 text-[40px] leading-none tabular-nums sm:text-[52px]">
                 <CountUp value={monthTotal} format={(n) => money(n, cur)} />
               </div>
-              {monthSeries.length > 1 && <div className="rounded-xl bg-white/90 px-2 py-1.5"><Sparkline data={monthSeries} width={130} height={44} /></div>}
+              {monthSeries.length > 1 && <div className="hidden shrink-0 rounded-xl bg-white/90 px-2 py-1.5 min-[400px]:block"><Sparkline data={monthSeries} width={130} height={44} /></div>}
             </div>
             <div className="text-[14px] opacity-90">
               Hoy entraron <b className="tabular-nums">{money(todayTotal, cur)}</b>
             </div>
           </div>
-          <div className="lift rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-700 ring-1 ring-red-200"><HandCoins size={20} aria-hidden /></span>
+          <div className="rounded-2xl border border-gray-200/80 bg-panel p-5 shadow-card">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-700 ring-1 ring-inset ring-red-200"><HandCoins size={20} aria-hidden /></span>
             <div className="label-mono mt-3 text-[12.5px] text-gray-600">Falta cobrar</div>
-            <div className="num mt-1 text-[30px] leading-none text-red-700"><CountUp value={pendingTotal} format={(n) => money(n, cur)} /></div>
+            <div className="num mt-1.5 text-[30px] leading-none tabular-nums text-red-700"><CountUp value={pendingTotal} format={(n) => money(n, cur)} /></div>
             <div className="mt-2 text-[14px] text-gray-600">de huéspedes que están o ya se fueron</div>
           </div>
-          <div className="lift rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent ring-1 ring-accent/20"><FileText size={20} aria-hidden /></span>
+          <div className="rounded-2xl border border-gray-200/80 bg-panel p-5 shadow-card">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/20"><FileText size={20} aria-hidden /></span>
             <div className="label-mono mt-3 text-[12.5px] text-gray-600">Facturas hechas</div>
-            <div className="num mt-1 text-[30px] leading-none text-gray-900"><CountUp value={invoiceCount} /></div>
+            <div className="num mt-1.5 text-[30px] leading-none tabular-nums text-fg"><CountUp value={invoiceCount} /></div>
             <div className="mt-2 text-[14px] text-gray-600">sin contar las anuladas</div>
           </div>
         </div>
@@ -264,10 +249,13 @@ function Facturacion() {
       </div>
 
       {tab === "folios" && (
-        <div className="grid items-start gap-5 lg:grid-cols-[380px_1fr]">
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(320px,380px)_minmax(0,1fr)]">
           <Card>
-            <div className="space-y-3 border-b border-gray-100 p-3">
-              <Input className="text-[15px]" placeholder="Buscar por nombre o número de habitación" value={q} onChange={(e) => setQ(e.target.value)} />
+            <div className="space-y-3 border-b border-gray-200/70 bg-panel-2/40 p-3">
+              <div className="relative">
+                <Search size={16} aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                <Input className="pl-9 text-[15px]" placeholder="Buscar por nombre o número de habitación" value={q} onChange={(e) => setQ(e.target.value)} />
+              </div>
               <div className="max-w-full overflow-x-auto">
               <Tabs
                 value={filter}
@@ -280,73 +268,78 @@ function Facturacion() {
               />
               </div>
             </div>
-            <ul className="max-h-[calc(100vh-380px)] min-h-[200px] divide-y divide-gray-100 overflow-y-auto">
+            <ul className="max-h-[calc(100vh-380px)] min-h-[200px] divide-y divide-gray-200/60 overflow-y-auto overscroll-contain lg:min-h-[320px]">
               {folios.slice(0, 200).map(({ r, f }) => (
                 <li key={r.id}>
-                  <button onClick={() => setSel(r.id)} className={cls("flex min-h-[64px] w-full items-center justify-between gap-3 border-l-4 px-4 py-3 text-left transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none", sel === r.id ? "border-l-accent bg-accent/10" : "border-l-transparent")}>
+                  <button onClick={() => setSel(r.id)} aria-current={sel === r.id ? "true" : undefined} className={cls("flex min-h-[64px] w-full items-center gap-3 border-l-4 py-3 pl-3 pr-4 text-left transition-colors duration-150 focus-visible:-outline-offset-2 motion-reduce:transition-none", sel === r.id ? "border-l-accent bg-accent/10" : "border-l-transparent hover:bg-accent/[0.06]")}>
                     <GradAvatar name={r.guestName} size={40} />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[16px] font-semibold text-gray-900">{r.guestName}</span>
-                      <span className="block text-[14px] text-gray-600">
+                      <span className="flex items-baseline justify-between gap-2">
+                        <span className="min-w-0 truncate text-[15.5px] font-semibold text-fg">{r.guestName}</span>
+                        <span className={cls("shrink-0 whitespace-nowrap text-[14px] font-semibold tabular-nums", f.balance > 0 ? "text-red-700" : "text-green-700")}>{balanceText(f.balance, cur)}</span>
+                      </span>
+                      <span className="block truncate text-[13.5px] tabular-nums text-gray-600">
                         Habitación {room(r.roomId)} · {fmtDate(r.checkIn).slice(0, 5)} → {fmtDate(r.checkOut).slice(0, 5)}
                       </span>
-                      <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-gray-100" role="img" aria-label={`Pagó el ${f.total > 0 ? clampPct((f.paid / f.total) * 100) : 0}% de la cuenta`}>
+                      <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-gray-200/70" role="img" aria-label={`Pagó el ${f.total > 0 ? clampPct((f.paid / f.total) * 100) : 0}% de la cuenta`}>
                         <span className={cls("block h-full rounded-full transition-[width] duration-700 motion-reduce:transition-none", f.balance > 0 ? "bg-accent" : "bg-green-600")} style={{ width: `${f.total > 0 ? clampPct((f.paid / f.total) * 100) : 0}%` }} />
                       </span>
                     </span>
-                    <span className={cls("shrink-0 rounded-full px-3 py-1 text-[15px] font-semibold tabular-nums ring-1 ring-inset", f.balance > 0 ? "bg-red-50 text-red-700 ring-red-200" : "bg-green-50 text-green-700 ring-green-200")}>{balanceText(f.balance, cur)}</span>
                   </button>
                 </li>
               ))}
               {folios.length === 0 && (
-                <li className="flex flex-col items-center gap-3 px-4 py-10 text-center text-[15px] text-gray-600">
-                  <Illus icon={Users} />
-                  No hay cuentas para mostrar. Probá con otra pestaña o cambiá lo que buscaste.
+                <li>
+                  <Empty icon={Users}>No hay cuentas para mostrar. Probá con otra pestaña o cambiá lo que buscaste.</Empty>
                 </li>
               )}
             </ul>
           </Card>
-          {sel ? <Folio key={sel} id={sel} onInvoice={setInvoice} /> : <Card><div className="flex flex-col items-center gap-3 p-10 text-center text-[15px] text-gray-600"><Illus icon={Receipt} />Tocá un huésped de la lista para ver su cuenta.</div></Card>}
+          {sel ? <Folio key={sel} id={sel} onInvoice={setInvoice} /> : <Card><Empty icon={Receipt}>Tocá un huésped de la lista para ver su cuenta.</Empty></Card>}
         </div>
       )}
 
       {tab === "facturas" && (
         <Card>
-          <Table head={["N°", "Fecha", "Huésped", "Habitación", "Total", "La hizo", ""]}>
-            {data.invoices
-              .slice()
-              .sort((a, b) => b.number - a.number)
-              .map((inv) => (
-                <tr key={inv.id} className={cls("transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none", inv.voided && "text-gray-600 line-through")}>
-                  <td className="label-mono px-4 py-2.5 text-[13px] font-semibold">{String(inv.number).padStart(6, "0")}</td>
-                  <td className="px-4 py-2.5 text-[15px]">{fmtDateTime(inv.issuedAt)}</td>
-                  <td className="px-4 py-2.5 text-[15px]">{inv.guestName}</td>
-                  <td className="px-4 py-2.5 text-[15px]">{inv.roomNumber}</td>
-                  <td className="px-4 py-2.5 num text-[17px] tabular-nums">{money(inv.total, cur)}</td>
-                  <td className="px-4 py-2.5 text-[15px]">{staffName(inv.issuedBy)}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-right text-[15px]">
-                    <Button variant="ghost" onClick={() => setInvoice(inv)}>Ver factura</Button>
-                    {!inv.voided && (
-                      <Button
-                        variant="ghost"
-                        className="text-red-700"
-                        onClick={() =>
-                          confirm(`¿Anular la factura N° ${String(inv.number).padStart(6, "0")} de ${inv.guestName} por ${money(inv.total, cur)}? No se puede deshacer.`) &&
-                          actions.voidInvoice(inv)
-                        }
-                      >
-                        Anular factura
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-          </Table>
-          {data.invoices.length === 0 && (
-            <div className="flex flex-col items-center gap-3 p-10 text-center text-[15px] text-gray-600">
-              <Illus icon={FileText} />
-              Todavía no hiciste ninguna factura. Para hacer una, entrá a «Cuentas de huéspedes», elegí un huésped y tocá «Hacer factura».
-            </div>
+          {data.invoices.length > 0 ? (
+            <Table head={["N°", "Fecha", "Huésped", "Habitación", <span key="t" className="block text-right">Total</span>, "La hizo", ""]}>
+              {data.invoices
+                .slice()
+                .sort((a, b) => b.number - a.number)
+                .map((inv) => (
+                  <tr key={inv.id} className={cls(inv.voided && "text-gray-600")}>
+                    <td className="label-mono whitespace-nowrap px-4 py-2.5 text-[13px] font-semibold tabular-nums">{String(inv.number).padStart(6, "0")}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-[14.5px] tabular-nums text-gray-700">{fmtDateTime(inv.issuedAt)}</td>
+                    <td className="min-w-[160px] px-4 py-2.5 text-[15px] font-medium">
+                      <span className={cls(inv.voided && "line-through")}>{inv.guestName}</span>
+                      {inv.voided && <Badge dot={false} className="ml-2 bg-red-50 text-red-700 ring-red-200">Anulada</Badge>}
+                    </td>
+                    <td className="px-4 py-2.5 text-[15px] tabular-nums">{inv.roomNumber}</td>
+                    <td className={cls("num whitespace-nowrap px-4 py-2.5 text-right text-[17px] tabular-nums", inv.voided && "line-through")}>{money(inv.total, cur)}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-[14.5px] text-gray-700">{staffName(inv.issuedBy)}</td>
+                    <td className="whitespace-nowrap px-2 py-1.5 text-right">
+                      <Button variant="ghost" size="sm" onClick={() => setInvoice(inv)}>Ver factura</Button>
+                      {!inv.voided && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-700 hover:bg-red-50 hover:text-red-700"
+                          onClick={() =>
+                            confirm(`¿Anular la factura N° ${String(inv.number).padStart(6, "0")} de ${inv.guestName} por ${money(inv.total, cur)}? No se puede deshacer.`) &&
+                            actions.voidInvoice(inv)
+                          }
+                        >
+                          Anular factura
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+            </Table>
+          ) : (
+            <Empty icon={FileText} title="Todavía no hiciste ninguna factura">
+              Para hacer una, entrá a «Cuentas de huéspedes», elegí un huésped y tocá «Hacer factura».
+            </Empty>
           )}
         </Card>
       )}
@@ -368,14 +361,14 @@ function Facturacion() {
     return (
       <div className="grid gap-5 lg:grid-cols-2">
         <Card title="Lo que se cobró este mes, según cómo pagaron">
-          <ul className="space-y-4 p-4">
+          <ul className="space-y-4 p-4 sm:p-5">
             {byMethod.map(({ m, total }) => (
               <li key={m}>
-                <div className="flex justify-between text-[15px]">
-                  <span>{m}</span>
-                  <b className="num text-[18px] tabular-nums">{money(total, cur)}</b>
+                <div className="flex items-baseline justify-between gap-3 text-[15px]">
+                  <span className="flex min-w-0 items-center gap-2 font-medium"><span className="shrink-0 text-accent"><MethodIcon method={m} /></span><span className="truncate">{m}</span></span>
+                  <b className={cls("num whitespace-nowrap text-[18px] tabular-nums", !total && "text-gray-500")}>{money(total, cur)}</b>
                 </div>
-                <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-gray-100">
+                <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-gray-200/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.12)]">
                   <div className="h-full rounded-full bg-gradient-to-r from-accent/55 to-accent transition-all duration-700 motion-reduce:transition-none" style={{ width: `${(total / max) * 100}%` }} />
                 </div>
               </li>
@@ -383,15 +376,15 @@ function Facturacion() {
           </ul>
         </Card>
         <Card title="Lo que se vendió este mes (reservas que entran este mes)">
-          <ul className="divide-y divide-gray-100 text-[15px]">
-            <li className="flex justify-between gap-3 px-4 py-3">
-              <span>Hospedaje ({monthRes.length} reservas)</span>
-              <b className="num text-[18px] tabular-nums">{money(lodging, cur)}</b>
+          <ul className="divide-y divide-gray-200/60 text-[15px]">
+            <li className="flex items-baseline justify-between gap-3 px-4 py-3 sm:px-5">
+              <span className="min-w-0 font-medium">Hospedaje <span className="font-normal text-gray-600">({monthRes.length} reservas)</span></span>
+              <b className="num whitespace-nowrap text-[18px] tabular-nums">{money(lodging, cur)}</b>
             </li>
             {cats.map(({ c, total }) => (
-              <li key={c} className="flex justify-between gap-3 px-4 py-3">
-                <span>{CHARGE_LABEL[c]}</span>
-                <b className="num text-[18px] tabular-nums">{money(total, cur)}</b>
+              <li key={c} className="flex items-baseline justify-between gap-3 px-4 py-3 sm:px-5">
+                <span className="min-w-0">{CHARGE_LABEL[c]}</span>
+                <b className={cls("num whitespace-nowrap text-[18px] tabular-nums", !total && "text-gray-500")}>{money(total, cur)}</b>
               </li>
             ))}
           </ul>
@@ -413,7 +406,7 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
   const [pay, setPay] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("Efectivo");
   const [ref, setRef] = useState("");
-  if (!r) return <Card><p className="p-10 text-center text-[15px] text-gray-600">No encontramos esta reserva.</p></Card>;
+  if (!r) return <Card><Empty icon={Receipt}>No encontramos esta reserva.</Empty></Card>;
   const f = folio(r, idx);
   const canPay = can("registrar_pagos");
   const invoices = data.invoices.filter((i) => i.reservationId === r.id && !i.voided);
@@ -436,7 +429,7 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
   return (
     <Card
       title={
-        <span className="flex flex-wrap items-center gap-2">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           {r.guestName} · Hab. {room(r.roomId)} <Badge className={RES_STATUS_BADGE[r.status]}>{RES_STATUS_LABEL[r.status]}</Badge>
         </span>
       }
@@ -451,33 +444,33 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
             onInvoice(inv);
           }}
         >
-          <Printer size={14} /> Hacer factura
+          <Printer size={15} aria-hidden /> Hacer factura
         </Button>
       }
     >
-      <div className="space-y-6 p-4">
+      <div className="space-y-6 p-4 sm:p-5">
         <div className="stagger grid grid-cols-1 gap-3 min-[480px]:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-card">
+          <div className="rounded-xl border border-gray-200/80 bg-panel-2/60 px-4 py-4">
             <div className="label-mono text-[12.5px] text-gray-600">Total de la cuenta</div>
-            <div className="num mt-1 text-[30px] tabular-nums leading-none text-gray-900"><CountUp value={f.total} format={(n) => money(n, cur)} /></div>
+            <div className="num mt-1.5 text-[28px] tabular-nums leading-none text-fg"><CountUp value={f.total} format={(n) => money(n, cur)} /></div>
           </div>
-          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-card">
+          <div className="rounded-xl border border-gray-200/80 bg-panel-2/60 px-4 py-4">
             <div className="label-mono text-[12.5px] text-gray-600">Pagó</div>
-            <div className="num mt-1 text-[30px] tabular-nums leading-none text-gray-900"><CountUp value={f.paid} format={(n) => money(n, cur)} /></div>
+            <div className="num mt-1.5 text-[28px] tabular-nums leading-none text-fg"><CountUp value={f.paid} format={(n) => money(n, cur)} /></div>
           </div>
-          <div className={cls("rounded-2xl border bg-gradient-to-br px-4 py-4 shadow-card", f.balance > 0 ? "border-red-200 from-red-50 to-red-100 text-red-700" : "border-green-200 from-green-50 to-green-100 text-green-700")}>
+          <div className={cls("rounded-xl border bg-gradient-to-br px-4 py-4", f.balance > 0 ? "border-red-200 from-red-50 to-red-100 text-red-700" : "border-green-200 from-green-50 to-green-100 text-green-700")}>
             <div className="label-mono flex items-center gap-1.5 text-[12.5px] font-semibold">
               {f.balance <= 0 && <CheckCircle2 size={16} aria-hidden />}
               {f.balance > 0 ? "Debe" : f.balance < 0 ? "A favor del huésped" : "Está al día"}
             </div>
-            <div className="num mt-1 text-[36px] tabular-nums leading-none"><CountUp value={Math.abs(f.balance)} format={(n) => money(n, cur)} /></div>
+            <div className="num mt-1.5 text-[28px] tabular-nums leading-none"><CountUp value={Math.abs(f.balance)} format={(n) => money(n, cur)} /></div>
           </div>
         </div>
         {f.total > 0 && (
-          <div className="flex flex-wrap items-center gap-5 rounded-2xl border border-gray-200 bg-white p-4 shadow-card">
-            <Ring value={pctPaid} size={156} stroke={12} tone={f.balance > 0 ? "accent" : "green"} label={`Pagó el ${pctPaid}% de la cuenta. ${balanceText(f.balance, cur)}`}>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4 rounded-xl border border-gray-200/80 p-4 sm:justify-start">
+            <Ring value={pctPaid} size={148} stroke={12} tone={f.balance > 0 ? "accent" : "green"} label={`Pagó el ${pctPaid}% de la cuenta. ${balanceText(f.balance, cur)}`}>
               <span className="label-mono text-[12.5px] text-gray-600">{f.balance > 0 ? "Debe" : f.balance < 0 ? "A favor" : "Al día"}</span>
-              <span className="num text-[22px] leading-tight text-gray-900">{money(Math.abs(f.balance), cur)}</span>
+              <span className="num text-[21px] leading-tight tabular-nums text-fg">{money(Math.abs(f.balance), cur)}</span>
               <span className="text-[13.5px] text-gray-600">pagó el {pctPaid}%</span>
             </Ring>
             <div className="min-w-0 flex-1 basis-[220px]">
@@ -485,7 +478,7 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
               {byMethod.length ? (
                 <ul className="flex flex-wrap gap-2">
                   {byMethod.map(({ m, total }) => (
-                    <li key={m} className="inline-flex min-h-[40px] items-center gap-2 rounded-full bg-accent/10 px-3.5 py-1.5 text-[14.5px] font-medium text-gray-900 ring-1 ring-accent/20">
+                    <li key={m} className="inline-flex min-h-[36px] items-center gap-2 rounded-full bg-accent/10 px-3.5 py-1 text-[14.5px] font-medium text-fg ring-1 ring-inset ring-accent/20">
                       <span className="text-accent"><MethodIcon method={m} /></span>
                       {m} · <b className="tabular-nums">{money(total, cur)}</b>
                     </li>
@@ -498,35 +491,35 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
           </div>
         )}
         <div>
-          <h4 className="label-mono mb-3 text-[12.5px] font-semibold text-gray-700">Qué pasó en la cuenta, día por día</h4>
+          <h4 className="label-mono mb-3.5 text-[12.5px] font-medium text-gray-600">Qué pasó en la cuenta, día por día</h4>
           <Timeline events={events} cur={cur} />
         </div>
-        <div className="overflow-hidden rounded-xl border border-gray-200">
-        <Table head={["Fecha", "Qué es", "Tipo", "Monto", ""]}>
+        <div className="overflow-hidden rounded-xl border border-gray-200/80">
+        <Table head={["Fecha", "Qué es", "Tipo", <span key="m" className="block text-right">Monto</span>, ""]}>
           <tr>
-            <td className="px-4 py-2 text-[15px]">{fmtDate(r.checkIn)}</td>
-            <td className="px-4 py-2 text-[15px]">
+            <td className="whitespace-nowrap px-4 py-2.5 text-[14.5px] tabular-nums text-gray-700">{fmtDate(r.checkIn)}</td>
+            <td className="min-w-[180px] px-4 py-2.5 text-[15px] font-medium">
               Hospedaje · {nights(r)} noches × {money(r.rate, cur)}
             </td>
-            <td className="px-4 py-2 text-[15px] text-gray-600">Hospedaje</td>
-            <td className="px-4 py-2 text-[15px] tabular-nums">{money(f.lodging, cur)}</td>
+            <td className="whitespace-nowrap px-4 py-2.5 text-[14.5px] text-gray-600">Hospedaje</td>
+            <td className="num whitespace-nowrap px-4 py-2.5 text-right text-[17px] tabular-nums">{money(f.lodging, cur)}</td>
             <td />
           </tr>
           {f.charges.map((c) => (
             <tr key={c.id}>
-              <td className="px-4 py-2 text-[15px]">{fmtDate(c.date)}</td>
-              <td className="px-4 py-2 text-[15px]">
+              <td className="whitespace-nowrap px-4 py-2.5 text-[14.5px] tabular-nums text-gray-700">{fmtDate(c.date)}</td>
+              <td className="min-w-[180px] px-4 py-2.5 text-[15px] font-medium">
                 {c.description}
-                <div className="text-[13.5px] text-gray-600">lo anotó {staffName(c.createdBy)}</div>
+                <div className="text-[13.5px] font-normal text-gray-600">lo anotó {staffName(c.createdBy)}</div>
               </td>
-              <td className="px-4 py-2 text-[15px] text-gray-600">{CHARGE_LABEL[c.category]}</td>
-              <td className="px-4 py-2 text-[15px] tabular-nums">{money(c.amount, cur)}</td>
+              <td className="whitespace-nowrap px-4 py-2.5 text-[14.5px] text-gray-600">{CHARGE_LABEL[c.category]}</td>
+              <td className="num whitespace-nowrap px-4 py-2.5 text-right text-[17px] tabular-nums">{money(c.amount, cur)}</td>
               <td className="px-2 text-right">
                 <button
-                  className="inline-flex min-h-[44px] items-center gap-1 whitespace-nowrap rounded-lg px-2.5 text-[14px] font-medium text-red-700 transition-colors duration-150 hover:bg-red-50 motion-reduce:transition-none sm:min-h-[40px]"
+                  className="inline-flex min-h-[44px] items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[14px] font-medium text-red-700 transition-colors duration-150 hover:bg-red-50 motion-reduce:transition-none sm:min-h-[36px]"
                   onClick={() => confirm(`¿Borrar "${c.description}" por ${money(c.amount, cur)} de la cuenta? No se puede deshacer.`) && actions.removeCharge(c)}
                 >
-                  <Trash2 size={14} /> Borrar
+                  <Trash2 size={14} aria-hidden /> Borrar
                 </button>
               </td>
             </tr>
@@ -534,7 +527,7 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
         </Table>
         </div>
         {canPay && <form
-          className="flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4"
+          className="grid grid-cols-2 items-end gap-3 rounded-xl border border-gray-200/80 bg-panel-2/60 p-4 sm:flex sm:flex-wrap"
           onSubmit={(e) => {
             e.preventDefault();
             const a = Number(amount);
@@ -545,7 +538,7 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
             setAmount("");
           }}
         >
-          <Field label="Anotar un gasto: ¿qué es?" className="min-w-[180px] flex-1"><Input className="text-[15px]" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ej: 2 botellas de agua del frigobar" /></Field>
+          <Field label="Anotar un gasto: ¿qué es?" className="col-span-2 min-w-[180px] flex-1"><Input className="text-[15px]" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ej: 2 botellas de agua del frigobar" /></Field>
           <Field label="Tipo">
             <Select className="text-[15px]" value={cat} onChange={(e) => setCat(e.target.value as ChargeCategory)}>
               {(Object.keys(CHARGE_LABEL) as ChargeCategory[]).map((c) => (
@@ -553,37 +546,38 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
               ))}
             </Select>
           </Field>
-          <Field label="Monto"><Input type="number" className="w-[130px] text-[15px]" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
-          <Button type="submit" className="">Agregar gasto</Button>
+          <Field label="Monto"><Input type="number" className="w-full text-right text-[15px] tabular-nums sm:w-[130px]" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
+          <Button type="submit" className="col-span-2"><Plus size={15} aria-hidden /> Agregar gasto</Button>
         </form>}
 
         <div>
-          <h4 className="label-mono mb-2 text-[12.5px] font-semibold text-gray-700">Pagos que hizo el huésped</h4>
-          <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 text-[15px]">
+          <h4 className="label-mono mb-3 text-[12.5px] font-medium text-gray-600">Pagos que hizo el huésped</h4>
+          <ul className="divide-y divide-gray-200/60 overflow-hidden rounded-xl border border-gray-200/80 text-[15px]">
             {f.payments.map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
-                <span>
-                  {fmtDate(p.date)} · {p.method} {p.reference && <span className="text-gray-600">· {p.reference}</span>}
+              <li key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 pl-4 pr-2">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-green-50 text-green-700 ring-1 ring-inset ring-green-200" aria-hidden><MethodIcon method={p.method} size={17} /></span>
+                <span className="min-w-0 flex-1 basis-[150px]">
+                  <span className="block font-medium leading-snug"><span className="tabular-nums">{fmtDate(p.date)}</span> · {p.method} {p.reference && <span className="font-normal text-gray-600">· {p.reference}</span>}</span>
                   <span className="block text-[13.5px] text-gray-600">lo anotó {staffName(p.createdBy)}</span>
                 </span>
-                <span className="flex items-center gap-2">
-                  <b className="num text-[20px] tabular-nums text-green-700">{money(p.amount, cur)}</b>
+                <span className="ml-auto flex items-center gap-1">
+                  <b className="num whitespace-nowrap text-[19px] tabular-nums text-green-700">{money(p.amount, cur)}</b>
                   <button
-                    className="inline-flex min-h-[44px] items-center gap-1 rounded-lg px-2.5 text-[14px] font-medium text-red-700 transition-colors duration-150 hover:bg-red-50 motion-reduce:transition-none sm:min-h-[40px]"
+                    className="inline-flex min-h-[44px] items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[14px] font-medium text-red-700 transition-colors duration-150 hover:bg-red-50 motion-reduce:transition-none sm:min-h-[36px]"
                     onClick={() =>
                       confirm(`¿Anular este pago de ${money(p.amount, cur)} del ${fmtDate(p.date)}? La cuenta vuelve a deber ese monto. No se puede deshacer.`) &&
                       actions.removePayment(p)
                     }
                   >
-                    <Trash2 size={14} /> Anular este pago
+                    <Trash2 size={14} aria-hidden /> Anular este pago
                   </button>
                 </span>
               </li>
             ))}
-            {f.payments.length === 0 && <li className="px-4 py-4 text-center text-gray-600">Todavía no pagó nada.</li>}
+            {f.payments.length === 0 && <li className="px-4 py-5 text-center text-gray-600">Todavía no pagó nada.</li>}
           </ul>
           {canPay && <form
-            className="mt-3 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4"
+            className="mt-3 grid grid-cols-2 items-end gap-3 rounded-xl border border-gray-200/80 bg-panel-2/60 p-4 sm:flex sm:flex-wrap"
             onSubmit={(e) => {
               e.preventDefault();
               const a = Number(pay);
@@ -595,24 +589,25 @@ function Folio({ id, onInvoice }: { id: string; onInvoice: (i: Invoice) => void 
               setRef("");
             }}
           >
-            <Field label="Anotar un pago: ¿cuánto pagó?"><Input type="number" className="w-[150px] text-[15px]" value={pay} onChange={(e) => setPay(e.target.value)} /></Field>
-            <Field label="Cómo pagó">
+            <Field label="Anotar un pago: ¿cuánto pagó?" className="col-span-2 sm:col-span-1"><Input type="number" className="w-full text-right text-[15px] tabular-nums sm:w-[150px]" value={pay} onChange={(e) => setPay(e.target.value)} /></Field>
+            <Field label="Cómo pagó" className="col-span-2 sm:col-span-1">
               <Select className="text-[15px]" value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
                 {METHODS.map((m) => <option key={m}>{m}</option>)}
               </Select>
             </Field>
-            <Field label="Nota (opcional)" className="min-w-[120px] flex-1"><Input className="text-[15px]" value={ref} onChange={(e) => setRef(e.target.value)} placeholder="Ej: número de comprobante" /></Field>
+            <Field label="Nota (opcional)" className="col-span-2 min-w-[120px] flex-1"><Input className="text-[15px]" value={ref} onChange={(e) => setRef(e.target.value)} placeholder="Ej: número de comprobante" /></Field>
             {f.balance > 0 && (
-              <Button type="button" variant="ghost" className="" onClick={() => setPay(String(Math.round(f.balance)))}>Poner lo que debe</Button>
+              <Button type="button" variant="ghost" className="col-span-2 px-3" onClick={() => setPay(String(Math.round(f.balance)))}>Poner lo que debe</Button>
             )}
-            <Button type="submit" variant="success" className="">Anotar pago</Button>
+            <Button type="submit" variant="success" className="col-span-2"><CheckCircle2 size={15} aria-hidden /> Anotar pago</Button>
           </form>}
         </div>
 
         {invoices.length > 0 && (
-          <p className="text-[14px] text-gray-600">
+          <p className="flex flex-wrap items-center gap-x-1 gap-y-1 border-t border-gray-200/70 pt-4 text-[14px] text-gray-600">
+            <FileText size={15} aria-hidden className="mr-1 shrink-0" />
             Facturas hechas: {invoices.map((i) => (
-              <button key={i.id} className="mr-3 inline-flex min-h-[44px] items-center font-medium text-blue-600 hover:underline sm:min-h-0" onClick={() => onInvoice(i)}>Factura N° {i.number}</button>
+              <button key={i.id} className="inline-flex min-h-[44px] items-center rounded-md px-2 font-semibold tabular-nums text-accent underline-offset-4 hover:underline sm:min-h-[32px]" onClick={() => onInvoice(i)}>Factura N° {i.number}</button>
             ))}
           </p>
         )}
@@ -637,57 +632,60 @@ function InvoiceModal({ invoice, onClose }: { invoice: Invoice | null; onClose: 
       footer={
         <>
           <Button onClick={onClose}>Cerrar</Button>
-          <Button variant="primary" onClick={() => window.print()}><Printer size={14} /> Imprimir o guardar en PDF</Button>
+          <Button variant="primary" onClick={() => window.print()}><Printer size={15} aria-hidden /> Imprimir o guardar en PDF</Button>
         </>
       }
     >
-      <div className="rounded-md bg-white p-4 shadow-[0_10px_30px_rgba(0,0,0,0.18)] ring-1 ring-gray-200 sm:p-8">
+      <div className="rounded-md bg-white p-5 shadow-[0_10px_30px_rgba(0,0,0,0.18)] ring-1 ring-gray-200 sm:p-8">
       <div className="no-print flex h-0 justify-end" aria-hidden>
-        <span className="-mr-4 -mt-4 block h-8 w-8 shrink-0 sm:-mr-8 sm:-mt-8" style={{ background: "linear-gradient(225deg, rgb(var(--panel)) 50%, rgb(var(--gray-300)) 50%)", boxShadow: "-2px 2px 4px rgba(0,0,0,0.15)" }} />
+        <span className="-mr-5 -mt-5 block h-8 w-8 shrink-0 sm:-mr-8 sm:-mt-8" style={{ background: "linear-gradient(225deg, rgb(var(--panel)) 50%, rgb(var(--gray-300)) 50%)", boxShadow: "-2px 2px 4px rgba(0,0,0,0.15)" }} />
       </div>
       {isPaid && (
         <div className="no-print pointer-events-none flex h-0 justify-end pr-4 sm:pr-10">
           <span className="num relative z-10 mt-24 -rotate-12 rounded-md border-4 border-green-600 px-4 py-1 text-[34px] uppercase leading-none tracking-wider text-green-700 opacity-80">Pagado</span>
         </div>
       )}
-      <div className="print-area text-[15px]">
-        <div className="flex justify-between border-b border-gray-200 pb-4">
-          <div>
-            <div className="text-lg font-bold uppercase tracking-widest">{settings?.hotelName}</div>
-            <div className="text-gray-600">Comprobante de estadía</div>
+      {/* En impresión todo va con colores fijos (negro y grises neutros) para que salga bien sobre blanco aunque el panel esté en tema oscuro. */}
+      <div className="print-area text-[15px] leading-normal text-fg print:text-black">
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b-2 border-fg/80 pb-4 print:border-black">
+          <div className="min-w-0">
+            <div className="break-words text-xl font-bold uppercase leading-tight tracking-[0.14em]">{settings?.hotelName}</div>
+            <div className="label-mono mt-1.5 text-[12.5px] text-gray-600 print:text-neutral-600">Comprobante de estadía</div>
           </div>
-          <div className="text-right">
-            <div className="font-semibold">N° {String(invoice.number).padStart(6, "0")}</div>
-            <div>{fmtDateTime(invoice.issuedAt)}</div>
-            {invoice.voided && <div className="font-bold text-red-600">ANULADA</div>}
+          <div className="ml-auto text-right">
+            <div className="num text-[24px] leading-tight tabular-nums">N° {String(invoice.number).padStart(6, "0")}</div>
+            <div className="text-[14px] tabular-nums text-gray-600 print:text-neutral-600">{fmtDateTime(invoice.issuedAt)}</div>
+            {invoice.voided && <div className="mt-1.5 inline-block rounded border-2 border-red-600 px-2 py-0.5 text-[13px] font-bold tracking-widest text-red-600">ANULADA</div>}
           </div>
         </div>
-        <div className="my-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+        <div className="my-5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 print:border-neutral-300 print:bg-transparent">
           Huésped: <b>{invoice.guestName}</b> · Habitación {invoice.roomNumber}
         </div>
-        <table className="w-full">
+        <div className="overflow-x-auto print:overflow-visible">
+        <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b text-left text-[13.5px] uppercase text-gray-600">
-              <th className="py-2">Qué es</th><th className="py-2 text-right">Cantidad</th><th className="py-2 text-right">Precio c/u</th><th className="py-2 text-right">Total</th>
+            <tr className="label-mono border-b border-gray-300 text-left text-[12.5px] text-gray-600 print:border-neutral-400 print:text-neutral-600">
+              <th className="py-2 pr-3 font-medium">Qué es</th><th className="whitespace-nowrap px-3 py-2 text-right font-medium">Cantidad</th><th className="whitespace-nowrap px-3 py-2 text-right font-medium">Precio c/u</th><th className="whitespace-nowrap py-2 pl-3 text-right font-medium">Total</th>
             </tr>
           </thead>
           <tbody>
             {invoice.lines.map((l, i) => (
-              <tr key={i} className="border-b border-gray-100">
-                <td className="py-1.5">{l.description}</td>
-                <td className="py-1.5 text-right">{l.qty}</td>
-                <td className="py-1.5 text-right tabular-nums">{money(l.unit, cur)}</td>
-                <td className="py-1.5 text-right tabular-nums">{money(l.total, cur)}</td>
+              <tr key={i} className="border-b border-gray-200/70 align-top print:border-neutral-200">
+                <td className="py-2 pr-3">{l.description}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{l.qty}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">{money(l.unit, cur)}</td>
+                <td className="whitespace-nowrap py-2 pl-3 text-right font-medium tabular-nums">{money(l.total, cur)}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        <div className="ml-auto mt-4 max-w-[260px] space-y-1">
-          <div className="flex justify-between"><span>Subtotal</span><span className="tabular-nums">{money(invoice.subtotal, cur)}</span></div>
-          <div className="flex justify-between"><span>IVA ({settings?.taxRate ?? 21}%)</span><span className="tabular-nums">{money(invoice.tax, cur)}</span></div>
-          <div className="flex justify-between border-t pt-1 text-base font-bold"><span>Total</span><span className="tabular-nums">{money(invoice.total, cur)}</span></div>
         </div>
-        <p className="mt-6 text-[13.5px] text-gray-600">Hecha por {staffName(invoice.issuedBy)}. Este papel no vale como factura oficial (factura electrónica).</p>
+        <div className="ml-auto mt-5 w-full max-w-[280px] space-y-1.5">
+          <div className="flex justify-between gap-4 text-gray-700 print:text-neutral-700"><span>Subtotal</span><span className="tabular-nums">{money(invoice.subtotal, cur)}</span></div>
+          <div className="flex justify-between gap-4 text-gray-700 print:text-neutral-700"><span>IVA ({settings?.taxRate ?? 21}%)</span><span className="tabular-nums">{money(invoice.tax, cur)}</span></div>
+          <div className="flex items-baseline justify-between gap-4 border-t-2 border-fg/80 pt-2 font-bold print:border-black"><span className="text-base">Total</span><span className="num text-[24px] leading-none tabular-nums">{money(invoice.total, cur)}</span></div>
+        </div>
+        <p className="mt-8 border-t border-gray-200 pt-3 text-[13px] leading-relaxed text-gray-600 print:border-neutral-300 print:text-neutral-600">Hecha por {staffName(invoice.issuedBy)}. Este papel no vale como factura oficial (factura electrónica).</p>
       </div>
       </div>
     </Modal>

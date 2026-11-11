@@ -130,50 +130,51 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: () => void }) {
     <button
       onClick={onOpen}
       className={cls(
-        "lift w-full rounded-xl border border-l-[6px] border-gray-200/80 bg-white p-3.5 text-left shadow-card focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent/30",
+        "lift w-full rounded-xl border border-l-[6px] border-gray-200/80 p-3.5 text-left shadow-card focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent/40",
         accent,
-        overdue && "bg-red-50/40",
+        overdue ? "bg-red-50" : "bg-panel",
       )}
     >
       <span className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+        <span
+          className={cls(
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+            task.status === "completada"
+              ? "bg-green-500/15 text-green-700"
+              : "bg-accent/10 text-accent",
+          )}
+        >
           <TaskIcon type={task.type} size={20} className="!mr-0 align-middle" />
         </span>
-        <span className="block min-w-0 flex-1 text-[16px] font-semibold leading-snug text-gray-900">
+        <span className="line-clamp-3 min-w-0 flex-1 self-center break-words text-[16px] font-semibold leading-snug text-fg">
           {task.title}
         </span>
-        <span className="flex shrink-0 flex-col items-center rounded-lg bg-gray-900 px-2.5 py-1 text-white">
+        <span className="flex min-w-[44px] shrink-0 flex-col items-center rounded-lg bg-gray-900 px-2.5 py-1 text-white">
           <BedDouble size={13} className="opacity-70" aria-hidden />
-          <span className="num text-[20px] leading-none">
+          <span className="num text-[20px] leading-none tabular-nums">
             {room?.number ?? "?"}
           </span>
         </span>
       </span>
-      <span className="mt-2.5 flex flex-wrap gap-1.5">
-        <Badge className={PRIORITY_CLASS[task.priority]}>
+      <span className="mt-3 flex flex-wrap gap-1.5">
+        <Badge
+          className={PRIORITY_CLASS[task.priority]}
+          dot={task.priority !== "urgente"}
+        >
           {task.priority === "urgente" && (
-            <Flame
-              size={13}
-              className="mr-0.5 inline-block align-[-2px]"
-              aria-hidden
-            />
+            <Flame size={13} className="shrink-0" aria-hidden />
           )}
           {PRIORITY_LABEL[task.priority]}
         </Badge>
         {task.status === "en_progreso" && task.startedAt && (
-          <Badge className="bg-blue-50 text-blue-700">
-            <Timer
-              size={13}
-              className="mr-0.5 inline-block align-[-2px]"
-              aria-hidden
-            />{" "}
+          <Badge className="bg-blue-50 text-blue-700" dot={false}>
+            <Timer size={13} className="shrink-0" aria-hidden />{" "}
             <Elapsed since={task.startedAt} prefix="" />
           </Badge>
         )}
         {task.trigger !== "manual" && (
-          <Badge className="bg-indigo-50 text-indigo-700">
-            <Zap size={13} className="mr-0.5 inline-block" aria-hidden />{" "}
-            Automática
+          <Badge className="bg-indigo-50 text-indigo-700" dot={false}>
+            <Zap size={13} className="shrink-0" aria-hidden /> Automática
           </Badge>
         )}
         {task.blocksRoom && (
@@ -181,9 +182,9 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: () => void }) {
             Habitación no disponible
           </Badge>
         )}
-        {overdue && <Badge className="bg-red-50 text-red-700">Atrasada</Badge>}
+        {overdue && <Badge className="bg-red-100 text-red-700">Atrasada</Badge>}
       </span>
-      <span className="mt-3 flex items-center gap-2 text-[15px] text-gray-700">
+      <span className="mt-3 flex items-center gap-2 border-t border-gray-200/70 pt-3 text-[14px] text-gray-700">
         {who ? (
           <>
             <Avatar name={staffName(who)} size={26} />
@@ -199,15 +200,31 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: () => void }) {
             </span>
           </>
         ) : (
-          <span className="flex-1 text-gray-600">Sin responsable</span>
+          <>
+            <span
+              className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border border-dashed border-gray-400 text-gray-500"
+              aria-hidden
+            >
+              <User size={14} />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-gray-600">
+              Sin responsable
+            </span>
+          </>
         )}
-        <span className="shrink-0 text-[14px] tabular-nums text-gray-600">
+        <span
+          className={cls(
+            "flex shrink-0 items-center gap-1 text-[13px] tabular-nums",
+            overdue ? "font-semibold text-red-700" : "text-gray-600",
+          )}
+        >
+          <CalendarDays size={14} aria-hidden />
           {fmtDate(task.dueDate).slice(0, 5)}
         </span>
       </span>
       {total > 0 && (
-        <>
-          <span className="mt-2.5 block h-2 overflow-hidden rounded-full bg-gray-100 ring-1 ring-inset ring-gray-200/60">
+        <span className="mt-2.5 flex items-center gap-2.5">
+          <span className="block h-2 flex-1 overflow-hidden rounded-full bg-gray-200/70">
             <span
               className={cls(
                 "block h-full rounded-full transition-all duration-500 motion-reduce:transition-none",
@@ -216,10 +233,10 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: () => void }) {
               style={{ width: `${(done / total) * 100}%` }}
             />
           </span>
-          <span className="mt-1.5 block text-[14px] text-gray-600">
+          <span className="shrink-0 text-[13px] tabular-nums text-gray-600">
             {done} de {total} pasos
           </span>
-        </>
+        </span>
       )}
     </button>
   );
@@ -275,9 +292,18 @@ export function TaskDrawer({
       open={!!id}
       onClose={onClose}
       title={
-        <span className="flex items-center gap-2">
-          <TaskIcon type={task.type} size={20} /> Habitación{" "}
-          {room?.number ?? "?"}
+        <span className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+            <TaskIcon
+              type={task.type}
+              size={18}
+              className="!mr-0 align-middle"
+            />
+          </span>
+          <span>
+            Habitación{" "}
+            <span className="tabular-nums">{room?.number ?? "?"}</span>
+          </span>
         </span>
       }
     >
@@ -298,7 +324,7 @@ export function TaskDrawer({
                 />
               </span>
               <div className="min-w-0 flex-1">
-                <h3 className="text-[19px] font-semibold leading-snug">
+                <h3 className="break-words text-[19px] font-semibold leading-snug">
                   {task.title}
                 </h3>
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -329,15 +355,19 @@ export function TaskDrawer({
             </div>
           </div>
           {task.notes && (
-            <p className="flex gap-2 rounded-xl bg-amber-50 px-3.5 py-3 text-[15px] text-amber-900">
+            <p className="flex gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-[15px] leading-relaxed text-amber-900">
               <StickyNote size={18} className="mt-0.5 shrink-0" aria-hidden />{" "}
-              <span>{task.notes}</span>
+              <span className="min-w-0 break-words">{task.notes}</span>
             </p>
           )}
           {res && (
-            <p className="text-[15px] text-gray-700">
-              Es por la reserva de <b>{res.guestName}</b> (
-              {fmtDate(res.checkIn)} → {fmtDate(res.checkOut)})
+            <p className="text-[15px] leading-relaxed text-gray-700">
+              Es por la reserva de{" "}
+              <b className="font-semibold text-fg">{res.guestName}</b> (
+              <span className="tabular-nums">
+                {fmtDate(res.checkIn)} → {fmtDate(res.checkOut)}
+              </span>
+              )
             </p>
           )}
         </section>
@@ -363,10 +393,10 @@ export function TaskDrawer({
             </Select>
           </Field>
           <div>
-            <div className="label-mono mb-1.5 text-[12.5px] text-gray-600">
+            <div className="mb-1.5 text-sm font-semibold text-gray-800">
               Para el día
             </div>
-            <div className="flex h-11 items-center gap-2 font-medium">
+            <div className="flex h-11 items-center gap-2 font-medium tabular-nums sm:h-10">
               <CalendarDays
                 size={18}
                 className="shrink-0 text-gray-500"
@@ -388,7 +418,7 @@ export function TaskDrawer({
             )}
           </h4>
           {totalSteps > 0 && (
-            <div className="mb-2 h-2 overflow-hidden rounded-full bg-gray-100">
+            <div className="mb-3 h-2 overflow-hidden rounded-full bg-gray-200/70">
               <div
                 className={cls(
                   "h-full rounded-full transition-all duration-200 motion-reduce:transition-none",
@@ -411,11 +441,11 @@ export function TaskDrawer({
                     "flex min-h-[56px] w-full items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left text-[16px] leading-snug transition-colors duration-200 disabled:cursor-default motion-reduce:transition-none",
                     c.done
                       ? "border-green-200 bg-green-50"
-                      : "border-gray-200 bg-white hover:bg-gray-50 active:bg-gray-100",
+                      : "border-gray-200 bg-panel enabled:hover:border-gray-300 enabled:hover:bg-gray-50 enabled:active:bg-gray-100",
                   )}
                 >
                   <AnimatedCheck done={c.done} size={28} />
-                  <span className="flex-1">
+                  <span className="min-w-0 flex-1 break-words">
                     <span
                       className={
                         c.done
@@ -426,7 +456,7 @@ export function TaskDrawer({
                       {c.label}
                     </span>
                     {c.done && c.doneBy && (
-                      <span className="block text-[14px] text-gray-600">
+                      <span className="mt-0.5 block text-[13px] tabular-nums text-gray-600">
                         {staffName(c.doneBy)} · {fmtDateTime(c.doneAt)}
                       </span>
                     )}
@@ -435,18 +465,18 @@ export function TaskDrawer({
               </li>
             ))}
             {task.checklist.length === 0 && (
-              <li className="px-2.5 text-[15px] text-gray-600">
+              <li className="rounded-xl border border-dashed border-gray-300 px-3.5 py-4 text-center text-[15px] text-gray-600">
                 No hay pasos cargados.
               </li>
             )}
           </ul>
         </section>
 
-        <div className="grid gap-2 sm:flex sm:flex-wrap">
+        <div className="grid gap-2 border-t border-gray-200/70 pt-5 sm:flex sm:flex-wrap">
           {task.status === "pendiente" && (
             <Button
               variant="primary"
-              className="h-11 text-[15px]"
+              className="h-12 text-[15px] sm:h-11"
               onClick={() => actions.setTaskStatus(task, "en_progreso")}
             >
               <Play size={17} /> Empezar
@@ -455,7 +485,7 @@ export function TaskDrawer({
           {task.status !== "completada" && (
             <Button
               variant="success"
-              className="h-11 text-[15px]"
+              className="h-12 text-[15px] sm:h-11"
               onClick={() => {
                 actions.setTaskStatus(task, "completada");
                 vibrate(25);
@@ -468,14 +498,14 @@ export function TaskDrawer({
           )}
           {task.status === "completada" && (
             <Button
-              className="h-11 text-[15px]"
+              className="h-12 text-[15px] sm:h-11"
               onClick={() => actions.setTaskStatus(task, "pendiente")}
             >
               <RotateCcw size={17} /> Volver a abrir
             </Button>
           )}
           {assignee && task.status !== "completada" && (
-            <Button className="h-11 text-[15px]" onClick={notify}>
+            <Button className="h-12 text-[15px] sm:h-11" onClick={notify}>
               <MessageCircle size={17} /> Avisar por WhatsApp
             </Button>
           )}
@@ -487,35 +517,48 @@ export function TaskDrawer({
             hizo qué
           </h4>
           {task.status === "en_progreso" && task.startedAt && (
-            <p className="mb-3 flex items-center gap-2 rounded-xl bg-blue-50 px-3.5 py-2.5 text-[15px] font-medium text-blue-700">
+            <p className="mb-3 flex items-center gap-2 rounded-xl border border-blue-200/70 bg-blue-50 px-3.5 py-2.5 text-[15px] font-medium text-blue-700">
               <Timer size={18} aria-hidden />{" "}
               <Elapsed since={task.startedAt} prefix="Empezada " />
             </p>
           )}
           {task.status === "completada" &&
             formatDuration(task.startedAt, task.completedAt) && (
-              <p className="mb-3 flex items-center gap-2 rounded-xl bg-green-50 px-3.5 py-2.5 text-[15px] font-medium text-green-700">
+              <p className="mb-3 flex items-center gap-2 rounded-xl border border-green-200/70 bg-green-50 px-3.5 py-2.5 text-[15px] font-medium text-green-700">
                 <Timer size={18} aria-hidden /> Se hizo en{" "}
                 {formatDuration(task.startedAt, task.completedAt)}
               </p>
             )}
-          <dl className="mb-4 grid grid-cols-1 gap-1 rounded-xl border border-gray-200/80 bg-gray-50 px-3.5 py-3 text-[15px]">
-            <div>
-              <span className="text-gray-600">Creada:</span>{" "}
-              {fmtDateTime(task.createdAt)} por {staffName(task.createdBy)}
-            </div>
+          <dl className="mb-5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 rounded-xl border border-gray-200/80 bg-gray-50 px-3.5 py-3 text-[15px]">
+            <dt className="text-gray-600">Creada:</dt>
+            <dd>
+              <span className="tabular-nums">
+                {fmtDateTime(task.createdAt)}
+              </span>{" "}
+              por {staffName(task.createdBy)}
+            </dd>
             {task.startedAt && (
-              <div>
-                <span className="text-gray-600">Empezada:</span>{" "}
-                {fmtDateTime(task.startedAt)} por {staffName(task.startedBy)}
-              </div>
+              <>
+                <dt className="text-gray-600">Empezada:</dt>
+                <dd>
+                  <span className="tabular-nums">
+                    {fmtDateTime(task.startedAt)}
+                  </span>{" "}
+                  por {staffName(task.startedBy)}
+                </dd>
+              </>
             )}
             {task.completedAt && (
-              <div>
-                <span className="text-gray-600">Terminada:</span>{" "}
-                {fmtDateTime(task.completedAt)} por{" "}
-                <b>{staffName(task.completedBy)}</b>
-              </div>
+              <>
+                <dt className="text-gray-600">Terminada:</dt>
+                <dd>
+                  <span className="tabular-nums">
+                    {fmtDateTime(task.completedAt)}
+                  </span>{" "}
+                  por{" "}
+                  <b className="font-semibold">{staffName(task.completedBy)}</b>
+                </dd>
+              </>
             )}
           </dl>
           <ol className="ml-4 space-y-4 border-l-2 border-accent/25 pl-8">
@@ -525,16 +568,22 @@ export function TaskDrawer({
                 <li key={i} className="relative text-[15px]">
                   <span
                     className={cls(
-                      "absolute -left-[50px] top-0 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white",
-                      look.box,
-                      i === 0 && "ring-4 ring-accent/20",
+                      "absolute -left-[51px] -top-1.5 flex h-9 w-9 items-center justify-center rounded-full bg-panel ring-4 ring-panel",
+                      i === 0 && "!ring-accent/25",
                     )}
                   >
-                    <look.icon size={17} aria-hidden />
+                    <span
+                      className={cls(
+                        "flex h-full w-full items-center justify-center rounded-full",
+                        look.box,
+                      )}
+                    >
+                      <look.icon size={17} aria-hidden />
+                    </span>
                   </span>
                   <span className="font-medium">{staffName(l.by)}</span> —{" "}
                   {l.action}
-                  <div className="text-[14px] text-gray-600">
+                  <div className="mt-0.5 text-[13px] tabular-nums text-gray-600">
                     {fmtDateTime(l.at)}
                   </div>
                 </li>
@@ -547,7 +596,7 @@ export function TaskDrawer({
           <Button
             size="sm"
             variant="ghost"
-            className="h-10 text-red-600"
+            className="h-11 text-red-600 hover:bg-red-50 hover:text-red-700 sm:h-10"
             onClick={() => {
               if (confirm("¿Borrar esta tarea?\n\nNo se puede deshacer.")) {
                 actions.deleteTask(task);
@@ -733,7 +782,7 @@ export function NewTaskModal({
               ))}
           </Select>
         </Field>
-        <label className="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-[15px] sm:col-span-2">
+        <label className="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-[15px] leading-snug transition-colors hover:border-gray-300 sm:col-span-2">
           <input
             type="checkbox"
             className="h-5 w-5 shrink-0 accent-accent"

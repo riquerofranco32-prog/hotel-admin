@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BedDouble, CheckCircle2 } from "lucide-react";
+import { AlertCircle, BedDouble, CheckCircle2, ChevronRight } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
-import { Avatar, Button, Field, Input } from "@/components/ui";
+import { Avatar, Button, Field, Input, Skeleton } from "@/components/ui";
 import { Wave } from "@/components/viz";
 import { ALL_ROLES, cls, normalizeRole, ROLE_COLOR, ROLE_LABEL } from "@/lib/logic";
 
@@ -105,27 +105,27 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative grid min-h-screen overflow-hidden lg:grid-cols-[1fr_1.1fr]">
+    <div className="relative grid min-h-[100dvh] overflow-hidden lg:grid-cols-[1fr_1.1fr]">
       <div aria-hidden className="gate-glow pointer-events-none absolute inset-0" />
       <div aria-hidden className="gate-glow-big pointer-events-none absolute inset-0 hidden lg:block" />
       <div aria-hidden className="gate-grid pointer-events-none absolute inset-0" />
       {/* Panel de marca */}
-      <div className="relative hidden flex-col justify-between overflow-hidden p-10 text-fg lg:flex">
+      <div className="relative hidden flex-col justify-between overflow-hidden p-10 text-fg lg:flex xl:p-14">
         <LighthouseScene />
         <Wave className="absolute inset-x-0 bottom-0 h-48" />
         <div className="relative flex items-center gap-2.5">
-          <span className="logo-grad flex h-11 w-11 items-center justify-center rounded-xl text-accent-fg">
-            <BedDouble size={20} />
+          <span className="logo-grad flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-accent-fg">
+            <BedDouble size={20} aria-hidden />
           </span>
-          <span className="display text-sm">{hotelName}</span>
+          <span className="display truncate text-sm">{hotelName}</span>
         </div>
-        <div className="relative space-y-6">
-          <h1 className="display text-4xl leading-[1.1] xl:text-6xl">
+        <div className="relative max-w-xl space-y-7">
+          <h1 className="display text-balance text-4xl leading-[1.1] xl:text-[56px]">
             Todo el hotel,
             <br />
             en <span className="serif-accent">un solo lugar.</span>
           </h1>
-          <ul className="stagger space-y-3.5 text-base text-gray-800">
+          <ul className="stagger space-y-3 text-[15.5px] leading-snug text-gray-800">
             {[
               "Calendario de habitaciones con colores, siempre al día",
               "Cuando un huésped se va, las tareas de limpieza se crean solas",
@@ -133,8 +133,8 @@ export default function LoginPage() {
               "Facturas, cobros y ficha de cada huésped",
             ].map((x) => (
               <li key={x} className="flex items-center gap-3">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/10">
-                  <CheckCircle2 size={18} className="text-accent" />
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/10 ring-1 ring-inset ring-accent/15">
+                  <CheckCircle2 size={17} className="text-accent" aria-hidden />
                 </span>
                 {x}
               </li>
@@ -145,15 +145,15 @@ export default function LoginPage() {
       </div>
 
       {/* Formulario */}
-      <div className="relative flex items-center justify-center px-4 py-8 sm:p-8">
+      <div className="relative flex items-center justify-center px-4 py-8 sm:p-8 lg:border-l lg:border-gray-200/60 lg:bg-panel/40 lg:backdrop-blur-[2px]">
         <div className="ui-pop relative w-full max-w-md overflow-hidden rounded-2xl border border-gray-200/80 bg-panel p-6 shadow-pop before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-accent before:to-transparent sm:p-8">
-          <div className="mb-6 flex items-center gap-2.5 lg:hidden">
-            <span className="logo-grad flex h-10 w-10 items-center justify-center rounded-xl text-accent-fg">
-              <BedDouble size={20} />
+          <div className="mb-6 flex items-center gap-2.5 border-b border-gray-200/70 pb-5 lg:hidden">
+            <span className="logo-grad flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-accent-fg">
+              <BedDouble size={20} aria-hidden />
             </span>
-            <span className="display text-sm">{hotelName}</span>
+            <span className="display min-w-0 truncate text-sm">{hotelName}</span>
           </div>
-          <h2 className="display text-[26px] sm:text-[30px]">{mode === "firebase" ? (isRegister ? "Crear mi cuenta" : "Entrar al panel") : "Elegí con quién entrar"}</h2>
+          <h2 className="display text-balance text-[24px] text-fg sm:text-[28px]">{mode === "firebase" ? (isRegister ? "Crear mi cuenta" : "Entrar al panel") : "Elegí con quién entrar"}</h2>
           <p className="mb-6 mt-2 text-[15px] leading-relaxed text-gray-600">
             {mode === "firebase" ? "Escribí el email con el que te dieron de alta y tu contraseña." : "Es una prueba. Tocá tu nombre para entrar y ver cómo ve el panel cada cargo."}
           </p>
@@ -169,22 +169,34 @@ export default function LoginPage() {
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
               </Field>
               <Field label="Contraseña (6 letras o números como mínimo)">
-                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete={isRegister ? "new-password" : "current-password"} />
               </Field>
-              {error && <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[15px] text-red-700">{error}</p>}
-              <Button type="submit" variant="primary" className="h-12 w-full text-base" disabled={busy}>
+              {error && (
+                <p role="alert" className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[14.5px] leading-snug text-red-700">
+                  <AlertCircle size={18} className="mt-px shrink-0" aria-hidden />
+                  <span className="min-w-0 break-words">{error}</span>
+                </p>
+              )}
+              <Button type="submit" variant="primary" className="h-12 w-full text-base sm:h-12" disabled={busy}>
                 {busy ? "Entrando…" : isRegister ? "Crear mi cuenta" : "Entrar"}
               </Button>
-              <p className="text-center text-[15px] text-gray-700">
+              <p className="border-t border-gray-200/70 pt-3 text-center text-[15px] text-gray-700">
                 {isRegister ? "¿Ya tenés cuenta? " : "¿Es tu primera vez? "}
                 <button type="button" className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-2 hover:underline" onClick={() => setIsRegister(!isRegister)}>
                   {isRegister ? "Tocá acá para entrar" : "Tocá acá para crear tu cuenta"}
                 </button>
               </p>
-              <p className="text-center text-[14px] text-gray-600">La primera persona que crea su cuenta queda como Administrador general.</p>
+              <p className="text-balance text-center text-[13.5px] leading-snug text-gray-600">La primera persona que crea su cuenta queda como Administrador general.</p>
             </form>
           ) : !staffLoaded ? (
-            <p className="text-[15px] text-gray-700">Cargando, esperá un momento…</p>
+            <div role="status" className="space-y-3">
+              <p className="text-[15px] text-gray-600">Cargando, esperá un momento…</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {[0, 1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-14 rounded-xl" />
+                ))}
+              </div>
+            </div>
           ) : (
             <div className="stagger space-y-5">
               {ALL_ROLES.map((role) => {
@@ -192,28 +204,30 @@ export default function LoginPage() {
                 if (!people.length) return null;
                 return (
                   <div key={role}>
-                    <div className="mb-2 flex items-center gap-2">
-                      <span className={cls("label-mono rounded-md px-2.5 py-1 text-[12.5px] font-semibold tracking-wider", ROLE_COLOR[role])}>{ROLE_LABEL[role]}</span>
+                    <div className="mb-2 flex items-center gap-2.5">
+                      <span className={cls("label-mono rounded-md px-2 py-0.5 text-[11.5px] font-medium", ROLE_COLOR[role])}>{ROLE_LABEL[role]}</span>
+                      <span aria-hidden className="h-px flex-1 bg-gray-200/80" />
                     </div>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {people.map((s) => (
                         <button
                           key={s.id}
                           onClick={() => demoLogin(s.id)}
-                          className="lift flex min-h-14 items-center gap-3 rounded-xl border border-gray-300 bg-[rgb(var(--well))] px-3 py-3 text-left hover:bg-accent/5"
+                          className="group flex min-h-14 items-center gap-3 rounded-xl border border-gray-200 bg-[rgb(var(--well))] px-3 py-2.5 text-left transition-colors duration-150 hover:border-accent/50 hover:bg-accent/[0.06] motion-reduce:transition-none"
                         >
                           <Avatar name={s.name} size={36} />
-                          <span className="min-w-0">
+                          <span className="min-w-0 flex-1">
                             <span className="block truncate text-[15px] font-medium text-fg">{s.name}</span>
-                            <span className="block truncate text-[13.5px] text-gray-600">{s.email}</span>
+                            <span className="block truncate text-[13px] text-gray-600">{s.email}</span>
                           </span>
+                          <ChevronRight size={16} aria-hidden className="shrink-0 text-gray-400 transition group-hover:translate-x-0.5 group-hover:text-accent motion-reduce:transition-none" />
                         </button>
                       ))}
                     </div>
                   </div>
                 );
               })}
-              <p className="rounded-lg border border-gray-200 bg-panel-2 px-3 py-2.5 text-[14px] leading-snug text-gray-700">
+              <p className="rounded-lg border border-gray-200 bg-panel-2 px-3.5 py-3 text-[13.5px] leading-relaxed text-gray-600">
                 Esto es una prueba: lo que hagas se guarda solo en este navegador. Cuando el hotel use datos reales en internet, cada persona va a entrar con su email y su contraseña.
               </p>
             </div>

@@ -1093,30 +1093,33 @@ function TodayList({
   list.sort((a, b) => Number(done(a)) - Number(done(b)));
   return (
     <Card
-      title={`${kind === "llegadas" ? "Llegadas" : "Salidas"} de hoy (${list.length})`}
+      className="flex flex-col overflow-hidden"
+      icon={kind === "llegadas" ? LogIn : LogOut}
+      title={`${kind === "llegadas" ? "Llegadas" : "Salidas"} de hoy`}
+      count={list.length}
       actions={
         <Link
           href="/recepcion"
-          className="text-[14px] font-medium text-blue-700 hover:underline"
+          className="rounded-md px-1.5 py-1 text-[14px] font-semibold text-accent underline-offset-4 transition-colors hover:text-accent-hover hover:underline"
         >
           Recepción
         </Link>
       }
     >
-      <ul className="max-h-64 divide-y divide-gray-100 overflow-y-auto text-sm">
+      <ul className="max-h-72 divide-y divide-gray-200/60 overflow-y-auto text-sm">
         {list.map((r) => {
           const st = idx.roomStates.get(r.roomId);
           return (
             <li key={r.id}>
               <button
                 onClick={() => onOpen(r.id)}
-                className="flex min-h-[56px] w-full items-center gap-3 px-4 py-2.5 text-left transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none"
+                className="flex min-h-[56px] w-full items-center gap-3 px-4 py-2.5 text-left transition-colors duration-150 hover:bg-accent/[0.06] focus-visible:bg-accent/[0.06] focus-visible:outline-offset-[-2px] motion-reduce:transition-none sm:px-5"
               >
                 <span
                   className={cls(
-                    "flex h-9 w-11 shrink-0 items-center justify-center rounded-lg text-[14px] font-semibold",
+                    "num flex h-9 w-12 shrink-0 items-center justify-center rounded-lg text-[16px] tabular-nums",
                     done(r)
-                      ? "bg-gray-100 text-gray-500"
+                      ? "bg-gray-100 text-gray-500 ring-1 ring-inset ring-gray-200"
                       : kind === "llegadas"
                         ? "bg-reservada text-white"
                         : "bg-proxima text-white",
@@ -1128,12 +1131,12 @@ function TodayList({
                   <span
                     className={cls(
                       "block truncate text-[15px] font-medium",
-                      done(r) && "text-gray-500",
+                      done(r) ? "text-gray-500" : "text-fg",
                     )}
                   >
                     {r.guestName}
                   </span>
-                  <span className="block text-[13.5px] text-gray-600">
+                  <span className="block truncate text-[13.5px] text-gray-600">
                     {done(r)
                       ? kind === "llegadas"
                         ? "Ya ingresó"
@@ -1143,13 +1146,18 @@ function TodayList({
                         : "Pendiente de salida"}
                   </span>
                 </span>
+                <ChevronRight
+                  size={16}
+                  className="shrink-0 text-gray-400"
+                  aria-hidden
+                />
               </button>
             </li>
           );
         })}
         {!list.length && (
-          <li className="flex flex-col items-center gap-2 px-4 py-8 text-center text-[15px] text-gray-600">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+          <li className="flex flex-col items-center gap-2.5 px-4 py-9 text-center text-[15px] text-gray-600">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-panel-2 text-accent">
               {kind === "llegadas" ? (
                 <LogIn size={18} aria-hidden />
               ) : (
@@ -1171,18 +1179,20 @@ function RoomStatesCard() {
   const total = data.rooms.length || 1;
   return (
     <Card
+      className="overflow-hidden"
+      icon={BedDouble}
       title="Estado de habitaciones"
       actions={
         <Link
           href="/mantenimiento"
-          className="text-[14px] font-medium text-blue-700 hover:underline"
+          className="rounded-md px-1.5 py-1 text-[14px] font-semibold text-accent underline-offset-4 transition-colors hover:text-accent-hover hover:underline"
         >
           Ver tablero
         </Link>
       }
     >
-      <div className="px-4 pt-3">
-        <div className="flex h-3 overflow-hidden rounded-full bg-gray-100">
+      <div className="px-4 pt-4 sm:px-5">
+        <div className="flex h-2.5 gap-px overflow-hidden rounded-full bg-gray-200/70">
           {(Object.keys(ROOM_STATE_LABEL) as RoomState[]).map((s) => (
             <div
               key={s}
@@ -1193,16 +1203,24 @@ function RoomStatesCard() {
           ))}
         </div>
       </div>
-      <ul className="space-y-2 px-4 py-3.5 text-[15px]">
+      <ul className="divide-y divide-gray-200/60 px-4 pb-2 pt-2 text-[15px] sm:px-5">
         {(Object.keys(ROOM_STATE_LABEL) as RoomState[]).map((s) => (
-          <li key={s} className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
+          <li key={s} className="flex items-center justify-between gap-3 py-2">
+            <span className="flex min-w-0 items-center gap-2.5 text-gray-800">
               <span
-                className={cls("h-2.5 w-2.5 rounded-full", ROOM_STATE_DOT[s])}
+                aria-hidden
+                className={cls("h-2.5 w-2.5 shrink-0 rounded-full", ROOM_STATE_DOT[s])}
               />{" "}
               {ROOM_STATE_LABEL[s]}
             </span>
-            <b className="tabular-nums">{counts[s] ?? 0}</b>
+            <b
+              className={cls(
+                "num text-[18px] tabular-nums leading-none",
+                counts[s] ? "text-fg" : "text-gray-400",
+              )}
+            >
+              {counts[s] ?? 0}
+            </b>
           </li>
         ))}
       </ul>
@@ -1239,29 +1257,35 @@ function LiveFeed({ limit = 25 }: { limit?: number }) {
   }, [data.tasks, data.activity, idx.roomById, limit]);
   return (
     <Card
+      className="overflow-hidden"
       title={
-        <span className="flex items-center gap-2">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />{" "}
+        <span className="flex items-center gap-2.5">
+          <span
+            aria-hidden
+            className="pulse-dot h-2 w-2 shrink-0 rounded-full bg-green-500 motion-reduce:animate-none"
+          />{" "}
           Actividad en vivo
         </span>
       }
     >
-      <ul className="max-h-64 divide-y divide-gray-100 overflow-y-auto">
+      <ul className="max-h-72 divide-y divide-gray-200/60 overflow-y-auto">
         {events.map((e, i) => (
-          <li key={i} className="flex gap-3 px-4 py-2.5 text-[14px]">
-            <Avatar name={staffName(e.by)} size={26} />
-            <div className="min-w-0">
-              <div className="leading-snug">
-                <b className="font-medium">{staffName(e.by)}</b>{" "}
+          <li key={i} className="flex gap-3 px-4 py-3 text-[14px] sm:px-5">
+            <Avatar name={staffName(e.by)} size={28} className="mt-0.5" />
+            <div className="min-w-0 flex-1">
+              <div className="break-words leading-snug">
+                <b className="font-semibold text-fg">{staffName(e.by)}</b>{" "}
                 <span className="text-gray-600">{e.text}</span>
               </div>
-              <div className="text-[14px] text-gray-600">{fmtTimeAgo(e.at)}</div>
+              <div className="mt-0.5 text-[13px] tabular-nums text-gray-500">
+                {fmtTimeAgo(e.at)}
+              </div>
             </div>
           </li>
         ))}
         {!events.length && (
-          <li className="flex flex-col items-center gap-2 px-4 py-8 text-center text-[15px] text-gray-600">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+          <li className="flex flex-col items-center gap-2.5 px-4 py-9 text-center text-[15px] text-gray-600">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-panel-2 text-accent">
               <Activity size={18} aria-hidden />
             </span>
             Todavía no hay actividad

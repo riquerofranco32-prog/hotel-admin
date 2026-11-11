@@ -9,6 +9,7 @@ import {
   Database,
   FileText,
   History,
+  Minus,
   Pencil,
   Phone,
   Plus,
@@ -25,6 +26,7 @@ import {
   Badge,
   Button,
   Card,
+  Empty,
   Field,
   Input,
   Modal,
@@ -83,15 +85,9 @@ function EmptyState({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 px-4 py-10 text-center text-[15px] text-gray-700">
-      <span aria-hidden className="relative flex h-20 w-20 items-center justify-center">
-        <span className="absolute inset-0 rounded-full border-2 border-dashed border-gray-300 bg-gray-50" />
-        <span className="absolute -right-1 top-1 h-3 w-3 rounded-full bg-accent/30" />
-        <span className="absolute -left-1 bottom-2 h-2 w-2 rounded-full bg-gray-300" />
-        <Icon size={30} className="relative text-gray-500" />
-      </span>
+    <Empty icon={Icon}>
       <p className="max-w-md">{children}</p>
-    </div>
+    </Empty>
   );
 }
 
@@ -119,34 +115,36 @@ export default function AdminPage() {
               <div className="flex items-center gap-2 text-[15px] font-medium opacity-90">
                 <UsersIcon size={18} aria-hidden /> Personas activas
               </div>
-              <div className="num mt-2 text-[48px] leading-none">
+              <div className="num mt-2 text-[48px] tabular-nums leading-none">
                 <CountUp value={activeStaff} />
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
+          <div className="flex items-center gap-4 rounded-2xl border border-gray-200/80 bg-panel p-5 shadow-card">
             <Ring value={onlinePct} size={72} stroke={8} tone="green" label={`${onlineStaff} conectadas ahora`}>
-              <span className="num text-[20px]">{onlineStaff}</span>
+              <span className="num text-[20px] tabular-nums text-fg">{onlineStaff}</span>
             </Ring>
-            <div>
+            <div className="min-w-0">
               <div className="label-mono flex items-center gap-2 text-[12.5px] text-gray-600">
-                <span className={cls("h-2.5 w-2.5 rounded-full bg-green-500", onlineStaff > 0 && "pulse-dot")} aria-hidden /> Conectadas ahora
+                <span className={cls("h-2 w-2 shrink-0 rounded-full bg-green-500", onlineStaff > 0 && "pulse-dot")} aria-hidden /> Conectadas ahora
               </div>
-              <div className="mt-1 text-[14px] text-gray-700">de {activeStaff} personas activas</div>
+              <div className="mt-1 text-[14px] tabular-nums text-gray-600">de {activeStaff} personas activas</div>
             </div>
           </div>
-          <div className="lift rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent ring-1 ring-accent/20">
-              <BedDouble size={20} aria-hidden />
+          <div className="flex items-center gap-4 rounded-2xl border border-gray-200/80 bg-panel p-5 shadow-card">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/20">
+              <BedDouble size={22} aria-hidden />
             </span>
-            <div className="label-mono mt-3 text-[12.5px] text-gray-600">Habitaciones</div>
-            <div className="num mt-1 text-[30px] leading-none text-gray-900">
-              <CountUp value={data.rooms.length} />
+            <div className="min-w-0">
+              <div className="label-mono text-[12.5px] text-gray-600">Habitaciones</div>
+              <div className="num mt-1.5 text-[30px] tabular-nums leading-none text-fg">
+                <CountUp value={data.rooms.length} />
+              </div>
             </div>
           </div>
         </div>
       </div>
-      <div className="-mx-4 overflow-x-auto px-4 pb-1 lg:mx-0 lg:px-0">
+      <div className="no-scrollbar -mx-4 overflow-x-auto px-4 pb-1 lg:mx-0 lg:px-0">
         <Tabs
           value={tab}
           onChange={setTab}
@@ -249,22 +247,24 @@ function Users() {
               onClick={() => setRoleFilter(selected ? "" : r)}
               aria-pressed={selected}
               className={cls(
-                "lift flex min-h-[80px] items-center justify-between gap-3 rounded-2xl border bg-white px-4 py-3.5 text-left shadow-card outline-none focus-visible:ring-[3px] focus-visible:ring-accent/30",
+                "lift flex min-h-[76px] items-start justify-between gap-2 rounded-xl border px-4 py-3 text-left shadow-card outline-none focus-visible:ring-[3px] focus-visible:ring-accent/30",
                 selected
-                  ? "border-accent bg-accent/5 ring-1 ring-accent"
-                  : "border-gray-200",
+                  ? "border-accent bg-[linear-gradient(rgb(var(--accent)/0.08),rgb(var(--accent)/0.08))] bg-panel ring-1 ring-accent"
+                  : "border-gray-200/80 bg-panel",
               )}
             >
               <span className="min-w-0">
-                <span className="label-mono block text-[12px] leading-snug text-gray-600">
+                <span className={cls("label-mono block text-[12px] leading-snug", selected ? "text-accent" : "text-gray-600")}>
                   {ROLE_LABEL[r]}
                 </span>
-                <span className="num mt-1 block text-[32px] tabular-nums leading-none">
+                <span className="num mt-1.5 block text-[30px] tabular-nums leading-none text-fg">
                   {data.staff.filter((s) => s.role === r && s.active).length}
                 </span>
               </span>
               {selected && (
-                <Check size={18} className="shrink-0 text-accent" aria-hidden />
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-accent-fg">
+                  <Check size={13} strokeWidth={3} aria-hidden />
+                </span>
               )}
             </button>
           );
@@ -272,7 +272,9 @@ function Users() {
       </div>
       <Card
         className="overflow-hidden"
-        title={`Personal (${list.length}). Tocá un cargo de arriba para ver solo esos.`}
+        icon={UsersIcon}
+        title="Personal"
+        count={list.length}
         actions={
           <Button
             variant="primary"
@@ -283,55 +285,58 @@ function Users() {
           </Button>
         }
       >
-        <div className="space-y-6 p-3 sm:p-4">
+        <p className="border-b border-gray-200/70 px-4 py-2.5 text-[14px] text-gray-600 sm:px-5">
+          Tocá un cargo de arriba para ver solo esos.
+        </p>
+        {list.length > 0 && (
+        <div className="space-y-7 p-4 sm:p-5">
           {ALL_ROLES.map((role) => {
             const group = list.filter((x) => x.role === role);
             if (!group.length) return null;
             return (
               <section key={role} aria-label={ROLE_LABEL[role]}>
                 <h3 className="mb-3 flex items-center gap-2.5">
-                  <Badge className={cls(ROLE_COLOR[role], "px-3 py-1 text-[14px]")}>{ROLE_LABEL[role]}</Badge>
-                  <span className="num text-[18px] tabular-nums text-gray-700">{group.length}</span>
-                  <span aria-hidden className="h-px flex-1 bg-gray-200" />
+                  <Badge dot={false} className={ROLE_COLOR[role]}>{ROLE_LABEL[role]}</Badge>
+                  <span className="label-mono text-[12.5px] tabular-nums text-gray-600">{group.length}</span>
+                  <span aria-hidden className="h-px flex-1 bg-gray-200/80" />
                 </h3>
                 <ul className="stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {group.map((s) => {
                     const online = isOnline(s);
                     return (
-                      <li key={s.id} className={cls("lift flex flex-col rounded-2xl border border-gray-200 bg-white p-4 shadow-card", !s.active && "opacity-70 grayscale")}>
-                        <div className="flex items-center gap-4">
+                      <li key={s.id} className={cls("flex flex-col rounded-xl border border-gray-200/80 bg-panel shadow-card transition-colors hover:border-gray-300", !s.active && "opacity-70 grayscale")}>
+                        <div className="flex items-center gap-3 p-4">
                           <span className="relative shrink-0" title={online ? "Conectado ahora" : undefined}>
-                            <span className={cls("block rounded-full p-1 ring-[3px]", online ? "ring-green-500" : "ring-gray-300")}>
-                              <Avatar name={s.name} size={64} />
+                            <span className={cls("block rounded-full p-0.5 ring-2", online ? "ring-green-500" : "ring-gray-200")}>
+                              <Avatar name={s.name} size={44} />
                             </span>
-                            {online && <span aria-hidden className="pulse-dot absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-white bg-green-500" />}
+                            {online && <span aria-hidden className="pulse-dot absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 shadow-[0_0_0_2px_rgb(var(--panel))]" />}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <div className="break-words text-[17px] font-semibold leading-snug text-gray-900">
+                            <div className="break-words text-[16px] font-semibold leading-snug text-fg">
                               {s.name}{" "}
-                              {s.id === me?.id && <span className="text-[14px] font-normal text-gray-600">(vos)</span>}
+                              {s.id === me?.id && <span className="text-[13.5px] font-normal text-gray-600">(vos)</span>}
                             </div>
-                            <Badge className={cls(ROLE_COLOR[s.role], "mt-1 px-2.5 py-0.5 text-[13px]")}>{ROLE_LABEL[s.role]}</Badge>
+                            <span className={cls("mt-0.5 inline-flex items-center gap-1.5 text-[13.5px] font-medium", s.active ? "text-green-700" : "text-gray-600")}>
+                              <span className={cls("h-1.5 w-1.5 rounded-full", s.active ? "bg-green-500" : "bg-gray-400")} aria-hidden />
+                              {s.active ? "Activo" : "Dado de baja"}
+                            </span>
                           </div>
                         </div>
-                        <dl className="mt-3.5 space-y-1.5 text-[14.5px] text-gray-700">
-                          <div className="flex items-center gap-2"><Phone size={15} className="shrink-0 text-gray-500" aria-hidden /><dt className="sr-only">Teléfono</dt><dd className="min-w-0 break-all">{s.phone ?? "Sin teléfono"}</dd></div>
+                        <dl className="space-y-1.5 px-4 text-[14px] text-gray-700">
+                          <div className="flex items-center gap-2"><Phone size={14} className="shrink-0 text-gray-500" aria-hidden /><dt className="sr-only">Teléfono</dt><dd className={cls("min-w-0 truncate tabular-nums", !s.phone && "text-gray-500")} title={s.phone}>{s.phone ?? "Sin teléfono"}</dd></div>
                           <div className="flex items-center gap-2">
-                            <Clock size={15} className="shrink-0 text-gray-500" aria-hidden />
+                            <Clock size={14} className="shrink-0 text-gray-500" aria-hidden />
                             <dt className="sr-only">Última vez que entró</dt>
-                            <dd className={online ? "font-medium text-green-700" : undefined}>{online ? "Conectado ahora" : s.lastSeen ? `Entró ${fmtTimeAgo(s.lastSeen)}` : "Nunca entró"}</dd>
+                            <dd className={cls("min-w-0 truncate", online && "font-medium text-green-700")}>{online ? "Conectado ahora" : s.lastSeen ? `Entró ${fmtTimeAgo(s.lastSeen)}` : "Nunca entró"}</dd>
                           </div>
                         </dl>
-                        <div className="mt-3 grid grid-cols-2 gap-2 text-center">
-                          <div className="rounded-xl bg-gray-50 px-2 py-2 ring-1 ring-gray-200"><div className="num text-[22px] leading-none tabular-nums">{open.get(s.id) ?? 0}</div><div className="mt-1 text-[13px] text-gray-600">sin terminar</div></div>
-                          <div className="rounded-xl bg-gray-50 px-2 py-2 ring-1 ring-gray-200"><div className="num text-[22px] leading-none tabular-nums">{done.get(s.id) ?? 0}</div><div className="mt-1 text-[13px] text-gray-600">hechas</div></div>
-                        </div>
-                        <div className="mt-3 flex items-center justify-between gap-2">
-                          <span className={cls("inline-flex items-center gap-2 text-[14px] font-medium", s.active ? "text-green-700" : "text-gray-700")}>
-                            <span className={cls("h-2.5 w-2.5 rounded-full", s.active ? "bg-green-500" : "bg-gray-400")} aria-hidden />
-                            {s.active ? "Activo" : "Dado de baja"}
-                          </span>
-                          <Button variant="ghost" className={TOUCH} onClick={() => setEdit(s)}>
+                        <div className="mt-auto flex items-center justify-between gap-2 px-4 pb-2 pt-3">
+                          <div className="flex items-baseline gap-4 text-[13.5px] text-gray-600">
+                            <span><b className="num mr-1 text-[18px] tabular-nums text-fg">{open.get(s.id) ?? 0}</b>sin terminar</span>
+                            <span><b className="num mr-1 text-[18px] tabular-nums text-fg">{done.get(s.id) ?? 0}</b>hechas</span>
+                          </div>
+                          <Button variant="ghost" size="sm" className={cn(TOUCH, "-mr-2")} onClick={() => setEdit(s)}>
                             <Pencil size={15} aria-hidden /> Editar datos
                           </Button>
                         </div>
@@ -343,6 +348,7 @@ function Users() {
             );
           })}
         </div>
+        )}
         {list.length === 0 && (
           <EmptyState icon={UsersIcon}>
             No hay personas con ese cargo. Tocá el mismo cargo de arriba otra
@@ -350,7 +356,7 @@ function Users() {
           </EmptyState>
         )}
         {mode === "firebase" && (
-          <p className="border-t border-gray-100 bg-gray-50 px-4 py-3 text-[14px] leading-relaxed text-gray-700">
+          <p className="border-t border-gray-200/70 bg-panel-2/60 px-4 py-3 text-[14px] leading-relaxed text-gray-700 sm:px-5">
             Para darle acceso a alguien: agregalo acá con su email. Después
             pedile que abra la app, toque “Crear cuenta” y use ese mismo email.
           </p>
@@ -366,7 +372,7 @@ function Users() {
             {edit?.id && edit.id !== me?.id && (
               <Button
                 variant="ghost"
-                className={cn(TOUCH, "text-red-600 hover:bg-red-50 sm:mr-auto")}
+                className={cn(TOUCH, "text-red-700 hover:bg-red-50 hover:text-red-700 sm:mr-auto")}
                 onClick={() => {
                   if (
                     confirm(
@@ -417,7 +423,7 @@ function Users() {
                 />
               </Field>
             </div>
-            <div className="grid gap-4 border-t border-gray-100 pt-4">
+            <div className="grid gap-4 border-t border-gray-200/70 pt-4">
               <Field
                 label="Cargo"
                 hint={
@@ -447,10 +453,10 @@ function Users() {
                   ))}
                 </Select>
               </Field>
-              <label className="flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] leading-snug">
+              <label className="flex min-h-[52px] cursor-pointer items-center gap-3 rounded-lg border border-gray-200 bg-panel-2/70 px-4 py-3 text-[15px] leading-snug text-fg transition-colors hover:border-gray-300 has-[:focus-visible]:border-accent has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-accent/20 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
                 <input
                   type="checkbox"
-                  className="h-6 w-6 shrink-0 accent-green-600"
+                  className="h-5 w-5 shrink-0 accent-[rgb(var(--accent))]"
                   checked={edit.active ?? true}
                   disabled={edit.id === me?.id}
                   onChange={(e) =>
@@ -498,8 +504,8 @@ function Permissions() {
   }
 
   return (
-    <Card title="Qué puede ver y hacer cada cargo" className="overflow-hidden">
-      <div className="m-4 flex items-start gap-3 rounded-xl border border-accent/30 bg-accent/5 px-4 py-3.5 text-[15px] leading-relaxed text-gray-800">
+    <Card icon={ShieldCheck} title="Qué puede ver y hacer cada cargo" className="overflow-hidden">
+      <div className="m-4 flex items-start gap-3 rounded-xl border border-accent/25 bg-accent/[0.06] px-4 py-3.5 text-[15px] leading-relaxed text-gray-800 sm:mx-5">
         <ShieldCheck size={20} className="mt-0.5 shrink-0 text-accent" aria-hidden />
         <p>
           <b className="label-mono text-[12.5px] text-accent">Cómo usarlo:</b> cada columna es un cargo. Tocá una casilla para{" "}
@@ -508,14 +514,14 @@ function Permissions() {
           sale mal, tocá “Volver a lo de siempre” abajo del nombre del cargo.
         </p>
       </div>
-      <div className="max-h-[70vh] overflow-auto border-t border-gray-100">
-        <table className="w-full border-separate border-spacing-0 text-[15px]">
+      <div className="max-h-[70vh] overflow-auto overscroll-x-contain border-t border-gray-200/70">
+        <table className="w-full border-separate border-spacing-0 text-[14.5px]">
           <thead>
-            <tr className="label-mono text-[12.5px] text-gray-700">
-              <th className="sticky left-0 top-0 z-30 min-w-[180px] border-b border-gray-200 bg-gray-50 px-4 py-3 text-left font-semibold">
+            <tr className="label-mono text-[11.5px] text-gray-600">
+              <th className="sticky left-0 top-0 z-30 w-[150px] min-w-[150px] border-b border-r border-gray-200 bg-[rgb(var(--panel-2))] px-4 py-3 text-left align-bottom font-medium sm:w-auto sm:min-w-[220px] sm:px-5">
                 Qué puede hacer
               </th>
-              <th className="sticky top-0 z-20 min-w-[96px] border-b border-gray-200 bg-gray-50 px-3 py-3 text-center font-semibold">
+              <th className="sticky top-0 z-20 w-[92px] min-w-[92px] border-b border-gray-200 bg-[rgb(var(--panel-2))] px-2 py-3 text-center align-top font-medium">
                 {ROLE_LABEL.admin}
               </th>
               {roles.map((r) => (
@@ -523,15 +529,18 @@ function Permissions() {
                   key={r}
                   onMouseEnter={() => setHovCol(r)}
                   onMouseLeave={() => setHovCol(null)}
-                  className={cls("sticky top-0 z-20 min-w-[136px] border-b border-gray-200 px-3 py-3 text-center font-semibold transition-colors motion-reduce:transition-none", hovCol === r ? "bg-accent/10 text-accent" : "bg-gray-50")}
+                  className={cls(
+                    "sticky top-0 z-20 w-[108px] min-w-[108px] border-b bg-[rgb(var(--panel-2))] px-2 py-3 text-center align-top font-medium transition-colors motion-reduce:transition-none",
+                    hovCol === r ? "border-accent text-accent shadow-[inset_0_-2px_0_rgb(var(--accent))]" : "border-gray-200",
+                  )}
                 >
-                  <div>{ROLE_LABEL[r]}</div>
+                  <div className="break-words leading-tight">{ROLE_LABEL[r]}</div>
                   {settings.permissions?.[r] && (
                     <button
                       onClick={() => reset(r)}
-                      className="mx-auto mt-1 inline-flex min-h-[44px] items-center gap-1 rounded-md px-1.5 text-[13.5px] font-normal normal-case leading-tight tracking-normal text-blue-700 hover:bg-blue-50 hover:underline"
+                      className="mx-auto mt-1.5 inline-flex min-h-[36px] items-center gap-1 rounded-md px-1.5 py-1 font-sans text-[12.5px] font-medium normal-case leading-tight tracking-normal text-accent transition-colors hover:bg-accent/10 hover:text-accent-hover"
                     >
-                      <RotateCcw size={12} className="shrink-0" /> Volver a lo
+                      <RotateCcw size={12} className="shrink-0" aria-hidden /> Volver a lo
                       de siempre
                     </button>
                   )}
@@ -547,7 +556,7 @@ function Permissions() {
                     colSpan={roles.length + 2}
                     className="border-b border-gray-200 bg-gray-100 p-0"
                   >
-                    <div className="label-mono sticky left-0 w-fit px-4 py-2 text-[12.5px] font-semibold text-gray-700">
+                    <div className="label-mono sticky left-0 w-fit px-4 py-2 text-[11.5px] font-medium text-gray-700 sm:px-5">
                       {g === "Secciones"
                         ? "Pantallas que puede ver"
                         : "Cosas que puede hacer"}
@@ -558,11 +567,11 @@ function Permissions() {
                   .filter((p) => PERM_INFO[p].group === g)
                   .map((p) => (
                     <tr key={p} className="group">
-                      <td className="sticky left-0 z-10 border-b border-gray-100 bg-white px-4 py-2 transition-colors group-hover:bg-gray-50">
+                      <td className="sticky left-0 z-10 border-b border-r border-gray-200/70 bg-panel px-4 py-2 leading-snug text-fg transition-colors group-hover:bg-gray-50 sm:px-5">
                         {PERM_INFO[p].label}
                       </td>
-                      <td className="border-b border-gray-100 px-3 py-2 text-center text-green-700 group-hover:bg-gray-50">
-                        <Check size={20} className="mx-auto" aria-hidden />
+                      <td className="border-b border-gray-200/70 px-2 py-2 text-center text-gray-400 group-hover:bg-gray-50">
+                        <Check size={18} className="mx-auto" aria-hidden />
                       </td>
                       {roles.map((r) => {
                         const allowed = PERM_CEILING[r].includes(p);
@@ -575,13 +584,16 @@ function Permissions() {
                             onMouseEnter={() => setHovCol(r)}
                             onMouseLeave={() => setHovCol(null)}
                             className={cls(
-                              "border-b border-gray-100 p-0 text-center transition-colors motion-reduce:transition-none group-hover:bg-gray-50",
-                              hovCol === r && "bg-accent/5",
-                              changed && "bg-amber-50",
+                              "border-b border-gray-200/70 p-0 text-center transition-colors motion-reduce:transition-none",
+                              changed
+                                ? "bg-amber-50"
+                                : hovCol === r
+                                  ? "bg-accent/[0.06]"
+                                  : "group-hover:bg-gray-50",
                             )}
                           >
                             {allowed ? (
-                              <label className="flex h-12 w-full cursor-pointer items-center justify-center">
+                              <label className="flex h-11 w-full cursor-pointer items-center justify-center">
                                 <input
                                   type="checkbox"
                                   checked={on}
@@ -592,23 +604,26 @@ function Permissions() {
                                 <span
                                   aria-hidden
                                   className={cls(
-                                    "flex h-7 w-7 items-center justify-center rounded-lg border-2 transition-colors duration-150 peer-focus-visible:ring-[3px] peer-focus-visible:ring-accent/40 motion-reduce:transition-none",
+                                    "flex h-6 w-6 items-center justify-center rounded-md border-2 transition-colors duration-150 peer-focus-visible:ring-[3px] peer-focus-visible:ring-accent/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-panel motion-reduce:transition-none",
                                     on
                                       ? changed
                                         ? "border-amber-500 bg-amber-500 text-white"
                                         : "border-green-600 bg-green-600 text-white"
-                                      : "border-gray-400 bg-white",
+                                      : changed
+                                        ? "border-amber-500 bg-panel"
+                                        : "border-gray-400 bg-panel hover:border-gray-500",
                                   )}
                                 >
-                                  {on && <Check key={String(on)} size={18} strokeWidth={3} className="ad-tick" />}
+                                  {on && <Check key={String(on)} size={15} strokeWidth={3.5} className="ad-tick" />}
                                 </span>
                               </label>
                             ) : (
                               <span
-                                className="flex h-12 items-center justify-center text-gray-500"
+                                className="flex h-11 items-center justify-center text-gray-400"
                                 title="Este permiso no se puede dar, por seguridad"
                               >
-                                —
+                                <Minus size={16} aria-hidden />
+                                <span className="sr-only">—</span>
                               </span>
                             )}
                           </td>
@@ -621,7 +636,7 @@ function Permissions() {
           </tbody>
         </table>
       </div>
-      <p className="border-t border-gray-100 bg-gray-50 px-4 py-3 text-[14px] leading-relaxed text-gray-700">
+      <p className="border-t border-gray-200/70 bg-panel-2/60 px-4 py-3 text-[14px] leading-relaxed text-gray-700 sm:px-5">
         Los cambios valen al instante para todo el personal. “—” quiere decir
         que ese permiso no se puede dar por seguridad (por ejemplo, las mucamas
         nunca pueden ver pagos ni facturas). Las casillas en color ámbar son las
@@ -659,7 +674,9 @@ function Rooms() {
   return (
     <Card
       className="overflow-hidden"
-      title={`Habitaciones (${data.rooms.length})`}
+      icon={BedDouble}
+      title="Habitaciones"
+      count={data.rooms.length}
       actions={
         <Button
           variant="primary"
@@ -689,34 +706,27 @@ function Rooms() {
           .map((r) => {
             const st = roomState(r, data);
             return (
-              <tr
-                key={r.id}
-                className="transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none"
-              >
+              <tr key={r.id} className={cls(r.outOfService && "text-gray-500")}>
                 <td className="px-4 py-2.5">
-                  <span className="num inline-flex min-w-[48px] items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-[16px] tabular-nums">
+                  <span className="num inline-flex min-w-[48px] items-center justify-center rounded-md border border-gray-200 bg-panel-2 px-2.5 py-1 text-[16px] tabular-nums text-fg">
                     {r.number}
                   </span>
                 </td>
                 <td className="px-4 py-2.5 tabular-nums">{r.floor}</td>
                 <td className="px-4 py-2.5">{r.type}</td>
                 <td className="px-4 py-2.5 tabular-nums">{r.capacity}</td>
-                <td className="whitespace-nowrap px-4 py-2.5 font-medium tabular-nums">
+                <td className="whitespace-nowrap px-4 py-2.5 font-semibold tabular-nums text-fg">
                   {money(r.rate, cur)}
                 </td>
                 <td className="px-4 py-2.5">
-                  <Badge
-                    className={cls(
-                      ROOM_STATE_CLASS[st],
-                      "px-2.5 py-1 text-[13.5px]",
-                    )}
-                  >
+                  <Badge className={ROOM_STATE_CLASS[st]}>
                     {ROOM_STATE_LABEL[st]}
                   </Badge>
                 </td>
-                <td className="px-4 py-2.5 text-right">
+                <td className="px-4 py-1.5 text-right">
                   <Button
                     variant="ghost"
+                    size="sm"
                     className={TOUCH}
                     onClick={() => setEdit(r)}
                   >
@@ -742,7 +752,7 @@ function Rooms() {
             {edit?.id && (
               <Button
                 variant="ghost"
-                className={cn(TOUCH, "text-red-600 hover:bg-red-50 sm:mr-auto")}
+                className={cn(TOUCH, "text-red-700 hover:bg-red-50 hover:text-red-700 sm:mr-auto")}
                 onClick={() => {
                   if (
                     data.reservations.some(
@@ -831,11 +841,11 @@ function Rooms() {
                 />
               </Field>
             </div>
-            <div className="grid gap-4 border-t border-gray-100 pt-4">
-              <label className="flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] leading-snug">
+            <div className="grid gap-4 border-t border-gray-200/70 pt-4">
+              <label className="flex min-h-[52px] cursor-pointer items-center gap-3 rounded-lg border border-gray-200 bg-panel-2/70 px-4 py-3 text-[15px] leading-snug text-fg transition-colors hover:border-gray-300 has-[:focus-visible]:border-accent has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-accent/20 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
                 <input
                   type="checkbox"
-                  className="h-6 w-6 shrink-0 accent-green-600"
+                  className="h-5 w-5 shrink-0 accent-[rgb(var(--accent))]"
                   checked={!!edit.outOfService}
                   onChange={(e) =>
                     setEdit({ ...edit, outOfService: e.target.checked })
@@ -863,12 +873,8 @@ function Config() {
   const [s, setS] = useState<Settings>(data.settings[0] ?? DEFAULT_SETTINGS);
   return (
     <Card
-      title={
-        <span className="flex items-center gap-2">
-          <Building2 size={18} className="shrink-0 text-gray-600" aria-hidden />{" "}
-          Datos generales del hotel
-        </span>
-      }
+      icon={Building2}
+      title="Datos generales del hotel"
     >
       <div className="max-w-2xl space-y-5 p-4 sm:p-5">
         <Field label="Nombre del hotel">
@@ -878,7 +884,7 @@ function Config() {
             onChange={(e) => setS({ ...s, hotelName: e.target.value })}
           />
         </Field>
-        <div className="grid gap-4 border-t border-gray-100 pt-5 sm:grid-cols-2">
+        <div className="grid gap-4 border-t border-gray-200/70 pt-5 sm:grid-cols-2">
           <Field label="Signo de la moneda (ej: $)">
             <Input
               className={TOUCH}
@@ -905,7 +911,7 @@ function Config() {
             />
           </Field>
         </div>
-        <div className="grid gap-4 border-t border-gray-100 pt-5 sm:grid-cols-2">
+        <div className="grid gap-4 border-t border-gray-200/70 pt-5 sm:grid-cols-2">
           <Field label="Hora de entrada de los huéspedes">
             <Input
               className={TOUCH}
@@ -923,7 +929,7 @@ function Config() {
             />
           </Field>
         </div>
-        <div className="border-t border-gray-100 pt-5">
+        <div className="border-t border-gray-200/70 pt-5">
           <Button
             variant="primary"
             className={cn(TOUCH, "w-full px-6 sm:w-auto")}
@@ -957,6 +963,7 @@ function Audit() {
   return (
     <Card
       className="overflow-hidden"
+      icon={History}
       title="Registro de lo que hizo cada persona"
       actions={
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -982,20 +989,19 @@ function Audit() {
         </div>
       }
     >
-      <Table head={["Fecha", "Persona", "Qué hizo", "Detalle"]}>
+      <Table stickyHead head={["Fecha", "Persona", "Qué hizo", "Detalle"]}>
         {list.map((a) => (
-          <tr
-            key={a.id}
-            className="transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none"
-          >
-            <td className="whitespace-nowrap px-4 py-2.5 tabular-nums text-gray-700">
+          <tr key={a.id} className="align-top">
+            <td className="whitespace-nowrap px-4 py-2.5 tabular-nums text-gray-600">
               {fmtDateTime(a.at)}
             </td>
-            <td className="whitespace-nowrap px-4 py-2.5 font-medium">
+            <td className="whitespace-nowrap px-4 py-2.5 font-medium text-fg">
               {staffName(a.by)}
             </td>
-            <td className="px-4 py-2.5">{a.action}</td>
-            <td className="px-4 py-2.5 text-gray-700">{a.detail}</td>
+            <td className="min-w-[180px] px-4 py-2.5 text-fg">{a.action}</td>
+            <td className="min-w-[200px] break-words px-4 py-2.5 text-gray-600">
+              {a.detail}
+            </td>
           </tr>
         ))}
       </Table>
@@ -1042,91 +1048,95 @@ function DataTab() {
   ];
   return (
     <div className="space-y-4">
-    <div
-      className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-card sm:flex-row sm:items-center"
-      role="group"
-      aria-label={`Datos guardados: ${health.map(([k, v]) => `${v} ${k}`).join(", ")}`}
-    >
-      <div className="flex items-center gap-2.5 sm:w-[180px]">
-        <span aria-hidden className={cls("h-3 w-3 rounded-full", data.rooms.length ? "pulse-dot bg-green-500" : "bg-amber-500")} />
-        <span className="text-[15px] font-semibold text-gray-900">{data.rooms.length ? "Datos cargados" : "Faltan cargar datos"}</span>
-      </div>
-      <ul className="grid flex-1 grid-cols-3 gap-2">
-        {health.map(([k, v, HIcon]) => (
-          <li key={k} className="rounded-xl bg-gray-50 px-3 py-2.5 ring-1 ring-gray-200">
-            <HIcon size={16} className="text-accent" aria-hidden />
-            <div className="num mt-1 text-[28px] leading-none tabular-nums"><CountUp value={v} /></div>
-            <div className="mt-1 text-[13.5px] text-gray-600">{k}</div>
-          </li>
-        ))}
-      </ul>
-    </div>
-    <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-      <Card
-        title={
-          <span className="flex items-center gap-2">
-            <Database
-              size={18}
-              className="shrink-0 text-gray-600"
-              aria-hidden
-            />{" "}
-            Dónde se guardan los datos
-          </span>
-        }
+      <div
+        className="flex flex-col gap-4 rounded-xl border border-gray-200/80 bg-panel p-4 shadow-card sm:flex-row sm:items-center sm:p-5"
+        role="group"
+        aria-label={`Datos guardados: ${health.map(([k, v]) => `${v} ${k}`).join(", ")}`}
       >
-        <div className="space-y-4 p-4 text-[15px]">
-          <div className="flex flex-wrap items-center gap-2">
-            Ahora se usa:{" "}
-            <Badge
-              className={cn(
-                mode === "firebase"
-                  ? "bg-amber-50 text-amber-700"
-                  : "bg-blue-50 text-blue-700",
-                "whitespace-normal px-3 py-1 text-[14px]",
-              )}
-            >
-              {mode === "firebase"
-                ? `Datos en internet (Firebase) · ${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}`
-                : "Modo de prueba (los datos quedan solo en este navegador)"}
-            </Badge>
-          </div>
-          {mode === "demo" && (
-            <p className="leading-relaxed text-gray-700">
-              Para guardar los datos reales del hotel en internet hay que cargar
-              las variables{" "}
-              <code className="rounded bg-gray-100 px-1">
-                NEXT_PUBLIC_FIREBASE_*
-              </code>{" "}
-              en Vercel (o en{" "}
-              <code className="rounded bg-gray-100 px-1">.env.local</code>) y
-              volver a publicar el sistema. Pedile ayuda a quien lo armó (está
-              explicado en el README).
-            </p>
-          )}
-          <ul className="stagger grid grid-cols-2 gap-2">
-            {counts.map(([k, v]) => (
-              <li
-                key={k}
-                className="flex flex-col gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3"
-              >
-                <b className="num text-[26px] tabular-nums leading-none">
-                  <CountUp value={v} />
-                </b>
-                <span className="label-mono text-[12px] leading-snug text-gray-600">
-                  {k}
-                </span>
-              </li>
-            ))}
-          </ul>
+        <div className="flex items-center gap-2.5 sm:w-[190px]">
+          <span
+            aria-hidden
+            className={cls(
+              "h-2.5 w-2.5 shrink-0 rounded-full",
+              data.rooms.length ? "pulse-dot bg-green-500" : "bg-amber-500",
+            )}
+          />
+          <span className="text-[15px] font-semibold text-fg">
+            {data.rooms.length ? "Datos cargados" : "Faltan cargar datos"}
+          </span>
         </div>
-      </Card>
-      <div className="space-y-4">
-        <Card title="Cosas que se pueden hacer con los datos">
-          <div className="space-y-4 p-4 text-[15px]">
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <ul className="grid flex-1 grid-cols-3 divide-x divide-gray-200/70 rounded-lg border border-gray-200/70 bg-panel-2/60">
+          {health.map(([k, v, HIcon]) => (
+            <li key={k} className="min-w-0 px-3 py-3 sm:px-4">
+              <div className="num text-[26px] leading-none tabular-nums text-fg">
+                <CountUp value={v} />
+              </div>
+              <div className="mt-1.5 flex items-center gap-1.5 text-[13.5px] text-gray-600">
+                <HIcon size={14} className="shrink-0 text-accent" aria-hidden />
+                <span className="truncate">{k}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+        <Card icon={Database} title="Dónde se guardan los datos" className="overflow-hidden">
+          <div className="space-y-4 p-4 text-[15px] sm:p-5">
+            <div className="flex flex-wrap items-center gap-2 text-gray-700">
+              Ahora se usa:{" "}
+              <Badge
+                className={cn(
+                  mode === "firebase"
+                    ? "bg-amber-50 text-amber-700 ring-amber-200"
+                    : "bg-blue-50 text-blue-700 ring-blue-200",
+                  "max-w-full whitespace-normal break-words",
+                )}
+              >
+                {mode === "firebase"
+                  ? `Datos en internet (Firebase) · ${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}`
+                  : "Modo de prueba (los datos quedan solo en este navegador)"}
+              </Badge>
+            </div>
+            {mode === "demo" && (
+              <p className="leading-relaxed text-gray-700">
+                Para guardar los datos reales del hotel en internet hay que cargar
+                las variables{" "}
+                <code className="rounded border border-gray-200 bg-gray-100 px-1 py-px font-mono text-[13px]">
+                  NEXT_PUBLIC_FIREBASE_*
+                </code>{" "}
+                en Vercel (o en{" "}
+                <code className="rounded border border-gray-200 bg-gray-100 px-1 py-px font-mono text-[13px]">.env.local</code>) y
+                volver a publicar el sistema. Pedile ayuda a quien lo armó (está
+                explicado en el README).
+              </p>
+            )}
+            <ul className="grid grid-cols-1 gap-x-6 border-t border-gray-200/70 min-[420px]:grid-cols-2">
+              {counts.map(([k, v]) => (
+                <li
+                  key={k}
+                  className="flex items-baseline justify-between gap-3 border-b border-gray-200/70 py-2.5"
+                >
+                  <span className="min-w-0 truncate text-[14.5px] text-gray-700">
+                    {k}
+                  </span>
+                  <b className="num text-[18px] tabular-nums leading-none text-fg">
+                    <CountUp value={v} />
+                  </b>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Card>
+        <div className="space-y-4">
+          <Card title="Cosas que se pueden hacer con los datos" className="overflow-hidden">
+            <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4 sm:p-5">
+              <p className="min-w-0 flex-1 text-[14.5px] leading-relaxed text-gray-700">
+                Crea 39 habitaciones, huéspedes, reservas, tareas, menú y
+                mensajes de ejemplo. Sirve para probar el sistema.
+              </p>
               <Button
                 disabled={busy}
-                className={cn(TOUCH, "w-full sm:w-auto")}
+                className={cn(TOUCH, "w-full shrink-0 sm:w-auto")}
                 onClick={() =>
                   confirm(
                     "Atención: esto BORRA los datos que hay (menos las personas) y los reemplaza por datos de ejemplo. No se puede deshacer. ¿Querés seguir?",
@@ -1139,27 +1149,18 @@ function DataTab() {
               >
                 <Database size={16} aria-hidden /> Cargar datos de ejemplo
               </Button>
-              <p className="mt-2 text-[14px] leading-relaxed text-gray-700">
-                Crea 39 habitaciones, huéspedes, reservas, tareas, menú y
-                mensajes de ejemplo. Sirve para probar el sistema.
-              </p>
             </div>
-          </div>
-        </Card>
-      <div
-        className="rounded-2xl p-[3px]"
-        style={{ backgroundImage: "repeating-linear-gradient(-45deg, #dc2626 0 12px, #fca5a5 12px 24px)" }}
-      >
-      <div className="rounded-[13px] bg-gradient-to-br from-red-50 to-red-100 p-4 sm:p-5">
-        <div className="label-mono mb-3 flex items-center gap-2 text-[12.5px] font-semibold text-red-700">
-          <AlertTriangle size={16} aria-hidden /> Zona peligrosa
-        </div>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <p className="min-w-0 flex-1 text-[14px] leading-relaxed text-gray-800">
+          </Card>
+          <section className="overflow-hidden rounded-xl border border-red-300 bg-red-50 shadow-card">
+            <h2 className="label-mono flex items-center gap-2 border-b border-red-200 px-4 py-3 text-[12.5px] font-medium text-red-700 sm:px-5">
+              <AlertTriangle size={16} className="shrink-0" aria-hidden /> Zona peligrosa
+            </h2>
+            <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4 sm:p-5">
+              <p className="min-w-0 flex-1 text-[14.5px] leading-relaxed text-gray-800">
                 Borra habitaciones, reservas, tareas, etc. Después cargá tus
                 habitaciones reales en la pestaña “Habitaciones”.
               </p>
-        <Button
+              <Button
                 variant="danger"
                 disabled={busy}
                 className={cn(TOUCH, "w-full shrink-0 sm:w-auto")}
@@ -1176,11 +1177,10 @@ function DataTab() {
                 <AlertTriangle size={16} aria-hidden /> Borrar todo y empezar de
                 cero
               </Button>
+            </div>
+          </section>
         </div>
       </div>
-      </div>
-      </div>
-    </div>
     </div>
   );
 }

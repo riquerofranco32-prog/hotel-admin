@@ -2,11 +2,11 @@
 import Link from "next/link";
 import { Suspense, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Ban, Award, Building2, Cake, ChevronRight, CreditCard, Crown, Mail, MessageCircle, Phone, Plus, Medal, Repeat, Star, StickyNote, Trophy, Users } from "lucide-react";
+import { Ban, Award, Building2, Cake, ChevronRight, CreditCard, Crown, Mail, MessageCircle, Pencil, Phone, Plus, Medal, Repeat, Search, Star, StickyNote, Trophy, Users } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
-import { EmptyArt, GradAvatar, PulseChip, ReservationForm } from "@/components/reservation";
+import { GradAvatar, PulseChip, ReservationForm } from "@/components/reservation";
 import { Sparkline } from "@/components/viz";
-import { Badge, Button, Card, Field, Input, Modal, PageHeader, Textarea, toast } from "@/components/ui";
+import { Badge, Button, Card, Empty, Field, Input, Modal, PageHeader, Select, Textarea, toast } from "@/components/ui";
 import { fmtDate, nowISO, today } from "@/lib/dates";
 import { cls, folio, money, RES_STATUS_BADGE, RES_STATUS_LABEL, uid } from "@/lib/logic";
 import type { Guest, Reservation } from "@/lib/types";
@@ -45,10 +45,10 @@ function VisitMedal({ stays }: { stays: number }) {
   if (stays < 1) return null;
   const m =
     stays >= 10
-      ? { Icon: Trophy, label: "10 o más estadías", cls: "bg-amber-100 text-amber-800" }
+      ? { Icon: Trophy, label: "10 o más estadías", cls: "bg-amber-100 text-amber-800 ring-amber-200" }
       : stays >= 5
-        ? { Icon: Medal, label: "5 estadías o más", cls: "bg-sky-100 text-sky-800" }
-        : { Icon: Award, label: "Ya se alojó", cls: "bg-green-50 text-green-700" };
+        ? { Icon: Medal, label: "5 estadías o más", cls: "bg-sky-100 text-sky-800 ring-sky-200" }
+        : { Icon: Award, label: "Ya se alojó", cls: "bg-green-50 text-green-700 ring-green-200" };
   return (
     <Badge dot={false} className={m.cls}>
       <m.Icon size={13} aria-hidden /> {m.label}
@@ -213,7 +213,7 @@ function Huespedes() {
   }
 
   return (
-    <div className="p-4 lg:p-6">
+    <div className="mx-auto max-w-[1600px] p-4 lg:p-6">
       <div className="aurora">
         <PageHeader
           eyebrow="Tu libreta de contactos"
@@ -242,21 +242,21 @@ function Huespedes() {
       </div>
 
       {birthdays.length > 0 && (
-        <section aria-label="Cumpleaños de esta semana" className="relative mb-5 overflow-hidden rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900 sm:p-5">
+        <section aria-label="Cumpleaños de esta semana" className="relative mb-5 overflow-hidden rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900 shadow-card sm:p-5">
           <BalloonArt />
-          <h3 className="flex items-center gap-2 text-[17px] font-semibold">
-            <Cake size={20} aria-hidden /> Cumpleaños de esta semana
+          <h3 className="flex items-center gap-2 text-base font-semibold tracking-tight">
+            <Cake size={18} className="shrink-0" aria-hidden /> Cumpleaños de esta semana
           </h3>
-          <p className="mt-0.5 text-[14px]">Un saludo por WhatsApp les cae siempre bien. Tocá un nombre para ver su ficha.</p>
+          <p className="mt-1 text-[14px] leading-snug sm:pr-32">Un saludo por WhatsApp les cae siempre bien. Tocá un nombre para ver su ficha.</p>
           <ul className="mt-3 flex flex-wrap gap-2 sm:pr-32">
             {birthdays.slice(0, 6).map(({ g, days }) => (
               <li key={g.id}>
                 <button
                   onClick={() => setSel(g.id)}
-                  className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white px-4 py-2 text-[15px] font-semibold text-gray-900 shadow-card ring-1 ring-amber-200 transition-colors duration-150 hover:bg-amber-100 motion-reduce:transition-none"
+                  className="inline-flex min-h-[44px] max-w-full items-center gap-2 rounded-full bg-panel px-3.5 py-1.5 text-[14.5px] font-semibold text-fg ring-1 ring-inset ring-amber-300 transition-colors duration-150 hover:bg-amber-100 motion-reduce:transition-none sm:min-h-9"
                 >
-                  {g.name}
-                  <span className={days === 0 ? "text-rose-700" : "font-normal text-gray-700"}>
+                  <span className="truncate">{g.name}</span>
+                  <span className={cls("whitespace-nowrap text-[13.5px]", days === 0 ? "text-rose-700" : "font-normal text-gray-600")}>
                     {days === 0 ? "cumple hoy" : days === 1 ? "mañana" : `en ${days} días`}
                   </span>
                 </button>
@@ -269,82 +269,87 @@ function Huespedes() {
 
       <div className="grid items-start gap-5 xl:grid-cols-[1fr_420px]">
         <Card>
-          <div className="space-y-3 border-b border-gray-200/80 bg-panel-2/30 p-3 sm:p-4">
-            <div className="flex flex-wrap gap-2">
-              <Input placeholder="Buscar por nombre, teléfono o documento" value={query} onChange={(e) => setQuery(e.target.value)} className="w-full sm:w-[320px]" />
-              <label className="label-mono flex w-full items-center gap-2 text-[12.5px] text-gray-600 sm:w-auto">
+          <div className="space-y-3 rounded-t-xl border-b border-gray-200/70 bg-panel-2/40 p-3 sm:px-5 sm:py-4">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <div className="relative w-full sm:w-[320px]">
+                <Search size={18} aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                <Input placeholder="Buscar por nombre, teléfono o documento" value={query} onChange={(e) => setQuery(e.target.value)} className="w-full !pl-10" />
+              </div>
+              <label className="label-mono flex w-full items-center gap-2 text-[12.5px] text-gray-600 sm:ml-auto sm:w-auto">
                 Ordenar:
-                <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className="h-11 min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-2 text-[15px] sm:h-10 sm:flex-none">
+                <Select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className="min-w-0 flex-1 font-sans normal-case tracking-normal sm:w-[250px] sm:flex-none">
                   <option value="reciente">Los más recientes primero</option>
                   {showMoney && <option value="valor">Los que más gastaron</option>}
                   <option value="estadias">Los que más vinieron</option>
                   <option value="nombre">Por nombre (A a Z)</option>
-                </select>
+                </Select>
               </label>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div role="group" aria-label="Filtrar huéspedes" className="flex flex-wrap gap-1.5 sm:gap-2">
               {segs.map((s) => (
                 <button
                   key={s.k}
+                  type="button"
                   onClick={() => setSeg(s.k)}
                   aria-pressed={seg === s.k}
-                  className={cls("min-h-[44px] rounded-full border px-4 py-2 text-[14px] font-medium transition-colors duration-150 motion-reduce:transition-none", seg === s.k ? "border-accent bg-accent text-accent-fg font-semibold shadow-sm" : "border-gray-200 bg-panel text-gray-700 hover:border-gray-300 hover:bg-gray-50")}
+                  className={cls("inline-flex min-h-[44px] items-center gap-2 rounded-full border py-2 pl-3.5 pr-2.5 text-[14px] font-medium transition-colors duration-150 motion-reduce:transition-none sm:min-h-9 sm:py-1", seg === s.k ? "border-accent bg-accent text-accent-fg font-semibold shadow-sm" : "border-gray-200 bg-panel text-gray-700 hover:border-gray-400 hover:bg-gray-100 hover:text-fg")}
                 >
                   {s.label}
-                  <span className={cls("ml-2 rounded-full px-2 text-[13px] tabular-nums", seg === s.k ? "bg-white/25" : "bg-gray-100 text-gray-700")}>{segCounts[s.k]}</span>
+                  <span className={cls("label-mono min-w-[1.5rem] rounded-full px-1.5 text-center text-[12.5px] tabular-nums tracking-normal", seg === s.k ? "bg-white/25" : "bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-200")}>{segCounts[s.k]}</span>
                 </button>
               ))}
             </div>
-            <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-gray-600">
+            <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13.5px] text-gray-600">
               <span>Color del círculo:</span>
-              <span className="inline-flex items-center gap-1.5"><span aria-hidden className="h-3 w-3 rounded-full bg-amber-400" /> VIP</span>
-              <span className="inline-flex items-center gap-1.5"><span aria-hidden className="h-3 w-3 rounded-full bg-accent" /> viene seguido</span>
-              <span className="inline-flex items-center gap-1.5"><span aria-hidden className="h-3 w-3 rounded-full bg-violet-500" /> empresa</span>
+              <span className="inline-flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-2.5 rounded-full bg-amber-400" /> VIP</span>
+              <span className="inline-flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-2.5 rounded-full bg-accent" /> viene seguido</span>
+              <span className="inline-flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-2.5 rounded-full bg-violet-500" /> empresa</span>
             </p>
           </div>
-          <ul className="stagger divide-y divide-gray-100">
+          <ul className="stagger divide-y divide-gray-200/60">
             {list.slice(0, 300).map((g) => {
               const m = metrics.get(g.id)!;
               return (
                 <li key={g.id}>
                   <button
                     onClick={() => setSel(g.id)}
-                    className={cls("flex w-full items-center gap-4 px-4 py-4 text-left transition-colors duration-150 hover:bg-accent/5 motion-reduce:transition-none sm:px-5", sel === g.id && "bg-accent/10")}
+                    aria-current={sel === g.id ? "true" : undefined}
+                    className={cls("relative flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors duration-150 hover:bg-accent/5 motion-reduce:transition-none sm:gap-4 sm:px-5", sel === g.id && "bg-accent/10 before:absolute before:inset-y-2.5 before:left-0 before:w-[3px] before:rounded-r-full before:bg-accent")}
                   >
-                    <GradAvatar name={g.name} size={52} vip={!!g.tags?.includes("VIP")} ring={ringFor(g, m.stays)} />
+                    <GradAvatar name={g.name} size={46} vip={!!g.tags?.includes("VIP")} ring={ringFor(g, m.stays)} />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="text-[17px] font-semibold leading-snug">{g.name}</span>
-                        {g.blacklisted && <Ban size={16} className="text-red-600" aria-label="No aceptado" />}
-                        {m.inHouse && <Badge className="bg-green-50 text-green-700">Alojado ahora</Badge>}
+                        <span className="min-w-0 break-words text-[16px] font-semibold leading-snug text-fg">{g.name}</span>
+                        {g.blacklisted && <Ban size={16} className="shrink-0 text-red-600" aria-label="No aceptado" />}
+                        {m.inHouse && <Badge className="bg-green-50 text-green-700 ring-green-200">Alojado ahora</Badge>}
                         <VisitMedal stays={m.stays} />
                       </div>
-                      <div className="truncate text-[14px] text-gray-600">{g.company ?? g.phone ?? g.email}</div>
+                      <div className="mt-0.5 truncate text-[14px] tabular-nums text-gray-600">{g.company ?? g.phone ?? g.email}</div>
                       {(g.tags ?? []).length > 0 && (
                         <div className="mt-1.5 flex flex-wrap gap-1">
                           {(g.tags ?? []).map((tg) => (
-                            <Badge key={tg} className={tg === "VIP" ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-700"}>
+                            <Badge key={tg} dot={false} className={tg === "VIP" ? "bg-amber-100 text-amber-800 ring-amber-200" : "bg-gray-100 text-gray-700 ring-gray-200"}>
                               {tg}
                             </Badge>
                           ))}
                         </div>
                       )}
-                      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] tabular-nums text-gray-700">
+                      <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-0.5 text-[13.5px] tabular-nums text-gray-600">
                         <span>
-                          <b className="num text-[18px] text-fg">{m.stays}</b> <span className="text-gray-600">({m.nights} noches)</span>
+                          <b className="num text-[17px] leading-none text-fg">{m.stays}</b> {m.stays === 1 ? "estadía" : "estadías"} · {m.nights} {m.nights === 1 ? "noche" : "noches"}
                         </span>
-                        {showMoney && <span className="font-medium">{money(m.spent)}</span>}
+                        {showMoney && <span className="font-semibold text-gray-800">{money(m.spent)}</span>}
                         <span>{m.next ? <span className="font-medium text-blue-700">Llega el {fmtDate(m.next)}</span> : m.last ? fmtDate(m.last) : "—"}</span>
                       </div>
                     </div>
-                    <ChevronRight size={20} className="shrink-0 text-gray-500" aria-hidden />
+                    <ChevronRight size={18} className="shrink-0 text-gray-400" aria-hidden />
                   </button>
                 </li>
               );
             })}
           </ul>
           {list.length === 0 && (
-            <EmptyArt text="No hay huéspedes en este grupo." />
+            <Empty icon={Users}>No hay huéspedes en este grupo.</Empty>
           )}
         </Card>
 
@@ -366,7 +371,7 @@ function Huespedes() {
         }
       >
         {edit && (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Nombre y apellido" className="sm:col-span-2">
               <Input value={edit.name ?? ""} onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
             </Field>
@@ -389,16 +394,17 @@ function Huespedes() {
               <Input type="date" value={edit.birthday ?? ""} onChange={(e) => setEdit({ ...edit, birthday: e.target.value })} />
             </Field>
             <div className="sm:col-span-2">
-              <div className="label-mono mb-1.5 text-[12.5px] text-gray-600">Etiquetas (para reconocerlo rápido)</div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="mb-1.5 text-sm font-semibold text-gray-800">Etiquetas (para reconocerlo rápido)</div>
+              <div className="flex flex-wrap gap-2">
                 {TAGS.map((tg) => {
                   const on = edit.tags?.includes(tg);
                   return (
                     <button
                       key={tg}
                       type="button"
+                      aria-pressed={!!on}
                       onClick={() => setEdit({ ...edit, tags: on ? edit.tags!.filter((x) => x !== tg) : [...(edit.tags ?? []), tg] })}
-                      className={cls("rounded-full px-4 py-1.5 text-[14px] font-medium ring-1", on ? "bg-accent/10 font-semibold text-gray-900 ring-accent" : "bg-transparent text-gray-700 ring-gray-200 hover:ring-gray-300")}
+                      className={cls("min-h-[44px] rounded-full px-4 py-1.5 text-[14px] font-medium ring-1 ring-inset transition-colors duration-150 motion-reduce:transition-none sm:min-h-9", on ? "bg-accent/10 font-semibold text-accent ring-accent/60" : "bg-panel text-gray-700 ring-gray-300 hover:bg-gray-100 hover:text-fg hover:ring-gray-400")}
                     >
                       {tg}
                     </button>
@@ -412,8 +418,8 @@ function Huespedes() {
             <Field label="Notas solo para el hotel (el huésped no las ve)" className="sm:col-span-2">
               <Textarea rows={2} value={edit.notes ?? ""} onChange={(e) => setEdit({ ...edit, notes: e.target.value })} />
             </Field>
-            <label className="flex items-center gap-2 text-[15px] text-red-700 sm:col-span-2">
-              <input type="checkbox" checked={!!edit.blacklisted} onChange={(e) => setEdit({ ...edit, blacklisted: e.target.checked })} /> No aceptar nuevas reservas de este huésped
+            <label className="flex min-h-[44px] items-center gap-2.5 rounded-lg bg-red-50 px-3 py-2 text-[14.5px] font-medium leading-snug text-red-700 ring-1 ring-inset ring-red-200 sm:col-span-2">
+              <input type="checkbox" className="h-[18px] w-[18px] shrink-0 accent-red-700" checked={!!edit.blacklisted} onChange={(e) => setEdit({ ...edit, blacklisted: e.target.checked })} /> No aceptar nuevas reservas de este huésped
             </label>
           </div>
         )}
@@ -439,7 +445,7 @@ function GuestProfile({
   if (!g)
     return (
       <Card className="hidden xl:block">
-        <EmptyArt text="Tocá un huésped de la lista para ver sus datos." />
+        <Empty icon={Users}>Tocá un huésped de la lista para ver sus datos.</Empty>
       </Card>
     );
   const stays = (idx.resByGuest.get(g.id) ?? []).slice().sort((a, b) => b.checkIn.localeCompare(a.checkIn));
@@ -458,14 +464,14 @@ function GuestProfile({
   ];
   return (
     <Card className="order-first overflow-hidden xl:sticky xl:top-4 xl:order-none xl:self-start">
-      <div className="aurora overflow-hidden rounded-t-xl border-b border-gray-200/80 p-5">
+      <div className="aurora overflow-hidden rounded-t-xl border-b border-gray-200/70 p-4 sm:p-5">
         <div className="flex items-center gap-4">
-          <GradAvatar name={g.name} size={72} vip={!!g.tags?.includes("VIP")} ring={ringFor(g, metrics?.stays ?? 0) || "ring-[3px] ring-gray-200"} />
+          <GradAvatar name={g.name} size={64} vip={!!g.tags?.includes("VIP")} ring={ringFor(g, metrics?.stays ?? 0) || "ring-[3px] ring-gray-200"} />
           <div className="min-w-0 flex-1">
-            <div className="text-[22px] font-semibold leading-tight">{g.name}</div>
+            <div className="break-words text-[21px] font-semibold leading-tight tracking-tight text-fg">{g.name}</div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {(g.tags ?? []).map((tg) => (
-                <Badge key={tg} className={tg === "VIP" ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-700"}>
+                <Badge key={tg} dot={false} className={tg === "VIP" ? "bg-amber-100 text-amber-800 ring-amber-200" : "bg-gray-100 text-gray-700 ring-gray-200"}>
                   {tg}
                 </Badge>
               ))}
@@ -475,41 +481,41 @@ function GuestProfile({
           </div>
         </div>
         <Button size="sm" className="mt-4 w-full sm:w-auto" onClick={() => onEdit(g)}>
-          Editar
+          <Pencil size={15} aria-hidden /> Editar
         </Button>
       </div>
-      <div className="space-y-5 p-5 text-[15px]">
+      <div className="space-y-5 p-4 text-[15px] sm:p-5">
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-2xl border border-gray-200/80 bg-gray-50 px-1 py-3.5">
-            <div className="num text-[30px] leading-none tabular-nums">{metrics?.stays ?? 0}</div>
-            <div className="label-mono mt-1.5 text-[12.5px] leading-tight text-gray-600">Veces que vino</div>
+          <div className="rounded-lg border border-gray-200/80 bg-panel-2/60 px-1.5 py-3">
+            <div className="num text-[28px] leading-none tabular-nums text-fg">{metrics?.stays ?? 0}</div>
+            <div className="label-mono mt-2 text-[12.5px] leading-tight text-gray-600">Veces que vino</div>
           </div>
-          <div className="rounded-2xl border border-gray-200/80 bg-gray-50 px-1 py-3.5">
-            <div className="num text-[30px] leading-none tabular-nums">{metrics?.nights ?? 0}</div>
-            <div className="label-mono mt-1.5 text-[12.5px] leading-tight text-gray-600">Noches en total</div>
+          <div className="rounded-lg border border-gray-200/80 bg-panel-2/60 px-1.5 py-3">
+            <div className="num text-[28px] leading-none tabular-nums text-fg">{metrics?.nights ?? 0}</div>
+            <div className="label-mono mt-2 text-[12.5px] leading-tight text-gray-600">Noches en total</div>
           </div>
-          <div className="min-w-0 rounded-2xl border border-gray-200/80 bg-gray-50 px-1 py-3.5">
-            <div className="num truncate text-[24px] leading-none tabular-nums">{can("ver_montos") ? money(metrics?.spent ?? 0) : "—"}</div>
-            <div className="label-mono mt-1.5 text-[12.5px] leading-tight text-gray-600">Gastó en total</div>
+          <div className="flex min-w-0 flex-col justify-between rounded-lg border border-gray-200/80 bg-panel-2/60 px-1.5 py-3">
+            <div className="num truncate text-[22px] leading-[28px] tabular-nums text-fg" title={can("ver_montos") ? money(metrics?.spent ?? 0) : undefined}>{can("ver_montos") ? money(metrics?.spent ?? 0) : "—"}</div>
+            <div className="label-mono mt-2 text-[12.5px] leading-tight text-gray-600">Gastó en total</div>
           </div>
         </div>
 
         {spendSeries.length >= 2 && (
-          <div className="rounded-2xl border border-gray-200/80 bg-gray-50 p-3.5">
+          <div className="rounded-lg border border-gray-200/80 bg-panel-2/60 p-3.5">
             <div className="label-mono text-[12.5px] text-gray-600">Lo que gastó en cada estadía</div>
             <Sparkline data={spendSeries} width={320} height={48} className="mt-2 h-auto w-full" />
           </div>
         )}
 
         <section>
-          <h4 className="label-mono mb-2.5 text-[12.5px] font-semibold text-gray-600">Datos de contacto</h4>
-          <dl className="grid gap-3 sm:grid-cols-2">
+          <h4 className="label-mono mb-2.5 text-[12.5px] font-medium text-gray-600">Datos de contacto</h4>
+          <dl className="grid gap-x-3 gap-y-3.5 sm:grid-cols-2">
             {contact.map((c) => (
               <div key={c.label} className={cls("flex items-center gap-3", c.wide && "sm:col-span-2")}>
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent"><c.icon size={17} aria-hidden /></span>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <dt className="label-mono text-[12.5px] text-gray-600">{c.label}</dt>
-                  <dd className="break-words font-medium">{c.value}</dd>
+                  <dd className={cls("break-words font-medium leading-snug tabular-nums", c.value === "—" ? "text-gray-500" : "text-fg")}>{c.value}</dd>
                 </div>
               </div>
             ))}
@@ -517,23 +523,23 @@ function GuestProfile({
         </section>
 
         {g.preferences && (
-          <p className="flex gap-2 rounded-xl bg-blue-50 px-3 py-2.5 text-blue-900">
-            <Star size={17} className="mt-0.5 shrink-0" aria-hidden /> <span>{g.preferences}</span>
+          <p className="flex gap-2 rounded-lg bg-blue-50 px-3.5 py-3 leading-snug text-blue-900 ring-1 ring-inset ring-blue-200">
+            <Star size={16} className="mt-0.5 shrink-0" aria-hidden /> <span className="min-w-0 break-words">{g.preferences}</span>
           </p>
         )}
         {g.notes && (
-          <p className="flex gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-amber-900">
-            <StickyNote size={17} className="mt-0.5 shrink-0" aria-hidden /> <span>{g.notes}</span>
+          <p className="flex gap-2 rounded-lg bg-amber-50 px-3.5 py-3 leading-snug text-amber-900 ring-1 ring-inset ring-amber-200">
+            <StickyNote size={16} className="mt-0.5 shrink-0" aria-hidden /> <span className="min-w-0 break-words">{g.notes}</span>
           </p>
         )}
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           {can("editar_reservas") && !g.blacklisted && (
-            <Button variant="primary" onClick={() => onNewRes(g)}>
+            <Button variant="primary" className="sm:flex-1" onClick={() => onNewRes(g)}>
               <Plus size={16} /> Hacerle una reserva
             </Button>
           )}
           {g.phone && can("whatsapp") && (
-            <a href={`https://wa.me/${g.phone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="block">
+            <a href={`https://wa.me/${g.phone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="block rounded-lg sm:flex-1">
               <Button className="w-full">
                 <MessageCircle size={16} /> Escribirle por WhatsApp
               </Button>
@@ -541,20 +547,20 @@ function GuestProfile({
           )}
         </div>
         <section>
-          <h4 className="label-mono mb-2.5 text-[12.5px] font-semibold text-gray-600">Sus reservas</h4>
-          <ul className="relative space-y-1 border-l-2 border-gray-200 pl-5">
+          <h4 className="label-mono mb-2.5 text-[12.5px] font-medium text-gray-600">Sus reservas</h4>
+          <ul className="relative ml-1.5 space-y-0.5 border-l border-gray-300 pl-4">
             {stays.map((r) => (
               <li key={r.id} className="relative">
-                <span aria-hidden className={`absolute -left-[27px] top-4 h-3 w-3 rounded-full border-2 border-panel ring-2 ring-gray-200 ${STATUS_DOT[r.status]}`} />
-                <Link href={`/reservas?r=${r.id}`} className="flex min-h-[52px] flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl px-3 py-2.5 transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none">
-                  <span>
+                <span aria-hidden className={`absolute -left-[22px] top-1/2 h-[11px] w-[11px] -translate-y-1/2 rounded-full ring-[3px] ring-panel ${STATUS_DOT[r.status]}`} />
+                <Link href={`/reservas?r=${r.id}`} className="flex min-h-[44px] flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg px-3 py-2 text-[14.5px] transition-colors duration-150 hover:bg-accent/5 motion-reduce:transition-none">
+                  <span className="tabular-nums text-gray-700">
                     {fmtDate(r.checkIn)} → {fmtDate(r.checkOut).slice(0, 5)} · Habitación {idx.roomById.get(r.roomId)?.number}
                   </span>
                   <Badge className={RES_STATUS_BADGE[r.status]}>{RES_STATUS_LABEL[r.status]}</Badge>
                 </Link>
               </li>
             ))}
-            {!stays.length && <li className="px-3 py-2 text-gray-600">Todavía no tiene reservas</li>}
+            {!stays.length && <li className="px-3 py-2 text-[14.5px] text-gray-600">Todavía no tiene reservas</li>}
           </ul>
         </section>
       </div>

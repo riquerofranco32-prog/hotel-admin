@@ -1,9 +1,9 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, BedDouble, Building2, CalendarDays, CalendarRange, Check, Compass, Crown, Footprints, Globe, Home, LogIn, LogOut, MessageCircle, Pencil, Phone, Plane, Receipt, Star, StickyNote, Tag, Trash2, UserRound, Users, Wallet } from "lucide-react";
+import { AlertCircle, BedDouble, Building2, CalendarDays, CalendarRange, Check, Compass, Crown, Footprints, Globe, Home, LogIn, LogOut, MessageCircle, Pencil, Phone, Plane, Receipt, Star, StickyNote, Tag, Trash2, UserRound, Users, Wallet, Waves } from "lucide-react";
 import { useApp } from "./AppProvider";
-import { Badge, Button, Drawer, Field, Input, Modal, Select, Textarea, toast } from "./ui";
+import { Badge, Button, Drawer, Empty, Field, Input, Modal, Select, Textarea, toast } from "./ui";
 import { CountUp, Ring } from "./viz";
 import { addDays, fmtDate, fmtDateTime, nowISO, today } from "@/lib/dates";
 import { folio, isActive, money, nights, PRIORITY_CLASS, RES_STATUS_BADGE, RES_STATUS_LABEL, roomState, ROOM_STATE_CLASS, ROOM_STATE_LABEL, TASK_STATUS_LABEL, uid, VISUAL_DOT, VISUAL_LABEL, visualStatus } from "@/lib/logic";
@@ -13,12 +13,12 @@ import { TaskIcon } from "./TaskIcon";
 
 function FormSection({ title, icon: Icon, action, children }: { title: string; icon?: React.ElementType; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-gray-200/80 bg-panel p-4 shadow-card sm:p-5">
-      <div className="mb-4 flex items-center justify-between gap-2 border-b border-gray-200/70 pb-3">
-        <h4 className="flex items-center gap-2.5 text-[16px] font-semibold text-gray-900">
+    <section className="rounded-xl border border-gray-200/80 bg-panel p-4 shadow-card sm:p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-b border-gray-200/70 pb-3">
+        <h4 className="flex min-w-0 items-center gap-2.5 text-base font-semibold tracking-tight text-fg">
           {Icon && (
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10 text-accent">
-              <Icon size={18} aria-hidden />
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+              <Icon size={17} aria-hidden />
             </span>
           )}
           {title}
@@ -56,23 +56,23 @@ export function PulseChip({
 }) {
   const fmt = format ?? ((n: number) => String(Math.round(n)));
   return (
-    <div className={`flex items-center gap-3.5 rounded-2xl border p-4 ${hero ? "hero-card border-transparent" : "border-gray-200/80 bg-panel shadow-card"}`}>
+    <div className={`flex h-full items-center gap-3.5 rounded-xl border p-4 ${hero ? "hero-card border-transparent" : "border-gray-200/80 bg-panel shadow-card"}`}>
       {pct !== undefined ? (
         <Ring value={pct} size={64} stroke={7} tone={tone} label={`${label}: ${fmt(value)}`}>
-          <CountUp value={value} format={fmt} className="num text-[24px] leading-none" />
+          <CountUp value={value} format={fmt} className="num text-[24px] leading-none tabular-nums" />
         </Ring>
       ) : (
-        <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${hero ? "bg-white/20" : "bg-accent/10 text-accent"}`}>
-          <Icon size={26} aria-hidden />
+        <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${hero ? "bg-white/20" : "bg-accent/10 text-accent"}`}>
+          <Icon size={22} aria-hidden />
         </span>
       )}
-      <div className="min-w-0">
-        <div className={`label-mono flex items-center gap-2 text-[12.5px] leading-snug ${hero ? "" : "text-gray-600"}`}>
+      <div className="min-w-0 flex-1">
+        <div className={`label-mono flex items-center gap-2 text-[12.5px] font-medium leading-snug ${hero ? "" : "text-gray-600"}`}>
           {live && <span aria-hidden className={`pulse-dot h-2.5 w-2.5 shrink-0 rounded-full ${hero ? "bg-white" : "bg-accent"}`} />}
           {label}
         </div>
-        {pct === undefined && <CountUp value={value} format={fmt} className="num mt-1 block text-[32px] leading-none sm:text-[34px]" />}
-        {sub && <div className={`mt-1 text-[13.5px] leading-snug ${hero ? "" : "text-gray-600"}`}>{sub}</div>}
+        {pct === undefined && <CountUp value={value} format={fmt} className="num mt-1.5 block truncate text-[30px] leading-none tabular-nums sm:text-[32px]" />}
+        {sub && <div className={`mt-1.5 text-[13px] leading-snug ${hero ? "opacity-90" : "text-gray-600"}`}>{sub}</div>}
       </div>
     </div>
   );
@@ -112,7 +112,7 @@ export function GradAvatar({ name, size = 44, vip, ring, className }: { name: st
         {ini || "?"}
       </span>
       {vip && (
-        <span aria-label="Huésped VIP" role="img" className="absolute -right-1 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-amber-950 ring-2 ring-white">
+        <span aria-label="Huésped VIP" role="img" className="absolute -right-1 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-amber-950 ring-2 ring-panel">
           <Crown size={12} aria-hidden />
         </span>
       )}
@@ -136,29 +136,12 @@ export function SourceIcon({ source, size = 15, className }: { source: Reservati
   return <Icon size={size} className={className} aria-hidden />;
 }
 
-/** Ilustración sencilla para estados vacíos (olas + cama) con una frase. */
+/** Estado vacío de estas pantallas: el `Empty` del sistema con el ícono que corresponde (cama u olas). */
 export function EmptyArt({ text, kind = "bed" }: { text: string; kind?: "bed" | "waves" }) {
   return (
-    <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
-      <svg width="132" height="84" viewBox="0 0 132 84" fill="none" aria-hidden className="text-accent">
-        <circle cx="98" cy="20" r="11" fill="currentColor" opacity=".14" />
-        {kind === "bed" ? (
-          <g stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M24 56V30M24 46h84M108 56V42a8 8 0 0 0-8-8H62v12" opacity=".85" />
-            <rect x="32" y="34" width="22" height="12" rx="5" opacity=".6" />
-          </g>
-        ) : (
-          <g stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity=".8">
-            <path d="M14 40c9-9 17 9 26 0s17 9 26 0 17 9 26 0 17 9 26 0" />
-          </g>
-        )}
-        <g stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="motion-safe:animate-pulse">
-          <path d="M10 66c9-8 17 8 26 0s17 8 26 0 17 8 26 0 17 8 26 0" opacity=".45" />
-          <path d="M10 76c9-8 17 8 26 0s17 8 26 0 17 8 26 0 17 8 26 0" opacity=".25" />
-        </g>
-      </svg>
-      <p className="max-w-[34ch] text-[15px] text-gray-600">{text}</p>
-    </div>
+    <Empty icon={kind === "bed" ? BedDouble : Waves}>
+      <p className="max-w-[36ch] text-pretty">{text}</p>
+    </Empty>
   );
 }
 
@@ -218,13 +201,13 @@ function Stepper({ status }: { status: Reservation["status"] }) {
         return (
           <li key={label} className="relative flex-1 text-center" aria-current={now ? "step" : undefined}>
             <span
-              className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full border-2 text-[14px] font-semibold ${
+              className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full border-2 text-[14px] font-semibold tabular-nums ${
                 done ? "border-accent bg-accent text-accent-fg" : now ? "border-accent bg-panel text-accent ring-4 ring-accent/25" : "border-gray-300 bg-panel text-gray-500"
               }`}
             >
               {done ? <Check size={16} aria-hidden /> : i + 1}
             </span>
-            <span className={`mt-1.5 block text-[14px] leading-tight ${now ? "font-semibold text-gray-900" : "text-gray-600"}`}>{label}</span>
+            <span className={`mt-1.5 block text-[14px] leading-tight ${now ? "font-semibold text-fg" : "text-gray-600"}`}>{label}</span>
           </li>
         );
       })}
@@ -248,14 +231,14 @@ function StayBar({ checkIn, checkOut, today: t, n }: { checkIn: string; checkOut
         : `Día ${elapsed + 1} de ${total}`;
   return (
     <div role="img" aria-label={text}>
-      <div className="mb-2 flex items-baseline justify-between gap-2">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
         <span className="text-[15px] font-semibold">{text}</span>
-        <span className="label-mono text-[12.5px] text-gray-600">{fmtDate(checkIn).slice(0, 5)} → {fmtDate(checkOut).slice(0, 5)}</span>
+        <span className="label-mono whitespace-nowrap text-[12.5px] tabular-nums text-gray-600">{fmtDate(checkIn).slice(0, 5)} → {fmtDate(checkOut).slice(0, 5)}</span>
       </div>
-      <div className="relative h-3 rounded-full bg-gray-200/80">
-        <div className="h-full rounded-full bg-gradient-to-r from-accent to-sky-500" style={{ width: `${pct}%` }} />
+      <div className="relative h-2.5 rounded-full bg-gray-200/80 shadow-[inset_0_1px_2px_rgba(0,0,0,0.12)]">
+        <div className="h-full rounded-full bg-gradient-to-r from-accent/70 to-accent" style={{ width: `${pct}%` }} />
         {elapsed >= 0 && elapsed < total && (
-          <span aria-hidden className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-accent bg-panel shadow-card" style={{ left: `${Math.max(3, Math.min(97, pct))}%` }} />
+          <span aria-hidden className="absolute top-1/2 h-[18px] w-[18px] -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-accent bg-panel shadow-card" style={{ left: `${Math.max(3, Math.min(97, pct))}%` }} />
         )}
       </div>
       <div className="label-mono mt-1.5 flex justify-between text-[12.5px] text-gray-600">
@@ -268,7 +251,7 @@ function StayBar({ checkIn, checkOut, today: t, n }: { checkIn: string; checkOut
 
 function Chip({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <span className="inline-flex min-h-[32px] items-center gap-1.5 rounded-full bg-panel px-3 py-1 text-[14px] font-medium text-gray-800 ring-1 ring-gray-200">
+    <span className="inline-flex min-h-[30px] items-center gap-1.5 rounded-full bg-panel px-3 py-0.5 text-[13.5px] font-medium text-gray-700 ring-1 ring-inset ring-gray-200 [&>svg]:shrink-0 [&>svg]:text-gray-500">
       {icon}
       {children}
     </span>
@@ -386,8 +369,8 @@ export function ReservationForm({
       title={editing ? "Editar reserva" : "Nueva reserva"}
       footer={
         <>
-          <Button className="!h-11 !px-5 !text-[15px]" onClick={onClose}>Cerrar sin guardar</Button>
-          <Button variant="primary" className="!h-11 !px-5 !text-[15px]" onClick={save}>
+          <Button className="max-sm:flex-1" onClick={onClose}>Cerrar sin guardar</Button>
+          <Button variant="primary" className="max-sm:flex-1" onClick={save}>
             {editing ? "Guardar cambios" : "Crear reserva"}
           </Button>
         </>
@@ -400,7 +383,7 @@ export function ReservationForm({
           action={
             <button
               type="button"
-              className="min-h-[44px] rounded-lg px-3 py-2 text-[14px] font-semibold text-accent transition-colors duration-150 hover:bg-accent/10 motion-reduce:transition-none"
+              className="-mr-2 min-h-[44px] rounded-lg px-3 py-2 text-[14px] font-semibold text-accent transition-colors duration-150 hover:bg-accent/10 motion-reduce:transition-none sm:min-h-9 sm:py-1.5"
               onClick={() => setNewGuest(!newGuest)}
             >
               {newGuest ? "Elegir uno que ya conocemos" : "+ Es un huésped nuevo"}
@@ -408,7 +391,7 @@ export function ReservationForm({
           }
         >
           {newGuest ? (
-            <div className="grid gap-3 rounded-xl border border-dashed border-gray-300 bg-gray-50/60 p-3 sm:grid-cols-2">
+            <div className="grid gap-3 rounded-lg border border-dashed border-gray-300 bg-panel-2/50 p-3 sm:grid-cols-2">
               <Input placeholder="Nombre y apellido *" value={g.name ?? ""} onChange={(e) => setG({ ...g, name: e.target.value })} />
               <Input placeholder="Teléfono con código de área (ej. 5491155551234)" value={g.phone ?? ""} onChange={(e) => setG({ ...g, phone: e.target.value })} />
               <Input placeholder="Email" value={g.email ?? ""} onChange={(e) => setG({ ...g, email: e.target.value })} />
@@ -416,7 +399,7 @@ export function ReservationForm({
             </div>
           ) : (
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Input placeholder="Buscar por nombre" className={`w-full sm:w-[200px] sm:shrink-0`} value={guestQuery} onChange={(e) => setGuestQuery(e.target.value)} />
+              <Input placeholder="Buscar por nombre" className="w-full sm:w-[200px] sm:shrink-0" value={guestQuery} onChange={(e) => setGuestQuery(e.target.value)} />
               <Select value={r.guestId ?? ""} onChange={(e) => set({ guestId: e.target.value })}>
                 <option value="">Elegí el huésped</option>
                 {guests.map((x) => (
@@ -487,11 +470,11 @@ export function ReservationForm({
                 ))}
               </Select>
             </Field>
-            <div className="hero-card flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-2xl px-5 py-4 text-[15px] sm:self-end">
-              <span className="font-medium">
+            <div className="hero-card flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl px-4 py-3.5 text-[15px] sm:self-end">
+              <span className="label-mono text-[12.5px] font-medium">
                 {n} noche{n === 1 ? "" : "s"} · Total de la estadía
               </span>
-              <b className="num text-[30px] leading-none tabular-nums">
+              <b className="num text-[28px] leading-none tabular-nums">
                 <CountUp value={n * (Number(r.rate) || 0)} format={money} duration={400} />
               </b>
             </div>
@@ -502,7 +485,7 @@ export function ReservationForm({
         </FormSection>
       </div>
       {error && (
-        <p className="mt-4 flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-[14px] text-red-700">
+        <p role="alert" className="mt-4 flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-[14px] font-medium text-red-700 ring-1 ring-inset ring-red-200">
           <AlertCircle size={18} className="mt-0.5 shrink-0" aria-hidden />
           <span>{error}</span>
         </p>
@@ -551,17 +534,17 @@ export function ReservationDrawer({ id, onClose, onEdit }: { id: string | null; 
       <div className="space-y-6">
         <div className="aurora -mx-5 -mt-5 overflow-hidden border-b border-gray-200/70 px-5 pb-5 pt-5">
           <div className="flex items-center gap-4">
-            <GradAvatar name={r.guestName} size={64} vip={guestTags.includes("VIP")} ring="ring-4 ring-accent/20" />
+            <GradAvatar name={r.guestName} size={60} vip={guestTags.includes("VIP")} ring="ring-4 ring-accent/20" />
             <div className="min-w-0 flex-1">
-              <div className="text-[22px] font-semibold leading-tight">{r.guestName}</div>
-              <div className="label-mono mt-1 text-[12.5px] text-gray-600">N° {r.id.slice(-6)}</div>
+              <div className="break-words text-[21px] font-semibold leading-tight tracking-tight">{r.guestName}</div>
+              <div className="label-mono mt-1.5 text-[12.5px] text-gray-600">N° {r.id.slice(-6)}</div>
             </div>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Badge className={`${RES_STATUS_BADGE[r.status]} !px-3 !py-1 !text-[14px]`}>{RES_STATUS_LABEL[r.status]}</Badge>
+            <Badge className={`${RES_STATUS_BADGE[r.status]} !px-3 !py-1`}>{RES_STATUS_LABEL[r.status]}</Badge>
             {isActive(r) && r.status !== "checkout" && (
-              <Badge className="bg-white !px-3 !py-1 !text-[14px] ring-gray-200" dot={false}>
-                <span className={`mr-1 h-2.5 w-2.5 rounded-full ring-2 ring-white ${VISUAL_DOT[vs]}`} /> {VISUAL_LABEL[vs]}
+              <Badge className="bg-panel !px-3 !py-1 text-gray-700 ring-gray-200" dot={false}>
+                <span aria-hidden className={`mr-0.5 h-2 w-2 shrink-0 rounded-full ${VISUAL_DOT[vs]}`} /> {VISUAL_LABEL[vs]}
               </Badge>
             )}
           </div>
@@ -573,13 +556,13 @@ export function ReservationDrawer({ id, onClose, onEdit }: { id: string | null; 
         </div>
 
         {r.status !== "cancelada" && r.status !== "no_show" && (
-          <section className="space-y-5 rounded-2xl border border-gray-200/80 bg-panel p-4 shadow-card">
+          <section className="space-y-5 rounded-xl border border-gray-200/80 bg-panel p-4 shadow-card">
             <Stepper status={r.status} />
             <StayBar checkIn={r.checkIn} checkOut={r.checkOut} today={t} n={nights(r)} />
           </section>
         )}
 
-        <dl className="grid grid-cols-2 gap-2.5 text-[15px]">
+        <dl className="grid grid-cols-2 gap-2 text-[15px]">
           <Info icon={<BedDouble size={15} />} label="Habitación" value={`${room?.number ?? "?"} · ${room?.type ?? ""}`} />
           <Info icon={<Users size={15} />} label="Personas" value={`${r.pax} ${r.pax === 1 ? "persona" : "personas"}`} />
           <Info icon={<CalendarDays size={15} />} label="Entrada" value={fmtDate(r.checkIn)} />
@@ -588,49 +571,53 @@ export function ReservationDrawer({ id, onClose, onEdit }: { id: string | null; 
           <Info icon={<Phone size={15} />} label="Teléfono" value={guest?.phone ?? "—"} />
         </dl>
         {(guestTags.length > 0 || guest?.preferences) && (
-          <div className="flex flex-wrap items-center gap-1.5 rounded-xl bg-blue-50 px-3.5 py-3 text-[15px] text-blue-900">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg bg-blue-50 px-3.5 py-3 text-[15px] leading-snug text-blue-900 ring-1 ring-inset ring-blue-200">
             {guestTags.map((tg) => (
-              <Badge key={tg} className={tg === "VIP" ? "bg-amber-100 text-amber-800" : "bg-white text-gray-700"}>
+              <Badge key={tg} dot={false} className={tg === "VIP" ? "bg-amber-100 text-amber-800" : "bg-panel text-gray-700"}>
                 <Tag size={12} aria-hidden /> {tg}
               </Badge>
             ))}
-            {guest?.preferences && <span><Star size={15} className="mr-1 inline-block align-[-2px]" aria-hidden /> {guest.preferences}</span>}
+            {guest?.preferences && <span className="min-w-0 break-words"><Star size={15} className="mr-1 inline-block align-[-2px]" aria-hidden /> {guest.preferences}</span>}
           </div>
         )}
-        {r.notes && <p className="rounded-xl bg-amber-50 px-3.5 py-3 text-[15px] text-amber-900"><StickyNote size={15} className="mr-1 inline-block align-[-2px]" aria-hidden /> {r.notes}</p>}
+        {r.notes && (
+          <p className="flex gap-2 rounded-lg bg-amber-50 px-3.5 py-3 text-[15px] leading-snug text-amber-900 ring-1 ring-inset ring-amber-200">
+            <StickyNote size={16} className="mt-0.5 shrink-0" aria-hidden /> <span className="min-w-0 break-words">{r.notes}</span>
+          </p>
+        )}
 
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-2">
           {canEdit && r.status === "pendiente" && (
             <Button variant="primary" className="col-span-2 !h-12 !text-[16px]" onClick={() => actions.setReservationStatus(r, "confirmada").then(() => toast("Reserva confirmada"))}>
               Confirmar reserva
             </Button>
           )}
           {canCheckIn && (
-            <Button variant="success" className="col-span-2 !h-12 !text-[16px] shadow-md" onClick={doCheckIn}>
+            <Button variant="success" className="col-span-2 !h-12 !text-[16px]" onClick={doCheckIn}>
               <LogIn size={18} /> Dar entrada
             </Button>
           )}
           {canCheckOut && (
-            <Button variant="danger" className="col-span-2 !h-12 !text-[16px] shadow-md" onClick={doCheckOut}>
+            <Button variant="danger" className="col-span-2 !h-12 !text-[16px]" onClick={doCheckOut}>
               <LogOut size={18} /> Dar salida
             </Button>
           )}
           {canEdit && (
-            <Button className="!h-11 w-full !text-[15px]" onClick={() => onEdit(r)}>
+            <Button className="w-full" onClick={() => onEdit(r)}>
               <Pencil size={15} /> Editar
             </Button>
           )}
           {can("facturacion") && (
             <Link href={`/facturacion?r=${r.id}`} className="contents">
-              <Button className="!h-auto min-h-[44px] w-full !whitespace-normal !py-2 text-center !text-[15px]">
-                <Receipt size={16} /> Ver cuenta y factura
+              <Button className="!h-auto min-h-[44px] w-full !whitespace-normal !py-2 text-center leading-tight sm:min-h-10">
+                <Receipt size={16} className="shrink-0" /> Ver cuenta y factura
               </Button>
             </Link>
           )}
           {can("whatsapp") && (
             <Link href={`/whatsapp?r=${r.id}`} className="contents">
-              <Button className="!h-auto min-h-[44px] w-full !whitespace-normal !py-2 text-center !text-[15px]">
-                <MessageCircle size={15} /> WhatsApp
+              <Button className="!h-auto min-h-[44px] w-full !whitespace-normal !py-2 text-center leading-tight sm:min-h-10">
+                <MessageCircle size={16} className="shrink-0" /> WhatsApp
               </Button>
             </Link>
           )}
@@ -638,18 +625,18 @@ export function ReservationDrawer({ id, onClose, onEdit }: { id: string | null; 
 
         {showMoney && (
           <section>
-            <h4 className="label-mono mb-2 text-[12.5px] font-semibold text-gray-700">Cuenta</h4>
-            <div className="overflow-hidden rounded-2xl border border-gray-200/80 text-[15px]">
+            <h4 className="label-mono mb-2 text-[12.5px] font-medium text-gray-600">Cuenta</h4>
+            <div className="overflow-hidden rounded-xl border border-gray-200/80 bg-panel text-[15px] shadow-card">
               <Row label={`Alojamiento (${nights(r)} × ${money(r.rate)})`} value={money(f.lodging)} />
               <Row label={`Consumos (${f.charges.length})`} value={money(f.extras)} />
               <Row label="Pagado" value={`− ${money(f.paid)}`} />
-              <div className="flex items-center gap-4 px-4 pb-2 pt-3">
-                <Ring value={paidPct} size={76} stroke={8} tone={paidPct >= 100 ? "green" : "amber"} label={`${Math.round(paidPct)}% pagado`}>
-                  <span className="num text-[20px] leading-none">{Math.round(paidPct)}%</span>
+              <div className="flex items-center gap-4 border-b border-gray-200/70 px-4 py-3">
+                <Ring value={paidPct} size={68} stroke={7} tone={paidPct >= 100 ? "green" : "amber"} label={`${Math.round(paidPct)}% pagado`}>
+                  <span className="num text-[18px] leading-none tabular-nums">{Math.round(paidPct)}%</span>
                 </Ring>
                 <div className="min-w-0">
                   <div className="label-mono text-[12.5px] text-gray-600">{Math.round(paidPct)}% pagado</div>
-                  <div className={`mt-0.5 text-[15px] font-semibold ${f.balance > 0 ? "text-red-600" : "text-green-700"}`}>
+                  <div className={`mt-0.5 text-[15px] font-semibold tabular-nums ${f.balance > 0 ? "text-red-600" : "text-green-700"}`}>
                     {f.balance > 0 ? `Falta cobrar ${money(f.balance)}` : "Todo pagado"}
                   </div>
                 </div>
@@ -660,21 +647,21 @@ export function ReservationDrawer({ id, onClose, onEdit }: { id: string | null; 
         )}
 
         <section>
-          <h4 className="label-mono mb-2 flex items-center justify-between gap-2 text-[12.5px] font-semibold text-gray-700">
-            Estado de la habitación
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <h4 className="label-mono text-[12.5px] font-medium text-gray-600">Estado de la habitación</h4>
             {state && <Badge className={ROOM_STATE_CLASS[state]}>{ROOM_STATE_LABEL[state]}</Badge>}
-          </h4>
+          </div>
           {tasks.length === 0 ? (
-            <p className="text-[15px] text-gray-600">No hay tareas para esta habitación.</p>
+            <p className="rounded-lg border border-dashed border-gray-300 px-3.5 py-3 text-[14px] text-gray-600">No hay tareas para esta habitación.</p>
           ) : (
-            <ul className="divide-y divide-gray-200/80 overflow-hidden rounded-xl border border-gray-200/80">
+            <ul className="divide-y divide-gray-200/70 overflow-hidden rounded-xl border border-gray-200/80 bg-panel shadow-card">
               {tasks.slice(0, 10).map((task) => (
-                <li key={task.id} className="flex items-center justify-between gap-2 px-4 py-2.5 text-[15px]">
-                  <span className="min-w-0">
-                    <span className="block truncate">
+                <li key={task.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-[15px]">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium" title={task.title}>
                       <TaskIcon type={task.type} /> {task.title}
                     </span>
-                    <span className="block text-[13.5px] text-gray-600">
+                    <span className="block truncate text-[13px] text-gray-600">
                       {task.status === "completada"
                         ? `Hecha por ${staffName(task.completedBy)} · ${fmtDateTime(task.completedAt)}`
                         : `Asignada a ${staffName(task.assignedTo)}`}
@@ -687,19 +674,19 @@ export function ReservationDrawer({ id, onClose, onEdit }: { id: string | null; 
               ))}
             </ul>
           )}
-          <Link href={`/mantenimiento?hab=${r.roomId}`} className="mt-3 inline-block py-1 text-[15px] font-medium text-accent hover:underline">
+          <Link href={`/mantenimiento?hab=${r.roomId}`} className="mt-2 inline-flex min-h-[44px] items-center rounded-md text-[14px] font-semibold text-accent underline-offset-4 hover:underline sm:min-h-9">
             Ver limpieza y arreglos →
           </Link>
         </section>
 
-        <section className="space-y-1 border-t border-gray-100 pt-4 text-[14px] text-gray-600">
+        <section className="space-y-1 border-t border-gray-200/70 pt-4 text-[13.5px] leading-snug text-gray-600">
           <div>Reserva cargada el {fmtDateTime(r.createdAt)} por {staffName(r.createdBy)}</div>
           {r.checkedInAt && <div>Entró el {fmtDateTime(r.checkedInAt)} (lo registró {staffName(r.checkedInBy)})</div>}
           {r.checkedOutAt && <div>Se fue el {fmtDateTime(r.checkedOutAt)} (lo registró {staffName(r.checkedOutBy)})</div>}
         </section>
 
         {canEdit && isActive(r) && r.status !== "checkout" && (
-          <div className="flex flex-wrap gap-2 border-t border-gray-100 pt-4">
+          <div className="-mx-1 flex flex-wrap gap-1 border-t border-gray-200/70 pt-3">
             <Button size="sm" variant="ghost" onClick={() => confirm(`¿Querés cancelar la reserva de ${r.guestName}?`) && actions.setReservationStatus(r, "cancelada")}>
               Cancelar reserva
             </Button>
@@ -714,7 +701,7 @@ export function ReservationDrawer({ id, onClose, onEdit }: { id: string | null; 
           <Button
             size="sm"
             variant="ghost"
-            className="text-red-600"
+            className="-mx-1 text-red-600 hover:!bg-red-50 hover:!text-red-700"
             onClick={() => {
               if (confirm("¿Borrar esta reserva para siempre?\n\nNo se puede deshacer.")) {
                 actions.deleteReservation(r);
@@ -733,20 +720,20 @@ export function ReservationDrawer({ id, onClose, onEdit }: { id: string | null; 
 
 function Info({ label, value, icon }: { label: string; value: React.ReactNode; icon?: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-gray-200/80 bg-gray-50 px-3.5 py-3">
-      <dt className="label-mono flex items-center gap-1.5 text-[12.5px] text-gray-600">
+    <div className="min-w-0 rounded-lg border border-gray-200/80 bg-panel-2/60 px-3 py-2.5">
+      <dt className="label-mono flex items-center gap-1.5 text-[12.5px] text-gray-600 [&>svg]:shrink-0 [&>svg]:text-gray-500">
         {icon}
         {label}
       </dt>
-      <dd className="mt-0.5 break-words font-medium text-gray-900">{value}</dd>
+      <dd className="mt-1 break-words font-medium leading-snug tabular-nums text-fg">{value}</dd>
     </div>
   );
 }
 function Row({ label, value, strong, tone }: { label: string; value: string; strong?: boolean; tone?: string }) {
   return (
-    <div className={`flex items-center justify-between gap-3 border-b border-gray-200/80 px-4 py-2.5 last:border-0 ${strong ? "bg-accent/5 py-3.5" : ""}`}>
-      <span className={strong ? "font-medium text-gray-800" : "text-gray-600"}>{label}</span>
-      <span className={`tabular-nums ${strong ? "num text-[28px]" : ""} ${tone ?? ""}`}>{value}</span>
+    <div className={`flex items-baseline justify-between gap-3 border-b border-gray-200/70 px-4 last:border-0 ${strong ? "bg-accent/5 py-3.5" : "py-2.5"}`}>
+      <span className={strong ? "label-mono text-[12.5px] font-medium text-gray-700" : "min-w-0 text-gray-600"}>{label}</span>
+      <span className={`whitespace-nowrap tabular-nums ${strong ? "num text-[26px] leading-none" : "font-medium text-fg"} ${tone ?? ""}`}>{value}</span>
     </div>
   );
 }

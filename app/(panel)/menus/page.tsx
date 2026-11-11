@@ -10,6 +10,7 @@ import {
   Coffee,
   Cookie,
   IceCreamCone,
+  Info,
   Minus,
   Pencil,
   Plus,
@@ -17,7 +18,6 @@ import {
   ShoppingBag,
   StickyNote,
   Trash2,
-  Utensils,
   UtensilsCrossed,
   Wine,
 } from "lucide-react";
@@ -27,6 +27,7 @@ import {
   Badge,
   Button,
   Card,
+  Empty,
   Field,
   Input,
   Modal,
@@ -74,7 +75,7 @@ const ORDER_STATUS: Record<
   },
 };
 const STEP_BTN =
-  "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-800 transition duration-150 hover:bg-gray-50 active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100";
+  "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-panel/60 text-fg transition duration-150 hover:border-gray-400 hover:bg-gray-100 active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 sm:h-10 sm:w-10";
 const TOUCH_BTN = "";
 
 // Cada tipo de comida tiene su "portada": degradé propio e ícono grande.
@@ -202,7 +203,7 @@ function Stepper({ status }: { status: Order["status"] }) {
         >
           <span
             className={cls(
-              "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ring-2 transition-colors duration-300 motion-reduce:transition-none",
+              "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-bold tabular-nums ring-2 transition-colors duration-300 motion-reduce:transition-none",
               i <= at
                 ? "bg-accent text-accent-fg ring-accent"
                 : "bg-gray-100 text-gray-500 ring-gray-300",
@@ -265,7 +266,7 @@ export default function MenusPage() {
               <div className="flex items-center gap-2 text-[15px] font-medium opacity-90">
                 <ChefHat size={18} aria-hidden /> Pedidos en curso
               </div>
-              <div className="num mt-2 text-[48px] leading-none">
+              <div className="num mt-2 text-[48px] leading-none tabular-nums">
                 <CountUp value={active} />
               </div>
             </div>
@@ -276,42 +277,44 @@ export default function MenusPage() {
               />
             )}
           </div>
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
-            <div className="label-mono text-[12.5px] text-gray-600">
+          <div className="rounded-2xl border border-gray-200/80 bg-panel p-5 shadow-card">
+            <div className="label-mono flex items-center gap-2 text-[12.5px] text-gray-600">
+              <span aria-hidden className="h-2 w-2 rounded-full bg-amber-500" />
               Esperando
             </div>
-            <div className="num mt-1 text-[32px] leading-none text-amber-700">
+            <div className="num mt-2 text-[32px] leading-none tabular-nums text-amber-700">
               <CountUp value={pending} />
             </div>
             <div className="mt-2 text-[14px] text-gray-600">
               todavía no empezaron
             </div>
           </div>
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
-            <div className="label-mono text-[12.5px] text-gray-600">
+          <div className="rounded-2xl border border-gray-200/80 bg-panel p-5 shadow-card">
+            <div className="label-mono flex items-center gap-2 text-[12.5px] text-gray-600">
+              <span aria-hidden className="h-2 w-2 rounded-full bg-blue-500" />
               Preparando
             </div>
-            <div className="num mt-1 text-[32px] leading-none text-blue-700">
+            <div className="num mt-2 text-[32px] leading-none tabular-nums text-blue-700">
               <CountUp value={cooking} />
             </div>
             <div className="mt-2 text-[14px] text-gray-600">
               {deliveredToday} entregados hoy
             </div>
           </div>
-          <div className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
+          <div className="flex items-center gap-4 rounded-2xl border border-gray-200/80 bg-panel p-5 shadow-card">
             <Ring
               value={availPct}
               size={72}
               stroke={8}
               label={`${Math.round(availPct)}% de la carta disponible`}
             >
-              <span className="num text-[18px]">{Math.round(availPct)}%</span>
+              <span className="num text-[18px] tabular-nums">{Math.round(availPct)}%</span>
             </Ring>
-            <div>
+            <div className="min-w-0">
               <div className="label-mono text-[12.5px] text-gray-600">
                 Carta disponible
               </div>
-              <div className="mt-1 text-[14px] text-gray-700">
+              <div className="mt-1 text-[14px] leading-snug text-gray-600">
                 {available} de {data.menuItems.length} platos y bebidas
               </div>
             </div>
@@ -364,23 +367,17 @@ function Carta() {
           className={`${TOUCH_BTN} w-full sm:w-auto`}
           onClick={() => setEdit({ category: "Principales", available: true })}
         >
-          <Plus size={15} /> Agregar comida o bebida
+          <Plus size={15} aria-hidden /> Agregar comida o bebida
         </Button>
       </div>
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid items-start gap-5 md:grid-cols-2 xl:grid-cols-3">
         {CATEGORIES.map((c) => {
           const cs = CAT_STYLE[c];
           const items = data.menuItems
             .filter((m) => m.category === c)
             .sort((a, b) => a.name.localeCompare(b.name));
           return (
-            <Card
-              key={c}
-              title={c}
-              icon={c === "Bebidas" || c === "Desayuno" ? Coffee : Utensils}
-              count={items.length}
-              className="overflow-hidden"
-            >
+            <Card key={c} className="overflow-hidden">
               <div
                 className={cls(
                   "relative flex h-24 items-center justify-between overflow-hidden bg-gradient-to-br px-5 text-white",
@@ -395,8 +392,13 @@ function Carta() {
                   aria-hidden
                   className="absolute bottom-[-30px] left-1/3 h-20 w-20 rounded-full bg-white/10"
                 />
-                <div className="relative">
-                  <div className="display text-[20px] leading-none">{c}</div>
+                <div className="relative min-w-0">
+                  <h2 className="flex items-center gap-2.5">
+                    <span className="display text-[20px] leading-none">{c}</span>
+                    <span className="label-mono rounded-full bg-black/20 px-2 py-px text-[12.5px] tabular-nums tracking-normal">
+                      {items.length}
+                    </span>
+                  </h2>
                   <div className="mt-1.5 text-[14px] font-medium text-white/90">
                     {cs.hint}
                   </div>
@@ -405,18 +407,18 @@ function Carta() {
                   size={52}
                   strokeWidth={1.5}
                   aria-hidden
-                  className="mn-float relative text-white/90 drop-shadow"
+                  className="mn-float relative shrink-0 text-white/90 drop-shadow"
                 />
               </div>
               <ul className="stagger grid gap-3 p-3">
                 {items.map((m) => (
                   <li
                     key={m.id}
-                    className="lift relative rounded-2xl border border-gray-200 bg-white p-3.5 pt-5 shadow-card"
+                    className="relative rounded-xl border border-gray-200/80 bg-panel-2/50 p-3.5 pt-5"
                   >
                     <span
                       className={cls(
-                        "num absolute -top-px right-4 flex items-center rounded-b-xl px-3 pb-1 pt-2.5 text-[20px] tabular-nums shadow-md",
+                        "num absolute -top-px right-4 flex items-center rounded-b-xl px-3 pb-1 pt-2.5 text-[19px] leading-tight tabular-nums shadow-md",
                         m.available
                           ? "bg-accent text-accent-fg"
                           : "bg-gray-300 text-gray-700 line-through",
@@ -433,12 +435,12 @@ function Carta() {
                       <span
                         aria-hidden
                         className={cls(
-                          "flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-inner",
+                          "flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-inner",
                           cs.grad,
                           !m.available && "opacity-50 grayscale",
                         )}
                       >
-                        <cs.icon size={28} strokeWidth={1.75} />
+                        <cs.icon size={26} strokeWidth={1.75} />
                       </span>
                       <div
                         className={cls(
@@ -446,7 +448,7 @@ function Carta() {
                           !m.available && "opacity-60",
                         )}
                       >
-                        <div className="text-[16px] font-semibold leading-snug text-gray-900">
+                        <div className="break-words text-[16px] font-semibold leading-snug text-fg">
                           {m.name}
                         </div>
                         {m.description && (
@@ -456,8 +458,8 @@ function Carta() {
                         )}
                       </div>
                     </div>
-                    <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
-                      <label className="flex min-h-[44px] cursor-pointer items-center gap-2.5 text-[14px] font-medium text-gray-700">
+                    <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-gray-200/70 pt-2">
+                      <label className="flex min-h-[44px] cursor-pointer items-center gap-2.5 text-[14px] font-medium text-gray-700 sm:min-h-[36px]">
                         <input
                           type="checkbox"
                           className="h-5 w-5 accent-[rgb(var(--accent))]"
@@ -471,19 +473,16 @@ function Carta() {
                         />{" "}
                         Hay
                       </label>
-                      <button
-                        className="flex h-11 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 text-[14px] font-medium text-gray-800 transition duration-150 hover:bg-gray-50 active:scale-[0.98] motion-reduce:transition-none sm:h-10"
-                        onClick={() => setEdit(m)}
-                      >
-                        <Pencil size={14} /> Cambiar
-                      </button>
+                      <Button size="sm" onClick={() => setEdit(m)}>
+                        <Pencil size={14} aria-hidden /> Cambiar
+                      </Button>
                     </div>
                   </li>
                 ))}
                 {items.length === 0 && (
-                  <li className="flex flex-col items-center gap-2 px-4 py-8 text-center text-[15px] text-gray-600">
-                    <span className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-500">
-                      <Cookie size={24} aria-hidden />
+                  <li className="flex flex-col items-center gap-2.5 rounded-xl border border-dashed border-gray-300 px-4 py-7 text-center text-[14.5px] leading-snug text-gray-600">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                      <Cookie size={20} aria-hidden />
                     </span>
                     Todavía no hay nada acá. Tocá «Agregar comida o bebida».
                   </li>
@@ -502,13 +501,13 @@ function Carta() {
             {edit?.id && (
               <Button
                 variant="ghost"
-                className="mr-auto text-red-600"
+                className="mr-auto text-red-700 hover:bg-red-50 hover:text-red-700"
                 onClick={() => {
                   actions.deleteMenuItem(edit as MenuItem);
                   setEdit(null);
                 }}
               >
-                <Trash2 size={14} /> Borrar
+                <Trash2 size={14} aria-hidden /> Borrar
               </Button>
             )}
             <Button onClick={() => setEdit(null)}>Cerrar sin guardar</Button>
@@ -648,15 +647,15 @@ function Orders() {
       <li
         key={o.id}
         className={cls(
-          "lift rounded-2xl border border-l-[6px] border-gray-200 bg-white p-3.5 shadow-card",
+          "rounded-xl border border-l-[5px] border-gray-200/80 bg-panel p-3.5 shadow-card",
           ORDER_STATUS[o.status].strip,
         )}
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="label-mono rounded-md border border-gray-300 bg-gray-50 px-2.5 py-1 text-[13px] font-semibold text-gray-900">
+          <span className="label-mono whitespace-nowrap rounded-md border border-gray-300 bg-panel-2 px-2.5 py-1 text-[13px] font-semibold tabular-nums text-fg">
             Hab. {roomOf(o)}
           </span>
-          <b className="num text-[22px] tabular-nums">{money(o.total, cur)}</b>
+          <b className="num ml-auto whitespace-nowrap text-[21px] leading-none tabular-nums">{money(o.total, cur)}</b>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <Elapsed
@@ -673,11 +672,11 @@ function Orders() {
         </div>
         {o.status !== "cancelado" && <Stepper status={o.status} />}
         <div className="mt-2.5 min-w-0 text-[15px]">
-          <div className="font-medium leading-snug">
+          <div className="break-words font-medium leading-snug">
             {o.lines.map((l) => `${l.qty}× ${l.name}`).join(", ")}
           </div>
           {o.notes && (
-            <div className="mt-1 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[14px] text-amber-800">
+            <div className="mt-1.5 break-words rounded-lg bg-amber-50 px-2.5 py-1.5 text-[14px] leading-snug text-amber-800 ring-1 ring-inset ring-amber-200">
               <StickyNote
                 size={15}
                 className="mr-1 inline-block align-[-2px]"
@@ -686,7 +685,7 @@ function Orders() {
               {o.notes}
             </div>
           )}
-          <div className="mt-1.5 text-[13.5px] text-gray-600">
+          <div className="mt-1.5 text-[13.5px] leading-snug text-gray-600">
             {fmtDateTime(o.createdAt)} · anotado por {staffName(o.createdBy)}
             {o.deliveredAt && ` · entregado por ${staffName(o.deliveredBy)}`}
           </div>
@@ -726,7 +725,7 @@ function Orders() {
   };
 
   return (
-    <div className="grid items-start gap-5 xl:grid-cols-[1fr_440px]">
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_440px]">
       <Card
         title="Pedidos"
         actions={
@@ -747,9 +746,9 @@ function Orders() {
                 <section
                   key={col.key}
                   aria-label={col.label}
-                  className="min-w-0 rounded-2xl bg-gray-50 p-2.5 ring-1 ring-gray-200"
+                  className="min-w-0 rounded-xl bg-panel-2/60 p-2.5 ring-1 ring-inset ring-gray-200/80"
                 >
-                  <h3 className="mb-2.5 flex items-center justify-between gap-2 px-1 text-[15px] font-semibold text-gray-900">
+                  <h3 className="mb-2.5 flex items-center justify-between gap-2 px-1 pt-0.5 text-[15px] font-semibold text-fg">
                     <span className="flex items-center gap-2">
                       <span
                         aria-hidden
@@ -764,15 +763,15 @@ function Orders() {
                       />
                       {col.label}
                     </span>
-                    <span className="num rounded-full bg-white px-2.5 py-0.5 text-[15px] tabular-nums ring-1 ring-gray-200">
+                    <span className="label-mono rounded-full bg-panel px-2 py-px text-[12.5px] font-normal tabular-nums tracking-normal text-gray-600 ring-1 ring-inset ring-gray-200">
                       {col.items.length}
                     </span>
                   </h3>
                   <ul className="stagger space-y-3">
                     {col.items.map(orderCard)}
                     {col.items.length === 0 && (
-                      <li className="flex flex-col items-center gap-1.5 rounded-xl border-2 border-dashed border-gray-300 px-3 py-6 text-center text-[14px] text-gray-600">
-                        <ClipboardList size={20} aria-hidden />
+                      <li className="flex flex-col items-center gap-1.5 rounded-xl border border-dashed border-gray-300 px-3 py-6 text-center text-[14px] text-gray-600">
+                        <ClipboardList size={20} aria-hidden className="text-gray-500" />
                         {col.key === "entregado"
                           ? "Acá van los que ya entregaste."
                           : "Nada por acá."}
@@ -784,7 +783,7 @@ function Orders() {
             </div>
             {cancelled.length > 0 && (
               <div className="mt-4">
-                <div className="label-mono mb-2 text-[12.5px] text-gray-600">
+                <div className="label-mono mb-2.5 border-t border-gray-200/70 pt-4 text-[12.5px] text-gray-600">
                   Cancelados
                 </div>
                 <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -794,28 +793,28 @@ function Orders() {
             )}
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-3 px-4 py-10 text-center text-[15px] text-gray-600">
-            <span className="flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-500">
-              <ClipboardList size={26} aria-hidden />
-            </span>
+          <Empty icon={ClipboardList}>
             {show === "activos"
               ? "No hay pedidos en curso. Cuando anotes uno, aparece acá."
               : "Todavía no hay pedidos."}
-          </div>
+          </Empty>
         )}
       </Card>
 
       <div id="pedido-nuevo" className="scroll-mt-4">
         <Card title="Anotar un pedido nuevo">
-          <div className="space-y-4 p-4">
-            <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-[14px] leading-relaxed text-gray-700">
+          <div className="space-y-4 p-4 sm:p-5">
+            <p className="rounded-lg border border-gray-200/80 bg-panel-2/60 px-3 py-2.5 text-[14px] leading-relaxed text-gray-700">
               1) Elegí la habitación. 2) Tocá el + en lo que piden. 3) Tocá el
               botón de abajo.
             </p>
             {inHouse.length === 0 && (
-              <p className="text-[14px] text-amber-800">
-                Ahora no hay huéspedes alojados, así que no se puede anotar
-                ningún pedido.
+              <p className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2.5 text-[14px] leading-snug text-amber-800 ring-1 ring-inset ring-amber-200">
+                <Info size={16} aria-hidden className="mt-0.5 shrink-0" />
+                <span>
+                  Ahora no hay huéspedes alojados, así que no se puede anotar
+                  ningún pedido.
+                </span>
               </p>
             )}
             <Select
@@ -830,18 +829,20 @@ function Orders() {
                 </option>
               ))}
             </Select>
-            <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+            <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-0.5 sm:-mx-5 sm:px-5">
               {CATEGORIES.map((c) => {
                 const CIcon = CAT_STYLE[c].icon;
                 return (
                   <button
                     key={c}
+                    type="button"
+                    aria-pressed={cat === c}
                     onClick={() => setCat(c)}
                     className={cls(
-                      "flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-[15px] font-medium transition duration-150 motion-reduce:transition-none",
+                      "flex h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-[15px] font-medium transition duration-150 motion-reduce:transition-none sm:h-10",
                       cat === c
-                        ? "border border-accent bg-accent/10 font-semibold text-gray-900"
-                        : "border border-gray-200 bg-white text-gray-700 hover:border-gray-300",
+                        ? "border-accent bg-accent/10 text-accent"
+                        : "border-gray-300 bg-panel/60 text-gray-700 hover:border-gray-400 hover:bg-gray-100 hover:text-fg",
                     )}
                   >
                     <CIcon size={16} aria-hidden /> {c}
@@ -849,7 +850,7 @@ function Orders() {
                 );
               })}
             </div>
-            <ul className="max-h-80 divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-200">
+            <ul className="max-h-80 divide-y divide-gray-200/60 overflow-y-auto overscroll-contain rounded-xl border border-gray-200/80 empty:hidden">
               {data.menuItems
                 .filter((m) => m.category === cat && m.available)
                 .map((m) => {
@@ -858,7 +859,7 @@ function Orders() {
                     <li
                       key={m.id}
                       className={cls(
-                        "flex items-center gap-2 border-l-4 px-3 py-3 text-[15px] transition-colors duration-150 motion-reduce:transition-none",
+                        "flex items-center gap-2 border-l-4 py-2.5 pl-2.5 pr-3 text-[15px] transition-colors duration-150 motion-reduce:transition-none",
                         (cart[m.id] ?? 0) > 0
                           ? "border-l-accent bg-accent/10"
                           : "border-l-transparent",
@@ -874,8 +875,8 @@ function Orders() {
                         <CIcon size={20} />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <div className="font-medium leading-snug">{m.name}</div>
-                        <div className="num text-[18px] tabular-nums text-accent">
+                        <div className="break-words font-medium leading-snug">{m.name}</div>
+                        <div className="num text-[17px] leading-snug tabular-nums text-accent">
                           {money(m.price, cur)}
                         </div>
                       </div>
@@ -888,7 +889,10 @@ function Orders() {
                       </button>
                       <span
                         key={cart[m.id] ?? 0}
-                        className="num mn-bump w-8 text-center text-[22px] tabular-nums"
+                        className={cls(
+                          "num mn-bump w-8 text-center text-[22px] tabular-nums",
+                          !(cart[m.id] ?? 0) && "text-gray-500",
+                        )}
                       >
                         {cart[m.id] ?? 0}
                       </span>
@@ -904,33 +908,33 @@ function Orders() {
                 })}
             </ul>
             {!data.menuItems.some((m) => m.category === cat && m.available) && (
-              <p className="flex flex-col items-center gap-2 rounded-lg bg-gray-50 px-3 py-4 text-center text-[15px] text-gray-600">
-                <Cookie size={22} aria-hidden /> No hay nada disponible en «
+              <p className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-gray-300 px-3 py-6 text-center text-[14.5px] text-gray-600">
+                <Cookie size={20} aria-hidden className="text-gray-500" /> No hay nada disponible en «
                 {cat}».
               </p>
             )}
             {lines.length > 0 && (
-              <ul className="space-y-1 rounded-xl border border-gray-200 bg-gray-50 p-3.5 text-[15px]">
+              <ul className="space-y-1.5 rounded-xl border border-gray-200/80 bg-panel-2/60 p-3.5 text-[15px]">
                 {lines.map((l) => (
                   <li
                     key={l.menuItemId}
-                    className="ui-pop flex justify-between"
+                    className="ui-pop flex items-baseline justify-between gap-3"
                   >
-                    <span>
-                      {l.qty}× {l.name}
+                    <span className="min-w-0 break-words">
+                      <span className="tabular-nums text-gray-600">{l.qty}×</span> {l.name}
                     </span>
-                    <span className="tabular-nums">
+                    <span className="whitespace-nowrap tabular-nums">
                       {money(l.qty * l.price, cur)}
                     </span>
                   </li>
                 ))}
-                <li className="mt-2 flex items-baseline justify-between border-t border-gray-200 pt-2.5">
-                  <span className="label-mono text-[12.5px] font-semibold text-gray-700">
+                <li className="!mt-2.5 flex items-baseline justify-between gap-3 border-t border-gray-200 pt-3">
+                  <span className="label-mono text-[12.5px] font-medium text-gray-600">
                     Total
                   </span>
                   <span
                     key={total}
-                    className="num mn-bump text-[34px] leading-none tabular-nums text-accent"
+                    className="num mn-bump whitespace-nowrap text-[32px] leading-none tabular-nums text-accent"
                   >
                     <CountUp
                       value={total}
@@ -949,10 +953,10 @@ function Orders() {
             />
             <Button
               variant="primary"
-              className="h-12 w-full text-[15px]"
+              className="!h-12 w-full"
               onClick={submit}
             >
-              Enviar pedido y sumarlo a la cuenta
+              <Check size={17} aria-hidden /> Enviar pedido y sumarlo a la cuenta
             </Button>
           </div>
         </Card>
@@ -965,14 +969,14 @@ function Orders() {
               .getElementById("pedido-nuevo")
               ?.scrollIntoView({ behavior: "smooth", block: "start" })
           }
-          className="ui-pop btn-primary fixed bottom-5 right-4 z-30 flex min-h-[52px] items-center gap-3 rounded-full bg-accent px-5 text-accent-fg shadow-lg xl:hidden"
+          className="ui-pop btn-primary fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-4 z-30 flex min-h-[52px] max-w-[calc(100vw-2rem)] items-center gap-3 rounded-full bg-accent px-5 text-accent-fg shadow-[0_12px_30px_-8px_rgb(var(--accent)/0.75)] xl:hidden"
           aria-label={`Ver el pedido: ${itemCount} productos, total ${money(total, cur)}`}
         >
           <ShoppingBag size={20} aria-hidden />
           <span className="text-[15px] font-semibold">
             {itemCount} {itemCount === 1 ? "producto" : "productos"}
           </span>
-          <span className="num text-[20px] tabular-nums">
+          <span className="num whitespace-nowrap border-l border-current/30 pl-3 text-[20px] tabular-nums">
             {money(total, cur)}
           </span>
         </button>
